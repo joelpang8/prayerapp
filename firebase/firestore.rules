@@ -83,6 +83,28 @@ service cloud.firestore {
       // Account deletion goes through a Cloud Function (step 5) so that the
       // user's posts, follows and photos are removed together.
       allow delete: if false;
+
+      // ---------- private settings ----------
+      // users/{uid}/private/settings: only the owner can read or write it.
+      // Friends never see it.
+      //   bibleVersion: the translation this user reads verses in.
+      // Only translations on this list can be chosen. KJV is public domain;
+      // licensed translations are added here only once their licence
+      // allows it. Must match app/src/lib/scripture/translations.ts.
+      match /private/{docId} {
+        function allowedTranslations() {
+          return ['KJV'];
+        }
+
+        allow get: if isSelf(uid) && docId == 'settings';
+        allow list: if false;
+        allow create, update: if isSelf(uid)
+          && docId == 'settings'
+          && request.resource.data.keys().hasOnly(['bibleVersion'])
+          && request.resource.data.bibleVersion in allowedTranslations();
+        // Removed with the account (step 5), not by clients.
+        allow delete: if false;
+      }
     }
 
     // ---------- username -> uid index ----------

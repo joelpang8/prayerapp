@@ -3,6 +3,8 @@ import { db } from "../firebase";
 import { watchMyPosts, type Post } from "../lib/posts";
 import { PhotoEvictedError } from "../lib/photoCache";
 import { watchLatestPrompt, type Prompt } from "../lib/prompts";
+import { DEFAULT_TRANSLATION } from "../lib/scripture/translations";
+import { watchSettings, type Settings } from "../lib/settings";
 import { useReadySession } from "./SessionProvider";
 
 export function useLatestPrompt(): { prompt: Prompt | null; loaded: boolean } {
@@ -53,4 +55,11 @@ export function useNow(intervalMs = 15_000): number {
     return () => clearInterval(id);
   }, [intervalMs]);
   return now;
+}
+
+export function useSettings(): Settings {
+  const { profile } = useReadySession();
+  const [settings, setSettings] = useState<Settings>({ bibleVersion: DEFAULT_TRANSLATION });
+  useEffect(() => watchSettings(db, profile.uid, setSettings), [profile.uid]);
+  return settings;
 }

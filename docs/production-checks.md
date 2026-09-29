@@ -18,7 +18,7 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
 2. **Deploy the backend** from `firebase/`:
    ```sh
    npx firebase login
-   npx firebase use --add        # choose your project, alias "default"
+   # firebase/.firebaserc already points at prayerapp-4ce99
    npm --prefix functions install
    npx firebase deploy --only firestore,storage,functions
    ```
@@ -26,15 +26,15 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
 3. **Your login for the script.** Install the gcloud CLI (`brew install --cask google-cloud-sdk`), then:
    ```sh
    gcloud auth application-default login
-   gcloud auth application-default set-quota-project <projectId>
+   gcloud auth application-default set-quota-project prayerapp-4ce99
    ```
 4. **Let your login sign test-user tokens.** The script creates sign-in tokens for its throwaway users, and doing that with your personal login needs one role on the Firebase Admin service account:
    ```sh
-   gcloud services enable iamcredentials.googleapis.com --project <projectId>
+   gcloud services enable iamcredentials.googleapis.com --project prayerapp-4ce99
    gcloud iam service-accounts add-iam-policy-binding \
-     firebase-adminsdk-XXXXX@<projectId>.iam.gserviceaccount.com \
+     firebase-adminsdk-XXXXX@prayerapp-4ce99.iam.gserviceaccount.com \
      --member="user:<your Google account email>" \
-     --role="roles/iam.serviceAccountTokenCreator" --project <projectId>
+     --role="roles/iam.serviceAccountTokenCreator" --project prayerapp-4ce99
    ```
    The exact service account email is under Firebase console → Project settings → **Service accounts**. You can remove this role again after the checks.
 
@@ -44,12 +44,12 @@ From `firebase/`:
 
 ```sh
 node scripts/verify-production.mjs \
-  --project <projectId> \
+  --project prayerapp-4ce99 \
   --api-key <apiKey from your Web app config> \
-  --service-account firebase-adminsdk-XXXXX@<projectId>.iam.gserviceaccount.com
+  --service-account firebase-adminsdk-XXXXX@prayerapp-4ce99.iam.gserviceaccount.com
 ```
 
-Add `--bucket <name>` only if your bucket isn't `<projectId>.firebasestorage.app`; older projects use `.appspot.com`. It takes about 2–3 minutes, most of it waiting for the unfriend function to run.
+Add `--bucket <name>` only if your bucket isn't `prayerapp-4ce99.firebasestorage.app`. The name is shown at the top of the Storage page in the console. It takes about 2–3 minutes, most of it waiting for the unfriend function to run.
 
 ## What I'll do with the report
 
