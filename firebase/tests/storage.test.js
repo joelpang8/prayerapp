@@ -5,6 +5,12 @@ import {
   anonymousStorage, seedFollow, seedFriends, seedUser, setupEnv, signedInAs, signedOutStorage, storageAs,
 } from "./helpers.js";
 
+// storage.rules calls firestore.exists(); in the Storage emulator that
+// cross-service call breaks when HTTPS_PROXY is set (firebase-tools routes its
+// own localhost request through the proxy). CI and local Macs are unaffected
+// and must run these. SKIP_CROSS_SERVICE=1 is only for proxied sandboxes.
+const crossService = test.skipIf(process.env.SKIP_CROSS_SERVICE === "1");
+
 let env;
 beforeAll(async () => { env = await setupEnv(); });
 afterAll(async () => { await env.cleanup(); });
@@ -80,7 +86,7 @@ describe("reading post photos", () => {
     await assertSucceeds(fetchBytes(storageAs(env, "alice"), photoPath("alice")));
   });
 
-  test("mutual friend can read", async () => {
+  crossService("mutual friend can read", async () => {
     await seedFriends(env, "alice", "bob");
     await assertSucceeds(fetchBytes(storageAs(env, "bob"), photoPath("alice")));
   });
@@ -102,7 +108,7 @@ describe("reading post photos", () => {
     await assertFails(fetchBytes(storageAs(env, "carol"), photoPath("alice")));
   });
 
-  test("access ends the moment the friendship ends", async () => {
+  crossService("access ends the moment the friendship ends", async () => {
     await seedFriends(env, "alice", "bob");
     const bob = storageAs(env, "bob");
     await assertSucceeds(fetchBytes(bob, photoPath("alice")));

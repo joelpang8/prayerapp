@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, test } from "vitest";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where,
+  collection, deleteDoc, doc, getDoc, getDocs, or, query, serverTimestamp, setDoc, updateDoc, where,
 } from "firebase/firestore";
 import {
   anonymousUser, followDoc, seedFollow, seedUser, setupEnv, signedInAs, signedOut,
@@ -102,6 +102,15 @@ describe("reading follows (who can see the social graph)", () => {
     await assertFails(getDoc(doc(db, "follows", "alice_bob")));
     await assertFails(getDocs(query(collection(db, "follows"), where("followeeId", "==", "bob"))));
     await assertFails(getDocs(query(collection(db, "follows"), where("followerId", "==", "alice"))));
+  });
+
+  test("the app's single 'either direction' query works for yourself only", async () => {
+    const mine = (db, uid) => query(collection(db, "follows"),
+      or(where("followerId", "==", uid), where("followeeId", "==", uid)));
+    await assertSucceeds(getDocs(mine(signedInAs(env, "bob"), "bob")));
+    await assertFails(getDocs(mine(signedInAs(env, "carol"), "bob")));
+    await assertFails(getDocs(query(collection(signedInAs(env, "carol"), "follows"),
+      or(where("followerId", "==", "carol"), where("followeeId", "==", "bob")))));
   });
 
   test("unconstrained queries over follows are denied", async () => {

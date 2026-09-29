@@ -53,19 +53,26 @@ Tests are in `firebase/tests/*.test.js`: 54 cases in total.
   - a query not constrained to authors the reader can see is rejected. For example, "all posts" is rejected, and so is an `in` query that includes one non-friend.
   - reading a post id that doesn't exist looks exactly like reading one you're not allowed to see.
 
-## Cached visibility: what the rules can't do, and what the client must do
+## Cached visibility: what the rules can't do, and where the app handles it
 
-The rules control what the **server** gives out. Anything the removed friend's device *already received* stays on that device unless the app deletes it. Here is how each gap is covered:
+The rules control what the **server** gives out. Anything a removed friend's device *already received* is the app's job to drop. That code is below, with the tests that check it.
 
-1. **Local Firestore cache.** The app will use the memory-only cache (`memoryLocalCache`), not disk persistence, for other people's posts. Nothing someone else prayed about is written to disk on a friend's phone. Your own history can still use a persistent cache.
-2. **Listener behaviour.** The app keeps a listener on its own follow edges. When a friendship ends, it closes the feed listeners for that friend and removes their posts from memory at once. It does not wait for the next server change. The server cut-off (tested above) is the backstop for a modified client.
-3. **Photos (step 2, important).** Firebase Storage `getDownloadURL()` URLs are permanent links that anyone holding them can open, and they stay valid after unfriending. **The app must not use them for post photos.** Storage rules will run the same mutual-follow check with `firestore.exists()`, and the client will fetch photos through the SDK so the rules are checked on every fetch. Those Storage rules get their own emulator tests in step 2.
-4. **Thumbnails and OS caches.** The image cache will be memory-only for friends' photos.
+| What | Where | Tested by |
+|---|---|---|
+| **Firestore cache is memory-only with eager garbage collection.** Nothing from Firestore is written to disk. A document leaves the in-memory cache as soon as no listener covers it. | `app/src/lib/firestoreSettings.ts`, used by `app/src/firebase.ts` | `app/tests/cachedVisibility.test.ts`: a friend's post is in the cache while the listener is open and gone once it's torn down. Runs the app's real settings against the emulator. |
+| **FriendScope**: the one place that knows who my friends are. It watches both directions of my follow edges from the server, ignoring cached snapshots. When someone leaves the friend set, it calls `evictAuthor(uid)` on every registered cache *before* the UI re-renders. `stop()` on sign-out clears everything. | `app/src/lib/friendScope.ts`, created per user in `app/src/session/SessionProvider.tsx` | `app/tests/unit/friendScope.test.ts`, plus an end-to-end test in `app/tests/cachedVisibility.test.ts` (alice removes bob, and bob's device drops alice's photos). |
+| **PhotoCache**: decoded photos held in memory only, as data URIs. Registered with FriendScope. A download that is still in flight when the friend is removed (or at sign-out) is thrown away, not shown. After an eviction, the next request goes back to the server, so the rules are checked again. | `app/src/lib/photoCache.ts` | `app/tests/unit/photoCache.test.ts` |
+| **Photos go through the Storage rules on every fetch.** `storageLoader` uses `getBytes`, never `getDownloadURL`. | `app/src/lib/photoCache.ts` | `app/tests/photoLoader.test.ts` (author gets it, stranger is refused, friend is refused right after removal), and `app/tests/unit/noDownloadUrls.test.ts`, which fails if any app code calls `getDownloadURL`. |
+
+Step 2's feed listeners must register with FriendScope, so that `evictAuthor` also unsubscribes that friend's listener and drops their posts from the feed state.
+
+**Remaining gap: permanent download tokens still exist.** Firebase Storage creates a download token when a file is uploaded. A *modified* client belonging to a current friend could read it and keep a permanent link. The honest app never does this. But the proper fix is a Cloud Function that removes the token after each upload, and it arrives with step 2's functions. (Anything a current friend has seen could be screenshotted anyway, so this closes a leak-by-link risk rather than a visibility one.)
 
 ## Known limits to confirm in step 2
 
 - **Rules lookup cap on feed queries.** Each friend in an `in` query costs 2 `exists()` lookups. Production allows 10 such lookups for a query request (20 for multi-document operations). The emulator passed a 2-friend `in` query but is not a reliable judge of these caps. Plan: split the feed into `in` queries of at most 5 authors, or run one query per friend. Check this against a real (non-demo) Firebase project before building the feed on it.
-- **Listener cut-off in production.** The listener behaviour above is tested in the emulator. It will be re-checked once against a real project in step 2, and the client-side teardown (point 2) doesn't rely on it either way.
+- **Listener cut-off in production.** The listener behaviour above is tested in the emulator. It will be re-checked once against a real project in step 2. FriendScope's client-side teardown doesn't rely on it either way.
+- **Storage emulator behind a proxy.** Storage rules that call `firestore.exists()` fail in the emulator when `HTTPS_PROXY` is set, because firebase-tools ignores `NO_PROXY` for its own localhost calls. This only affects proxied sandboxes. CI and a normal Mac are fine, and CI runs these tests.
 
 ## Moderation trigger points (flagging early, per the brief)
 
@@ -74,6 +81,12 @@ Moderation is deferred, but these are the points where it stops being optional:
 - **Follow-request spam or harassment.** Anyone who knows a username can send requests without limit, and there is no **block** yet. Declining just deletes the edge, and the sender can send again. A block list and rate limit (probably a Cloud Function) are needed before strangers can find each other.
 - **Photo content.** Once photos exist (step 2), there is no reporting path. Friends-only visibility lowers the risk but doesn't remove it. App Store Guideline 1.2 requires a way to report and block for user-generated content, so this is a **launch blocker for the App Store**, not just nice to have.
 
-## Not built yet in step 1 (waiting on framework confirmation)
+## Step 1 app (built)
 
-- Client sign-in UI (Apple/Google), the sign-up screen that writes the profile + username batch, the user search screen, the requests inbox, and the friends list with remove.
+- **Sign-in:** Apple (with a nonce, as Firebase requires) and Google, in `app/src/auth/signIn.ts`. In emulator mode there is also a development sign-in that uses the Auth emulator's fake Google token. Its provider is still `google.com`, so the same rules apply.
+- **Onboarding:** name and username, written in one batch. A taken username gets a clear message. `app/src/app/onboarding.tsx`
+- **Friends tab:** find by exact username, send a request, see incoming requests (with a badge on the tab), accept or decline, cancel sent requests, and remove friends (with a confirmation). `app/src/app/(tabs)/friends.tsx`
+- **Settings:** your profile and sign-out. Sign-out stops FriendScope, which clears every friend-scoped cache.
+- The Today tab is empty until step 2.
+
+Checked here: type-check, lint, an iOS JavaScript bundle build, and 31 data-layer tests (22 unit, 9 against the emulators). **Not checked yet: running on a device or simulator.** This environment is Linux, with no Xcode. See `docs/ios-device-build.md`.
