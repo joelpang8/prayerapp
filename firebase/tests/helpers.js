@@ -3,12 +3,13 @@ import { fileURLToPath } from "node:url";
 import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { doc, serverTimestamp, setDoc, Timestamp, writeBatch } from "firebase/firestore";
 
-const rulesPath = fileURLToPath(new URL("../firestore.rules", import.meta.url));
+const rulesFile = (name) => readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), "utf8");
 
 export async function setupEnv() {
   return initializeTestEnvironment({
     projectId: "demo-prayerapp",
-    firestore: { rules: readFileSync(rulesPath, "utf8") },
+    firestore: { rules: rulesFile("firestore.rules") },
+    storage: { rules: rulesFile("storage.rules") },
   });
 }
 
@@ -23,6 +24,18 @@ export function anonymousUser(env, uid) {
 
 export function signedOut(env) {
   return env.unauthenticatedContext().firestore();
+}
+
+export function storageAs(env, uid, provider = "apple.com") {
+  return env.authenticatedContext(uid, { firebase: { sign_in_provider: provider } }).storage();
+}
+
+export function anonymousStorage(env, uid) {
+  return env.authenticatedContext(uid, { firebase: { sign_in_provider: "anonymous" } }).storage();
+}
+
+export function signedOutStorage(env) {
+  return env.unauthenticatedContext().storage();
 }
 
 // Seed data bypassing rules (acts like the Admin SDK / Cloud Functions).

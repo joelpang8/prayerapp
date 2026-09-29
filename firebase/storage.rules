@@ -1,0 +1,54 @@
+rules_version = '2';
+
+// Post photos: postPhotos/{authorId}/{photoId}
+//
+// Same privacy boundary as posts in firestore.rules: only the author and the
+// author's CURRENT mutual friends may read a photo, checked against the live
+// follow docs on every request.
+//
+// Clients must never use getDownloadURL() for these objects: a download URL
+// carries a token that bypasses these rules and never expires. The app
+// fetches bytes through the SDK (getBytes), which is rule-checked each time.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function follows(a, b) {
+      return firestore.exists(/databases/(default)/documents/follows/$(a + '_' + b));
+    }
+
+    function areFriends(a, b) {
+      return follows(a, b) && follows(b, a);
+    }
+
+    match /postPhotos/{authorId}/{photoId} {
+      allow get: if signedIn() && (
+        request.auth.uid == authorId ||
+        areFriends(request.auth.uid, authorId));
+
+      // No listing: even the author enumerates their photos via their posts.
+      allow list: if false;
+
+      // Author uploads (or replaces, when editing a post) a JPEG under 5 MB.
+      // The client re-encodes captures to JPEG before upload.
+      allow create, update: if signedIn()
+        && request.auth.uid == authorId
+        && photoId.matches('^[A-Za-z0-9]{1,64}\\.jpg$')
+        && request.resource.size > 0
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg';
+
+      allow delete: if signedIn() && request.auth.uid == authorId;
+    }
+
+    // Everything else in the bucket is closed.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

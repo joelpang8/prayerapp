@@ -10,15 +10,15 @@
 | Anonymous auth | Rejected in the rules | Stops people creating unlimited throwaway identities to spam follow requests. |
 | Scripture storage | Posts store only the verse reference, never the text | Given in the brief. Each viewer's chosen version is looked up when the post is shown. |
 | Usernames | Lowercase `[a-z0-9_]{3,20}`, unique, can't be changed in v1 | Keeps the rules simple. Changing a username means moving the lookup doc safely, which can wait. |
+| Frontend | React Native + Expo (TypeScript), Firebase JS SDK | Confirmed. The JS SDK is chosen so the client data layer can be tested in Node against the emulators. |
+| Sign-in | Sign in with Apple + Google | Confirmed. |
+| Post editing | Posts are editable and deletable. Edited posts show an "edited" indicator. | Confirmed. `editedAt` is set by the rules, not by the client. |
+| "Late" | A label on the post only. No streaks and no comparison between friends. | Confirmed. |
+| Prompt timing | Global: everyone is prompted at the same moment (v1) | Confirmed. Per-user timing is a v2 idea and would be a different design. |
 
 ## Pending (ask before building)
 
 | Decision | Needed by | Notes |
 |---|---|---|
-| Frontend framework | Now, before `app/` is created | Recommendation: React Native + Expo (TypeScript). See the step 1 reply. |
-| Sign-in providers | Step 1 client | Recommendation: Sign in with Apple + Google. If Google sign-in is offered on iOS, App Store rules require Apple sign-in too. The rules don't depend on the provider. |
-| Is "late" purely descriptive, or does it carry social weight (streaks, visible to friends)? | Step 2 post schema | |
-| Can posts be edited or deleted after posting? | Step 2 post rules | Until decided, post writes are **denied** in the rules. This is deliberate, not a stub. |
-| Global prompt time vs. per-user time | Step 4 architecture | These are two different designs, not a toggle. |
-| Bible API provider | Step 3 | Check the license first: automated or notification-style display allowed? Limit on consecutive verses? |
+| Bible API provider | Step 3 | Check the license first: automated or notification-style display allowed? Limit on consecutive verses? Research not started. |
 | Moderation approach | Before a public launch | See the trigger points in `step1-auth-friends.md`. |
