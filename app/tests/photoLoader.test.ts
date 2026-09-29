@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { follow, removeFriend } from "../src/lib/friends";
 import { storageLoader } from "../src/lib/photoCache";
-import { dbAs, seedUser, setupEnv, skipCrossService, storageAs } from "./env";
+import { BUCKET, clearBucket, dbAs, seedUser, setupEnv, skipCrossService, storageAs } from "./env";
 
 let env: RulesTestEnvironment;
 beforeAll(async () => { env = await setupEnv(); });
@@ -13,11 +13,11 @@ const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
 
 beforeEach(async () => {
   await env.clearFirestore();
-  await env.clearStorage();
+  await clearBucket(env);
   await seedUser(env, "alice");
   await seedUser(env, "bob");
   await env.withSecurityRulesDisabled(async (ctx) => {
-    await ctx.storage().ref(PATH).put(JPEG, { contentType: "image/jpeg" });
+    await ctx.storage(BUCKET).ref(PATH).put(JPEG, { contentType: "image/jpeg" });
   });
 });
 

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, test } from "vitest";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import { deleteDoc, doc } from "firebase/firestore";
 import {
-  anonymousStorage, seedFollow, seedFriends, seedUser, setupEnv, signedInAs, signedOutStorage, storageAs,
+  adminStorage, anonymousStorage, clearBucket, seedFollow, seedFriends, seedUser, setupEnv, signedInAs, signedOutStorage, storageAs,
 } from "./helpers.js";
 
 // storage.rules calls firestore.exists(); in the Storage emulator that
@@ -26,12 +26,12 @@ const download = (storage, path) => storage.ref(path).getDownloadURL();
 const listDir = (storage, path) => storage.ref(path).listAll();
 
 async function seedPhoto(author, id = "p1.jpg") {
-  await env.withSecurityRulesDisabled((ctx) => ctx.storage().ref(photoPath(author, id)).put(JPEG, jpegMeta));
+  await env.withSecurityRulesDisabled((ctx) => adminStorage(ctx).ref(photoPath(author, id)).put(JPEG, jpegMeta));
 }
 
 beforeEach(async () => {
   await env.clearFirestore();
-  await env.clearStorage();
+  await clearBucket(env);
   for (const u of ["alice", "bob", "carol"]) await seedUser(env, u);
   await seedPhoto("alice");
 });

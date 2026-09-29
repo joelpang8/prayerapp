@@ -142,18 +142,80 @@ service cloud.firestore {
       allow delete: if party();
     }
 
+    // ---------- prompts ----------
+    // prompts/{yyyymmdd}: one global prompt per day (v1: everyone at once).
+    //   firedAt: timestamp the prompt went out
+    // Written only by the server (Cloud Function in step 4, or the dev seed
+    // script against the emulator). Readable by any signed-in user.
+    match /prompts/{promptId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
     // ---------- posts ----------
-    // Read access is the core privacy guarantee of the app: only the author
-    // and the author's CURRENT mutual friends.
+    // posts/{promptId}_{authorId}: at most one post per user per prompt.
+    //
+    // On-time vs late is not stored as a flag the client could fake. It is
+    // derived from two values the rules pin down:
+    //   createdAt     == request.time (server clock)
+    //   promptFiredAt == the prompt's firedAt
+    // late = createdAt > promptFiredAt + 7 minutes (2-min window + 5-min
+    // grace). See app/src/lib/posts.ts isLate(). Late is a label only:
+    // nothing is ranked or counted by it.
     match /posts/{postId} {
+      function prompt() {
+        return get(/databases/$(database)/documents/prompts/$(request.resource.data.promptId)).data;
+      }
+
+      function validNotes(n) {
+        return n is string && n.size() >= 1 && n.size() <= 2000;
+      }
+
+      // The photo lives in the author's own folder; storage.rules only lets
+      // the author write there.
+      function validPhotoPath(p) {
+        return p is string
+          && p.matches('^postPhotos/' + request.auth.uid + '/[A-Za-z0-9]{1,64}[.]jpg$');
+      }
+
+      // Read access is the core privacy guarantee of the app: only the
+      // author and the author's CURRENT mutual friends.
       allow get, list: if signedIn() && (
         resource.data.authorId == request.auth.uid ||
         areFriends(request.auth.uid, resource.data.authorId));
 
-      // Post creation/editing arrives in step 2. It is intentionally denied
-      // (not stubbed) until those rules are written and tested, and until
-      // the "are posts editable/deletable" decision is made.
-      allow create, update, delete: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath'])
+        && request.resource.data.keys().hasAll(
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.promptId is string
+        && request.resource.data.promptId.matches('^[0-9]{8}$')
+        && postId == request.resource.data.promptId + '_' + request.auth.uid
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && exists(/databases/$(database)/documents/prompts/$(request.resource.data.promptId))
+        && request.resource.data.promptFiredAt == prompt().firedAt
+        // Can't answer a prompt before it fires, and a prompt stays open
+        // for (late) posts for 24 hours.
+        && request.time >= prompt().firedAt
+        && request.time < prompt().firedAt + duration.value(24, 'h')
+        && request.resource.data.createdAt == request.time
+        && validNotes(request.resource.data.notes)
+        && validPhotoPath(request.resource.data.photoPath);
+
+      // Editable by the author: notes and/or photo. editedAt marks the post
+      // as edited and must be the server time. Timing fields never change,
+      // so editing can't turn a late post into an on-time one.
+      allow update: if signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes', 'photoPath', 'editedAt'])
+        && request.resource.data.editedAt == request.time
+        && validNotes(request.resource.data.notes)
+        && validPhotoPath(request.resource.data.photoPath);
+
+      // Deletable by the author. The photo is removed by a Cloud Function.
+      allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
     }
   }
 }

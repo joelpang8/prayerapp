@@ -64,9 +64,9 @@ The rules control what the **server** gives out. Anything a removed friend's dev
 | **PhotoCache**: decoded photos held in memory only, as data URIs. Registered with FriendScope. A download that is still in flight when the friend is removed (or at sign-out) is thrown away, not shown. After an eviction, the next request goes back to the server, so the rules are checked again. | `app/src/lib/photoCache.ts` | `app/tests/unit/photoCache.test.ts` |
 | **Photos go through the Storage rules on every fetch.** `storageLoader` uses `getBytes`, never `getDownloadURL`. | `app/src/lib/photoCache.ts` | `app/tests/photoLoader.test.ts` (author gets it, stranger is refused, friend is refused right after removal), and `app/tests/unit/noDownloadUrls.test.ts`, which fails if any app code calls `getDownloadURL`. |
 
-Step 2's feed listeners must register with FriendScope, so that `evictAuthor` also unsubscribes that friend's listener and drops their posts from the feed state.
+The step 2 feed (`app/src/lib/feed.ts`) is registered with FriendScope. `evictAuthor` closes that friend's listener and drops their posts from the feed.
 
-**Remaining gap: permanent download tokens still exist.** Firebase Storage creates a download token when a file is uploaded. A *modified* client belonging to a current friend could read it and keep a permanent link. The honest app never does this. But the proper fix is a Cloud Function that removes the token after each upload, and it arrives with step 2's functions. (Anything a current friend has seen could be screenshotted anyway, so this closes a leak-by-link risk rather than a visibility one.)
+**Photo download tokens:** these are handled by Cloud Functions in step 2. When a friendship ends, every download link to either person's photos is revoked. See `docs/step2-posts-feed.md` for why revoking at unfriend, rather than only after upload, is the guarantee that matters.
 
 ## Known limits to confirm in step 2
 

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import {
-  addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where,
+  collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where,
 } from "firebase/firestore";
 import {
   anonymousUser, seedFollow, seedFriends, seedPost, seedUser, setupEnv, signedInAs, signedOut,
@@ -141,14 +141,5 @@ describe("removing a friend revokes access immediately", () => {
     } finally {
       unsub();
     }
-  });
-});
-
-describe("post writes are closed until step 2 defines them", () => {
-  test("nobody can create, edit or delete posts from the client yet", async () => {
-    const alice = signedInAs(env, "alice");
-    await assertFails(addDoc(collection(alice, "posts"), { authorId: "alice", notes: "x" }));
-    await assertFails(updateDoc(doc(alice, "posts", "alicePost"), { notes: "edited" }));
-    await assertFails(deleteDoc(doc(alice, "posts", "alicePost")));
   });
 });

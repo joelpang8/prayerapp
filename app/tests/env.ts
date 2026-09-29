@@ -23,8 +23,31 @@ const claims = { firebase: { sign_in_provider: "apple.com" as const } };
 export const dbAs = (env: RulesTestEnvironment, uid: string) =>
   env.authenticatedContext(uid, claims).firestore() as unknown as Firestore;
 
+// The project's default bucket (what Cloud Functions triggers listen on).
+export const BUCKET = "gs://demo-prayerapp.appspot.com";
+
 export const storageAs = (env: RulesTestEnvironment, uid: string) =>
-  env.authenticatedContext(uid, claims).storage() as unknown as FirebaseStorage;
+  env.authenticatedContext(uid, claims).storage(BUCKET) as unknown as FirebaseStorage;
+
+/** Recursive clear: env.clearStorage() only removes top-level objects. */
+export async function clearBucket(env: RulesTestEnvironment) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    type Ref = { listAll(): Promise<{ items: { delete(): Promise<void> }[]; prefixes: Ref[] }> };
+    const walk = async (ref: Ref): Promise<void> => {
+      const { items, prefixes } = await ref.listAll();
+      await Promise.all([...items.map((i) => i.delete()), ...prefixes.map(walk)]);
+    };
+    await walk(ctx.storage(BUCKET).ref() as unknown as Ref);
+  });
+}
+
+export async function seedPrompt(env: RulesTestEnvironment, id: string, minutesAgo = 1): Promise<Date> {
+  const firedAt = new Date(Date.now() - minutesAgo * 60_000);
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore() as unknown as Firestore, "prompts", id), { firedAt: Timestamp.fromDate(firedAt) });
+  });
+  return firedAt;
+}
 
 export async function seedUser(env: RulesTestEnvironment, uid: string) {
   await env.withSecurityRulesDisabled(async (ctx) => {
@@ -34,12 +57,15 @@ export async function seedUser(env: RulesTestEnvironment, uid: string) {
   });
 }
 
-export async function seedPost(env: RulesTestEnvironment, id: string, authorId: string) {
+export async function seedPost(env: RulesTestEnvironment, id: string, authorId: string, createdAt = new Date()) {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore() as unknown as Firestore, "posts", id), {
       authorId,
-      notes: "private",
-      createdAt: Timestamp.now(),
+      promptId: "20260929",
+      promptFiredAt: Timestamp.fromDate(createdAt),
+      notes: `private notes by ${authorId}`,
+      photoPath: `postPhotos/${authorId}/p1.jpg`,
+      createdAt: Timestamp.fromDate(createdAt),
     });
   });
 }

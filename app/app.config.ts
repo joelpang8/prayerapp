@@ -32,6 +32,15 @@ const config: ExpoConfig = {
     "expo-router",
     "expo-apple-authentication",
     "expo-image",
+    [
+      "expo-image-picker",
+      {
+        cameraPermission: "Take a photo to go with your prayer. Only your friends can see it.",
+        // Library access is only used by the development-only photo picker.
+        photosPermission: "Choose a photo to go with your prayer.",
+        microphonePermission: false,
+      },
+    ],
     // Google Sign-In needs the reversed iOS client id as a URL scheme. It's
     // left out until configured, so emulator-only development still builds.
     ...(googleUrlScheme

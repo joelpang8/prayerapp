@@ -7,6 +7,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: colors.accent, headerStyle: { backgroundColor: colors.bg } }}>
       <Tabs.Screen name="index" options={{ title: "Today" }} />
+      <Tabs.Screen name="history" options={{ title: "History" }} />
       <Tabs.Screen
         name="friends"
         options={{ title: "Friends", tabBarBadge: graph.incoming.size || undefined }}

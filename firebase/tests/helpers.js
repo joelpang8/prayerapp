@@ -26,16 +26,36 @@ export function signedOut(env) {
   return env.unauthenticatedContext().firestore();
 }
 
+// The project's default bucket, which is also what Cloud Functions triggers
+// listen on. (rules-unit-testing would otherwise default to gs://{projectId}.)
+export const BUCKET = "gs://demo-prayerapp.appspot.com";
+
 export function storageAs(env, uid, provider = "apple.com") {
-  return env.authenticatedContext(uid, { firebase: { sign_in_provider: provider } }).storage();
+  return env.authenticatedContext(uid, { firebase: { sign_in_provider: provider } }).storage(BUCKET);
 }
 
 export function anonymousStorage(env, uid) {
-  return env.authenticatedContext(uid, { firebase: { sign_in_provider: "anonymous" } }).storage();
+  return env.authenticatedContext(uid, { firebase: { sign_in_provider: "anonymous" } }).storage(BUCKET);
 }
 
 export function signedOutStorage(env) {
-  return env.unauthenticatedContext().storage();
+  return env.unauthenticatedContext().storage(BUCKET);
+}
+
+export function adminStorage(ctx) {
+  return ctx.storage(BUCKET);
+}
+
+// env.clearStorage() only deletes top-level objects in gs://{projectId};
+// post photos are nested, so clear the real bucket recursively.
+export async function clearBucket(env) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const walk = async (ref) => {
+      const { items, prefixes } = await ref.listAll();
+      await Promise.all([...items.map((i) => i.delete()), ...prefixes.map(walk)]);
+    };
+    await walk(adminStorage(ctx).ref());
+  });
 }
 
 // Seed data bypassing rules (acts like the Admin SDK / Cloud Functions).
@@ -91,4 +111,13 @@ export function createProfileBatch(db, uid, username, displayName = "Someone") {
   batch.set(doc(db, "users", uid), { username, displayName, createdAt: serverTimestamp() });
   batch.set(doc(db, "usernames", username), { uid });
   return batch.commit();
+}
+
+// Prompt that fired `minutesAgo` minutes ago (server-written in production).
+export async function seedPrompt(env, promptId, minutesAgo = 1) {
+  await seed(env, (db) =>
+    setDoc(doc(db, "prompts", promptId), {
+      firedAt: Timestamp.fromMillis(Date.now() - minutesAgo * 60_000),
+    }),
+  );
 }

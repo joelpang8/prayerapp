@@ -16,6 +16,7 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={session.status === "ready"}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="compose" options={{ presentation: "modal" }} />
       </Stack.Protected>
     </Stack>
   );

@@ -5,8 +5,15 @@ on:
   pull_request:
 
 jobs:
+  closed-source:
+    name: No license files (closed-source)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: .github/scripts/check-no-license.sh
+
   rules:
-    name: Security rules (Firestore + Storage)
+    name: Security rules + Cloud Functions
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,8 +28,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: firebase/package-lock.json
+          cache-dependency-path: |
+            firebase/package-lock.json
+            firebase/functions/package-lock.json
       - run: npm ci
+      - run: npm ci
+        working-directory: firebase/functions
+      - run: npm run typecheck
+        working-directory: firebase/functions
+      # Builds the functions, then runs the rules + functions tests against
+      # the Firestore, Storage and Functions emulators.
       - run: npm test
 
   app:

@@ -2,6 +2,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { auth, db, storage } from "../firebase";
+import { FeedStore } from "../lib/feed";
 import { EMPTY_GRAPH, type FriendGraph } from "../lib/friends";
 import { FriendScope } from "../lib/friendScope";
 import { PhotoCache, storageLoader } from "../lib/photoCache";
@@ -11,7 +12,7 @@ type Session =
   | { status: "loading" }
   | { status: "signedOut" }
   | { status: "needsProfile"; user: User }
-  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache };
+  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache; feed: FeedStore };
 
 const SessionContext = createContext<Session>({ status: "loading" });
 
@@ -49,20 +50,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const profile = uid && profileState?.uid === uid ? profileState.profile : undefined;
   const hasProfile = !!profile;
 
-  // One FriendScope + photo cache per signed-in user. Stopping the scope
-  // (sign-out or switching accounts) clears every friend-scoped cache.
+  // One FriendScope per signed-in user, with every cache of other people's
+  // content registered on it (photos, feed). Stopping the scope (sign-out or
+  // switching accounts) clears all of them.
   const scoped = useMemo(() => {
     if (!uid) return null;
     const scope = new FriendScope(db, uid);
     const photos = new PhotoCache(storageLoader(storage));
     scope.register(photos);
-    return { scope, photos };
+    const feed = new FeedStore(db, scope, { onError: (err) => console.warn("feed listener failed", err) });
+    return { scope, photos, feed };
   }, [uid]);
 
   useEffect(() => {
     if (!scoped || !hasProfile) return;
+    scoped.feed.start();
     scoped.scope.start((err) => console.warn("friend graph listener failed", err));
-    return () => scoped.scope.stop();
+    return () => {
+      scoped.feed.stop();
+      scoped.scope.stop();
+    };
   }, [scoped, hasProfile]);
 
   const session: Session = useMemo(() => {

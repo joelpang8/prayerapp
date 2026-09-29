@@ -19,3 +19,23 @@ export function bytesToBase64(buffer: ArrayBuffer): string {
   }
   return out;
 }
+
+const LOOKUP = new Map([...ALPHABET].map((c, i) => [c, i]));
+
+/** base64 -> bytes (for image data from expo-image-manipulator). */
+export function base64ToBytes(b64: string): Uint8Array {
+  const clean = b64.replace(/[\s=]/g, "");
+  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  let o = 0;
+  for (let i = 0; i < clean.length; i += 4) {
+    const n =
+      ((LOOKUP.get(clean[i]) ?? 0) << 18) |
+      ((LOOKUP.get(clean[i + 1]) ?? 0) << 12) |
+      ((LOOKUP.get(clean[i + 2]) ?? 0) << 6) |
+      (LOOKUP.get(clean[i + 3]) ?? 0);
+    out[o++] = (n >> 16) & 255;
+    if (i + 2 < clean.length) out[o++] = (n >> 8) & 255;
+    if (i + 3 < clean.length) out[o++] = n & 255;
+  }
+  return out.subarray(0, o);
+}

@@ -3,16 +3,21 @@
   "version": "1.0.0",
   "description": "Firebase backend for the prayer app: security rules, rules tests, (later) Cloud Functions",
   "scripts": {
-    "test": "firebase emulators:exec --only firestore,storage --project demo-prayerapp \"vitest run\"",
-    "test:watch": "firebase emulators:exec --only firestore,storage --project demo-prayerapp \"vitest\"",
-    "emulators": "firebase emulators:start --only auth,firestore,storage --project demo-prayerapp"
+    "test": "firebase emulators:exec --only firestore,storage,functions --project demo-prayerapp \"vitest run\"",
+    "test:watch": "firebase emulators:exec --only firestore,storage,functions --project demo-prayerapp \"vitest\"",
+    "emulators": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,storage,functions --project demo-prayerapp",
+    "pretest": "npm --prefix functions run build",
+    "dev:prompt": "node scripts/fire-prompt.mjs",
+    "test:sandbox": "SKIP_CROSS_SERVICE=1 firebase emulators:exec --only firestore,storage --project demo-prayerapp \"vitest run\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
     "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
     "firebase-tools": "^15.32.0",
     "vitest": "^5.0.2"
   },
   "private": true,
-  "type": "module"
+  "type": "module",
+  "license": "UNLICENSED"
 }

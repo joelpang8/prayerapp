@@ -1,0 +1,127 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { deleteDoc, doc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { ownedPhotoPath, postPhotoAuthor, revokeFileToken, revokeUserPhotoTokens } from "../functions/lib/photos.js";
+import { clearBucket, seed, seedUser, setupEnv, signedInAs, storageAs } from "./helpers.js";
+
+// These run against the Functions emulator (triggers fire for real).
+// Same proxy caveat as the cross-service storage tests.
+const e2e = (name, fn) => test.skipIf(process.env.SKIP_CROSS_SERVICE === "1")(name, fn, 30000);
+
+let env;
+beforeAll(async () => { env = await setupEnv(); });
+afterAll(async () => { await env.cleanup(); });
+
+const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9]);
+
+async function eventually(check, timeoutMs = 20000) {
+  const start = Date.now();
+  let last;
+  while (Date.now() - start < timeoutMs) {
+    try {
+      if (await check()) return;
+    } catch (err) {
+      last = err;
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`condition not met in ${timeoutMs}ms${last ? `: ${last}` : ""}`);
+}
+
+const errorCode = (promise) => promise.then(() => null, (err) => err.code);
+
+describe("photo path ownership (unit)", () => {
+  test("parses the author of a post photo path", () => {
+    expect(postPhotoAuthor("postPhotos/alice/abc.jpg")).toBe("alice");
+    expect(postPhotoAuthor("postPhotos/alice/../bob/abc.jpg")).toBeNull();
+    expect(postPhotoAuthor("other/alice/abc.jpg")).toBeNull();
+    expect(postPhotoAuthor(undefined)).toBeNull();
+  });
+
+  test("only a photo in the author's own folder is eligible for cleanup", () => {
+    expect(ownedPhotoPath({ authorId: "alice", photoPath: "postPhotos/alice/a.jpg" })).toBe("postPhotos/alice/a.jpg");
+    expect(ownedPhotoPath({ authorId: "alice", photoPath: "postPhotos/bob/a.jpg" })).toBeNull();
+    expect(ownedPhotoPath({ authorId: "alice" })).toBeNull();
+    expect(ownedPhotoPath(undefined)).toBeNull();
+  });
+});
+
+describe("download-token revocation logic (unit)", () => {
+  // The Storage emulator keeps tokens outside custom metadata and re-adds
+  // them, so revocation can't be observed there. It's verified against the
+  // real project with scripts/verify-production.mjs.
+  function fakeFile(name, token = "tok") {
+    const calls = [];
+    return {
+      name,
+      metadata: { metadata: token ? { firebaseStorageDownloadTokens: token } : {} },
+      setMetadata: async (m) => { calls.push(m); },
+      calls,
+    };
+  }
+
+  test("removes the token by setting the custom-metadata key to null", async () => {
+    const f = fakeFile("postPhotos/alice/a.jpg");
+    expect(await revokeFileToken(f)).toBe(true);
+    expect(f.calls).toEqual([{ metadata: { firebaseStorageDownloadTokens: null } }]);
+  });
+
+  test("leaves files without a token, and non-post files, alone", async () => {
+    const none = fakeFile("postPhotos/alice/a.jpg", null);
+    const other = fakeFile("somewhere/else.jpg");
+    expect(await revokeFileToken(none)).toBe(false);
+    expect(await revokeFileToken(other)).toBe(false);
+    expect(none.calls).toEqual([]);
+    expect(other.calls).toEqual([]);
+  });
+
+  test("revokes every tokened photo in one user's folder, and only that folder", async () => {
+    const files = [fakeFile("postPhotos/alice/a.jpg"), fakeFile("postPhotos/alice/b.jpg"), fakeFile("postPhotos/alice/c.jpg", null)];
+    const prefixes = [];
+    const bucket = { getFiles: async ({ prefix }) => { prefixes.push(prefix); return [files]; } };
+    expect(await revokeUserPhotoTokens(bucket, "alice")).toBe(2);
+    expect(prefixes).toEqual(["postPhotos/alice/"]);
+  });
+
+  test("a malformed uid never widens the prefix", async () => {
+    const bucket = { getFiles: async () => { throw new Error("should not list"); } };
+    expect(await revokeUserPhotoTokens(bucket, "")).toBe(0);
+    expect(await revokeUserPhotoTokens(bucket, "../")).toBe(0);
+    expect(await revokeUserPhotoTokens(bucket, "a/b")).toBe(0);
+  });
+});
+
+describe("Cloud Functions against the emulators", () => {
+  beforeEach(async () => {
+    await env.clearFirestore();
+    await clearBucket(env);
+    await seedUser(env, "alice");
+  });
+
+  e2e("deleting a post deletes its photo", async () => {
+    const ref = storageAs(env, "alice").ref("postPhotos/alice/del1.jpg");
+    await ref.put(JPEG, { contentType: "image/jpeg" });
+    await seed(env, (db) => setDoc(doc(db, "posts", "20260929_alice"), {
+      authorId: "alice", promptId: "20260929", promptFiredAt: Timestamp.now(), createdAt: Timestamp.now(),
+      notes: "x", photoPath: "postPhotos/alice/del1.jpg",
+    }));
+    await deleteDoc(doc(signedInAs(env, "alice"), "posts", "20260929_alice"));
+    await eventually(async () => (await errorCode(ref.getMetadata())) === "storage/object-not-found");
+  });
+
+  e2e("replacing a post's photo deletes the old one and keeps the new one", async () => {
+    const storage = storageAs(env, "alice");
+    const oldRef = storage.ref("postPhotos/alice/old1.jpg");
+    const newRef = storage.ref("postPhotos/alice/new1.jpg");
+    await oldRef.put(JPEG, { contentType: "image/jpeg" });
+    await newRef.put(JPEG, { contentType: "image/jpeg" });
+    await seed(env, (db) => setDoc(doc(db, "posts", "20260929_alice"), {
+      authorId: "alice", promptId: "20260929", promptFiredAt: Timestamp.now(), createdAt: Timestamp.now(),
+      notes: "x", photoPath: "postPhotos/alice/old1.jpg",
+    }));
+    await updateDoc(doc(signedInAs(env, "alice"), "posts", "20260929_alice"), {
+      photoPath: "postPhotos/alice/new1.jpg", editedAt: serverTimestamp(),
+    });
+    await eventually(async () => (await errorCode(oldRef.getMetadata())) === "storage/object-not-found");
+    await expect(newRef.getMetadata()).resolves.toBeTruthy();
+  });
+});
