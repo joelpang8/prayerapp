@@ -7,4 +7,5 @@
 - **Anything holding other people's content on the device** must register with `FriendScope` (`app/src/lib/friendScope.ts`) and implement `evictAuthor`/`clear`. It stays memory-only, never written to disk.
 - **Scripture:** posts store only a verse *reference*, never the verse text.
 - **Build order and open decisions** are in `README.md` and `docs/decisions.md`. Ask before building anything that depends on an open decision.
+- **Step 4 prototype stays isolated.** `firebase/notify-proto/` and `prototypes/notify-app/` must not be imported by `app/` or `firebase/functions/` until it's proven on devices. Deploy the app with `functions:default`.
 - **Expo SDK 57.** Check APIs against the installed packages' types, not memory. Use `npx expo install` to add packages.

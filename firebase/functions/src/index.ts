@@ -50,12 +50,10 @@ export const revokePhotoLinksOnUnfriend = onDocumentDeleted("follows/{followId}"
 });
 
 async function deletePhoto(path: string) {
-  try {
-    await getStorage().bucket().file(path).delete();
-  } catch (err) {
-    // Already gone (e.g. a retried event) is fine.
-    if ((err as { code?: number }).code !== 404) throw err;
-  }
+  // ignoreNotFound: already gone (a retried event, or the post never had its
+  // photo uploaded) is fine. Relying on the library option rather than
+  // matching error codes, whose shape differs between GCS and the emulator.
+  await getStorage().bucket().file(path).delete({ ignoreNotFound: true });
 }
 
 /** Deleting a post deletes its photo. */

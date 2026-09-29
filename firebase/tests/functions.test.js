@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { deleteDoc, doc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
-import { ownedPhotoPath, postPhotoAuthor, revokeFileToken, revokeUserPhotoTokens } from "../functions/lib/photos.js";
+import { isNotFound, ownedPhotoPath, postPhotoAuthor, revokeFileToken, revokeUserPhotoTokens } from "../functions/lib/photos.js";
 import { clearBucket, seed, seedUser, setupEnv, signedInAs, storageAs } from "./helpers.js";
 
 // These run against the Functions emulator (triggers fire for real).
@@ -80,6 +80,15 @@ describe("download-token revocation logic (unit)", () => {
     const bucket = { getFiles: async ({ prefix }) => { prefixes.push(prefix); return [files]; } };
     expect(await revokeUserPhotoTokens(bucket, "alice")).toBe(2);
     expect(prefixes).toEqual(["postPhotos/alice/"]);
+  });
+
+  test("a photo deleted in the meantime is not an error", async () => {
+    const gone = { ...fakeFile("postPhotos/alice/a.jpg"), setMetadata: async () => { throw Object.assign(new Error("No such object: b/postPhotos/alice/a.jpg"), { code: 404 }); } };
+    expect(await revokeFileToken(gone)).toBe(false);
+    const broken = { ...fakeFile("postPhotos/alice/a.jpg"), setMetadata: async () => { throw Object.assign(new Error("permission denied"), { code: 403 }); } };
+    await expect(revokeFileToken(broken)).rejects.toThrow("permission denied");
+    expect(isNotFound({ code: 404 })).toBe(true);
+    expect(isNotFound({ code: 500, message: "boom" })).toBe(false);
   });
 
   test("a malformed uid never widens the prefix", async () => {

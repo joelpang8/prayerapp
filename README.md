@@ -12,7 +12,8 @@ prayerapp/
 │   ├── firestore.rules       Security rules for Firestore: the privacy boundary
 │   ├── storage.rules         Security rules for post photos (same friendship check)
 │   ├── functions/            Cloud Functions: photo-link revocation, photo cleanup
-│   ├── scripts/              fire-prompt.mjs (emulator-only), verify-production.mjs
+│   ├── notify-proto/         Step 4 PROTOTYPE functions (separate codebase): scheduled topic push
+│   ├── scripts/              fire-prompt.mjs (emulator-only), verify-production.mjs, proto-run.mjs
 │   ├── verses/verses.txt     Your curated daily verse list (check with: cd app && npm run verses)
 │   ├── firebase.json         Emulator config (demo project, no cloud needed)
 │   └── tests/                Rules + functions tests, run against the emulators
@@ -23,11 +24,13 @@ prayerapp/
 │   ├── src/auth/             Apple / Google sign-in
 │   ├── src/session/          Signed-in session: wires FriendScope and caches to the UI
 │   └── tests/                Data-layer tests (unit + against the emulators)
+├── prototypes/notify-app/    Step 4 PROTOTYPE app: push receipt + countdown, standalone
 ├── docs/
 │   ├── decisions.md          Settled and open decisions
 │   ├── step1-auth-friends.md Data model, security model, cached visibility
 │   ├── step2-posts-feed.md   Posts, on-time/late, feed, Cloud Functions
 │   ├── step3-scripture.md    Verse references, translation setting, what's left
+│   ├── step4-notifications.md Push/countdown prototype: design, results so far, test plan
 │   ├── production-checks.md  Checks you run on the real project (limits, listener, photo links)
 │   ├── credits.md            Where third-party data came from (KJV text, versification)
 │   └── ios-device-build.md   Running on the Simulator or your iPhone
@@ -52,5 +55,5 @@ In a sandbox that routes traffic through an HTTPS proxy, use `npm run test:sandb
 1. Auth and mutual-follow friends, with tested security rules. **(done in code; still needs a run on a real device)**
 2. Posts and feed: photo and notes, on-time/late flag, personal history, friend feed. **(done in code; still needs a run on a device)**
 3. Scripture: store only the verse reference, and render it in each viewer's chosen version. **(done in code: references, KJV text, curated list, per-viewer display; still needs a run on a device)**
-4. Notifications and countdown: prototyped on its own first.
+4. Notifications and countdown: prototyped on its own first. **(prototype built and emulator-tested; device testing needs the paid Apple account, or an Android emulator now)**
 5. Account deletion and data export.

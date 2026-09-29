@@ -63,7 +63,7 @@ The Simulator reaches the emulators at `127.0.0.1`, so nothing else is needed.
    ```sh
    npx firebase login
    npx firebase use --add          # pick the project, alias "default"
-   npx firebase deploy --only firestore:rules,storage
+   npx firebase deploy --only firestore,storage,functions:default   # see production-checks.md
    ```
    On the first Storage deploy, Firebase asks to **let Storage read Firestore**. Say yes. The photo rules check your friendships through Firestore.
 

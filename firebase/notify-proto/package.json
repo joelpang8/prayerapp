@@ -1,0 +1,21 @@
+{
+  "name": "prayerapp-notify-proto",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Step 4 prototype: scheduled global prompt push, isolated from the main functions codebase",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

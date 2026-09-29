@@ -40,9 +40,22 @@ export function hasDownloadToken(file: Pick<FileLike, "metadata">): boolean {
  * and works for anyone, forever, without going through storage.rules.
  * Setting the custom-metadata key to null deletes it (GCS PATCH semantics).
  */
+/** GCS reports a missing object as code 404; match the message too, for the emulator. */
+export function isNotFound(err: unknown): boolean {
+  const e = err as { code?: unknown; message?: unknown };
+  return e?.code === 404 || e?.code === "404" || /no such object|not found/i.test(String(e?.message ?? ""));
+}
+
 export async function revokeFileToken(file: FileLike): Promise<boolean> {
   if (!postPhotoAuthor(file.name) || !hasDownloadToken(file)) return false;
-  await file.setMetadata({ metadata: { [TOKEN_KEY]: null } });
+  try {
+    await file.setMetadata({ metadata: { [TOKEN_KEY]: null } });
+  } catch (err) {
+    // Deleted in the meantime (e.g. a post that failed right after upload,
+    // or deleted by its author): nothing left to revoke.
+    if (isNotFound(err)) return false;
+    throw err;
+  }
   return true;
 }
 

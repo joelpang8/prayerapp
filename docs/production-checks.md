@@ -20,9 +20,9 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    npx firebase login
    # firebase/.firebaserc already points at prayerapp-4ce99
    npm --prefix functions install
-   npx firebase deploy --only firestore,storage,functions
+   npx firebase deploy --only firestore,storage,functions:default
    ```
-   This deploys the Firestore rules and the feed index, the Storage rules and the four functions. When it asks, let Storage read Firestore; the photo rules need that. The index can take a few minutes to build, and check B fails with `failed-precondition` until it's ready.
+   `functions:default` deploys only the app's four functions. The step 4 push prototype is a separate codebase, `notify-proto`, and is deployed on its own when you test it (see `step4-notifications.md`). This command deploys the Firestore rules and the feed index, the Storage rules and those four functions. When it asks, let Storage read Firestore; the photo rules need that. The index can take a few minutes to build, and check B fails with `failed-precondition` until it's ready.
 3. **Your login for the script.** Install the gcloud CLI (`brew install --cask google-cloud-sdk`), then:
    ```sh
    gcloud auth application-default login

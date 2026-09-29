@@ -5,8 +5,8 @@
   "scripts": {
     "test": "firebase emulators:exec --only firestore,storage,functions --project demo-prayerapp \"vitest run\"",
     "test:watch": "firebase emulators:exec --only firestore,storage,functions --project demo-prayerapp \"vitest\"",
-    "emulators": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,storage,functions --project demo-prayerapp",
-    "pretest": "npm --prefix functions run build",
+    "emulators": "npm --prefix functions run build && npm --prefix notify-proto run build && firebase emulators:start --only auth,firestore,storage,functions --project demo-prayerapp",
+    "pretest": "npm --prefix functions run build && npm --prefix notify-proto run build",
     "dev:prompt": "node scripts/fire-prompt.mjs",
     "test:sandbox": "SKIP_CROSS_SERVICE=1 firebase emulators:exec --only firestore,storage --project demo-prayerapp \"vitest run\""
   },
