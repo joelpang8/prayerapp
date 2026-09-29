@@ -1,0 +1,159 @@
+rules_version = '2';
+
+// Security model (see docs/step1-auth-friends.md for the full rationale):
+//
+// * Friendship = mutual follow. A friendship exists between A and B only
+//   while BOTH follows/{A}_{B} and follows/{B}_{A} exist.
+// * Post visibility is decided at read time against those live follow docs,
+//   never against a copied/denormalized friend list. Deleting either follow
+//   doc revokes access on the very next server read.
+// * Everything not explicitly allowed below is denied.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+
+    function signedIn() {
+      // Anonymous accounts are rejected even if the provider is accidentally
+      // enabled in the console: they would let anyone mint unlimited
+      // identities to spam follow requests.
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function usernameDoc(name) {
+      return /databases/$(database)/documents/usernames/$(name);
+    }
+
+    function follows(a, b) {
+      return exists(/databases/$(database)/documents/follows/$(a + '_' + b));
+    }
+
+    function areFriends(a, b) {
+      return follows(a, b) && follows(b, a);
+    }
+
+    // Firebase Auth uids are alphanumeric. Requiring that here keeps the
+    // "{follower}_{followee}" doc id unambiguous.
+    function isValidUid(uid) {
+      return uid is string && uid.matches('^[A-Za-z0-9]{1,128}$');
+    }
+
+    function isValidUsername(name) {
+      return name is string && name.matches('^[a-z0-9_]{3,20}$');
+    }
+
+    function isValidDisplayName(name) {
+      return name is string && name.size() >= 1 && name.size() <= 50;
+    }
+
+    // ---------- public profiles ----------
+    // Minimal, non-sensitive: username + display name. Readable by any
+    // signed-in user who already knows the uid (needed to show a follow
+    // request / friend). Listing is denied so the user base can't be
+    // enumerated.
+    match /users/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Profile + username claim must be written in the same batch.
+      allow create: if isSelf(uid)
+        && isValidUid(uid)
+        && request.resource.data.keys().hasOnly(['username', 'displayName', 'createdAt'])
+        && request.resource.data.keys().hasAll(['username', 'displayName', 'createdAt'])
+        && isValidUsername(request.resource.data.username)
+        && isValidDisplayName(request.resource.data.displayName)
+        && request.resource.data.createdAt == request.time
+        && getAfter(usernameDoc(request.resource.data.username)).data.uid == uid;
+
+      // Only the display name is mutable. Usernames are fixed in v1.
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+        && isValidDisplayName(request.resource.data.displayName);
+
+      // Account deletion goes through a Cloud Function (step 5) so that the
+      // user's posts, follows and photos are removed together.
+      allow delete: if false;
+    }
+
+    // ---------- username -> uid index ----------
+    // Exact-match lookup only ("add friend by username"). No list.
+    match /usernames/{username} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      // A user can claim exactly one username: only while creating their
+      // profile (profile must not exist yet, and must exist after the batch
+      // pointing back at this username). Create fails if already taken
+      // because the doc already exists (that would be an update).
+      allow create: if signedIn()
+        && isValidUsername(username)
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && !exists(userDoc(request.auth.uid))
+        && getAfter(userDoc(request.auth.uid)).data.username == username;
+
+      allow update, delete: if false;
+    }
+
+    // ---------- follows (friend requests / friendships) ----------
+    // follows/{followerId}_{followeeId}
+    //   A one-directional follow is a pending friend request.
+    //   Both directions present = friends.
+    match /follows/{followId} {
+      function party() {
+        return signedIn() && (
+          resource.data.followerId == request.auth.uid ||
+          resource.data.followeeId == request.auth.uid);
+      }
+
+      // Only the two people involved can see a follow edge. Queries must be
+      // constrained to `followerId == me` or `followeeId == me`.
+      allow get, list: if party();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['followerId', 'followeeId', 'createdAt'])
+        && request.resource.data.keys().hasAll(['followerId', 'followeeId', 'createdAt'])
+        && request.resource.data.followerId == request.auth.uid
+        && isValidUid(request.resource.data.followeeId)
+        && request.resource.data.followeeId != request.auth.uid
+        && followId == request.resource.data.followerId + '_' + request.resource.data.followeeId
+        && request.resource.data.createdAt == request.time
+        && exists(userDoc(request.resource.data.followeeId))
+        // Follower must have a profile too, so requests always render.
+        && exists(userDoc(request.auth.uid));
+
+      // Edges are immutable; changing followerId/followeeId would forge
+      // friendships.
+      allow update: if false;
+
+      // Either party may delete an edge:
+      //   follower deletes -> cancel request / unfriend
+      //   followee deletes -> decline request / unfriend
+      allow delete: if party();
+    }
+
+    // ---------- posts ----------
+    // Read access is the core privacy guarantee of the app: only the author
+    // and the author's CURRENT mutual friends.
+    match /posts/{postId} {
+      allow get, list: if signedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        areFriends(request.auth.uid, resource.data.authorId));
+
+      // Post creation/editing arrives in step 2. It is intentionally denied
+      // (not stubbed) until those rules are written and tested, and until
+      // the "are posts editable/deletable" decision is made.
+      allow create, update, delete: if false;
+    }
+  }
+}
