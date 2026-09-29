@@ -41,10 +41,13 @@ export async function clearBucket(env: RulesTestEnvironment) {
   });
 }
 
-export async function seedPrompt(env: RulesTestEnvironment, id: string, minutesAgo = 1): Promise<Date> {
+export async function seedPrompt(env: RulesTestEnvironment, id: string, minutesAgo = 1, verseRef?: string): Promise<Date> {
   const firedAt = new Date(Date.now() - minutesAgo * 60_000);
   await env.withSecurityRulesDisabled(async (ctx) => {
-    await setDoc(doc(ctx.firestore() as unknown as Firestore, "prompts", id), { firedAt: Timestamp.fromDate(firedAt) });
+    await setDoc(doc(ctx.firestore() as unknown as Firestore, "prompts", id), {
+      firedAt: Timestamp.fromDate(firedAt),
+      ...(verseRef ? { verseRef } : {}),
+    });
   });
   return firedAt;
 }

@@ -31,6 +31,8 @@ export type Post = {
   editedAt: Date | null;
   notes: string;
   photoPath: string;
+  /** The prompt's verse reference (never text); null if the prompt had none. */
+  verseRef: string | null;
 };
 
 /**
@@ -73,6 +75,7 @@ export function postFromSnapshot(snap: DocumentSnapshot): Post | null {
     editedAt: date(d.editedAt),
     notes: d.notes,
     photoPath: d.photoPath,
+    verseRef: d.verseRef ?? null,
   };
 }
 
@@ -107,6 +110,8 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
       createdAt: serverTimestamp(),
       notes: p.notes.trim(),
       photoPath,
+      // Carried from the prompt; the rules require it to match exactly.
+      ...(p.prompt.verseRef ? { verseRef: p.prompt.verseRef } : {}),
     });
   } catch (err) {
     await deleteObject(ref(storage, photoPath)).catch(() => {});

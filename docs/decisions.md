@@ -19,6 +19,7 @@
 | Verse source | One verse reference per daily prompt, the same for everyone, carried onto each post | Confirmed. Posts don't pick their own verse. |
 | Verse list | A flat list you curate. No random selection from a larger set, no themes. | Confirmed. |
 | Default translation | KJV (public domain) | Confirmed. Ships without waiting on licensing. ESV, NIV and others come later as opt-in, once their licences allow it. |
+| KJV text source | Bundled in the app (`es-kjv`, public domain, cross-checked against CrossWire) | Confirmed. No network dependency and no licensing risk. Licensed translations come later through a provider. |
 | Reference format | Canonical ids like `PHP.4.6-7`, `JHN.3.16-4.2`, `PSA.23`. Books use USFM codes. Validated against KJV versification. | USFM codes are what Bible APIs use. Ids are strict, so one passage can't be stored in two spellings. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 

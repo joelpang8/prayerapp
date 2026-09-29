@@ -164,3 +164,51 @@ describe("deleting a post", () => {
     await assertFails(deleteDoc(postRef(signedInAs(env, "bob"), "alice")));
   });
 });
+
+describe("verse reference carried from the prompt", () => {
+  const VERSE_PROMPT = "20261001";
+  let verseFiredAt;
+
+  beforeEach(async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "prompts", VERSE_PROMPT), {
+        firedAt: Timestamp.fromMillis(Date.now() - 60_000),
+        verseRef: "PHP.4.6-7",
+      });
+      verseFiredAt = (await getDoc(doc(db, "prompts", VERSE_PROMPT))).data().firedAt;
+    });
+  });
+
+  const withVerse = (overrides = {}) =>
+    create("alice", { promptId: VERSE_PROMPT, promptFiredAt: verseFiredAt, verseRef: "PHP.4.6-7", ...overrides });
+
+  test("post carries the prompt's verse reference", async () => {
+    await assertSucceeds(withVerse());
+  });
+
+  test("a different verse is rejected", async () => {
+    await assertFails(withVerse({ verseRef: "JHN.3.16" }));
+  });
+
+  test("leaving it off when the prompt has one is rejected", async () => {
+    const post = newPost("alice", { promptId: VERSE_PROMPT, promptFiredAt: verseFiredAt });
+    await assertFails(setDoc(postRef(signedInAs(env, "alice"), "alice", VERSE_PROMPT), post));
+  });
+
+  test("adding one when the prompt has none is rejected", async () => {
+    await assertFails(create("alice", { verseRef: "PHP.4.6-7" }));
+  });
+
+  test("verse text can't be smuggled in instead of a reference", async () => {
+    await assertFails(withVerse({ verseRef: "Be careful for nothing; but in every thing by prayer..." }));
+    await assertFails(withVerse({ verseText: "Be careful for nothing" }));
+  });
+
+  test("the verse reference can't be changed by an edit", async () => {
+    await assertSucceeds(withVerse());
+    const ref = postRef(signedInAs(env, "alice"), "alice", VERSE_PROMPT);
+    await assertFails(updateDoc(ref, { verseRef: "JHN.3.16", editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { verseRef: deleteField(), editedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { notes: "edited notes", editedAt: serverTimestamp() }));
+  });
+});

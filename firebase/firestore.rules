@@ -166,7 +166,9 @@ service cloud.firestore {
 
     // ---------- prompts ----------
     // prompts/{yyyymmdd}: one global prompt per day (v1: everyone at once).
-    //   firedAt: timestamp the prompt went out
+    //   firedAt:  timestamp the prompt went out
+    //   verseRef: optional canonical verse reference id (e.g. "PHP.4.6-7")
+    //             from the curated list; never verse text
     // Written only by the server (Cloud Function in step 4, or the dev seed
     // script against the emulator). Readable by any signed-in user.
     match /prompts/{promptId} {
@@ -176,6 +178,7 @@ service cloud.firestore {
 
     // ---------- posts ----------
     // posts/{promptId}_{authorId}: at most one post per user per prompt.
+    // verseRef (optional) is copied from the prompt and can't be changed.
     //
     // On-time vs late is not stored as a flag the client could fake. It is
     // derived from two values the rules pin down:
@@ -208,7 +211,7 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(
-             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath'])
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef'])
         && request.resource.data.keys().hasAll(
              ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath'])
         && request.resource.data.authorId == request.auth.uid
@@ -218,6 +221,9 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && exists(/databases/$(database)/documents/prompts/$(request.resource.data.promptId))
         && request.resource.data.promptFiredAt == prompt().firedAt
+        // The verse is the prompt's, carried onto the post: present exactly
+        // when the prompt has one, and identical to it. A reference only.
+        && request.resource.data.get('verseRef', null) == prompt().get('verseRef', null)
         // Can't answer a prompt before it fires, and a prompt stays open
         // for (late) posts for 24 hours.
         && request.time >= prompt().firedAt

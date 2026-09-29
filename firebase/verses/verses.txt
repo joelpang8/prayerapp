@@ -1,0 +1,16 @@
+# Curated daily prompt verses: one reference per line, in the order they'll be used.
+# Written however is natural ("Phil 4:6-7", "Psalm 23"); the checker normalizes it.
+# "#" starts a comment. After editing, run:  cd app && npm run verses
+#
+# STARTER ENTRIES: placeholders so the app has something to show. Replace
+# them with your own list.
+Philippians 4:6-7
+1 Thessalonians 5:16-18
+Matthew 6:9-13
+James 5:16
+Psalm 145:18
+1 John 5:14
+Romans 8:26
+Jeremiah 29:12
+Matthew 7:7
+Mark 11:24

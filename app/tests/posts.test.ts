@@ -18,7 +18,7 @@ beforeEach(async () => {
   await clearBucket(env);
   await seedUser(env, "alice");
   await seedUser(env, "bob");
-  prompt = { id: "20260929", firedAt: await seedPrompt(env, "20260929", 1) };
+  prompt = { id: "20260929", firedAt: await seedPrompt(env, "20260929", 1), verseRef: null };
 });
 
 function watchMine(uid: string) {
@@ -28,6 +28,20 @@ function watchMine(uid: string) {
 }
 
 describe("posting against the real rules", () => {
+  test("the prompt's verse reference is carried onto the post (reference only)", async () => {
+    const withVerse = { id: "20261001", firedAt: await seedPrompt(env, "20261001", 1, "PHP.4.6-7"), verseRef: "PHP.4.6-7" };
+    const mine = watchMine("alice");
+    try {
+      await createPost(dbAs(env, "alice"), storageAs(env, "alice"), {
+        uid: "alice", prompt: withVerse, notes: "Peace", jpeg: JPEG, photoId: "v1",
+      });
+      await until(() => mine.state.posts?.length === 1);
+      expect(mine.state.posts![0].verseRef).toBe("PHP.4.6-7");
+    } finally {
+      mine.stop();
+    }
+  });
+
   test("latest prompt is visible to the app", async () => {
     let seen: Prompt | null | undefined;
     const stop = watchLatestPrompt(dbAs(env, "alice"), (p) => { seen = p; });
@@ -56,7 +70,7 @@ describe("posting against the real rules", () => {
   });
 
   test("posting well after the prompt is allowed and labelled late", async () => {
-    const old = { id: "20260928", firedAt: await seedPrompt(env, "20260928", 60) };
+    const old = { id: "20260928", firedAt: await seedPrompt(env, "20260928", 60), verseRef: null };
     const mine = watchMine("alice");
     try {
       await createPost(dbAs(env, "alice"), storageAs(env, "alice"), {

@@ -65,5 +65,8 @@ jobs:
         working-directory: app
       - run: npx expo lint
         working-directory: app
+      # Curated verse list: every entry valid, verse-list.json up to date.
+      - run: npm run verses -- --check
+        working-directory: app
       - run: npm test
         working-directory: app

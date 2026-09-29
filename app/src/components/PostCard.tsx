@@ -3,12 +3,24 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { isLate, type Post } from "../lib/posts";
 import { usePhoto } from "../session/hooks";
 import { colors } from "./ui";
+import { VerseBlock } from "./VerseBlock";
 
 function when(d: Date): string {
   return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-export function PostCard({ post, authorName, footer }: { post: Post; authorName: string; footer?: React.ReactNode }) {
+export function PostCard({
+  post,
+  authorName,
+  footer,
+  showVerse = true,
+}: {
+  post: Post;
+  authorName: string;
+  footer?: React.ReactNode;
+  /** Off when the same verse is already shown above (e.g. under today's prompt). */
+  showVerse?: boolean;
+}) {
   const uri = usePhoto(post.photoPath, post.authorId);
   const late = isLate(post);
   return (
@@ -31,6 +43,7 @@ export function PostCard({ post, authorName, footer }: { post: Post; authorName:
         )}
       </View>
       <Text style={styles.notes}>{post.notes}</Text>
+      {showVerse && post.verseRef && <VerseBlock refId={post.verseRef} collapsed />}
       {footer}
     </View>
   );

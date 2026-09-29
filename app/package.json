@@ -26,8 +26,10 @@
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
     "@types/react": "~19.2.2",
+    "es-kjv": "1.0.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "tsx": "4.23.15",
     "typescript": "~6.0.3",
     "vitest": "^5.0.2"
   },
@@ -40,7 +42,9 @@
     "test": "../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only firestore,storage --project demo-prayerapp \"vitest run\"",
     "test:unit": "vitest run tests/unit",
     "lint": "expo lint",
-    "ios:device": "expo run:ios --device"
+    "ios:device": "expo run:ios --device",
+    "verses": "tsx scripts/verses.ts",
+    "generate:kjv": "tsx scripts/generate-kjv.ts"
   },
   "private": true,
   "license": "UNLICENSED"
