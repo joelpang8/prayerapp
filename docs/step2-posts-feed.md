@@ -52,12 +52,12 @@ A download token turns into a URL that works forever for anyone and skips the ru
 
 - **Delete-photo functions:** end to end in the Functions emulator.
 - **Token revocation:** unit tests with a fake bucket. The emulator keeps tokens separately and re-adds them, so revocation can't be observed there.
-- **Still to confirm on the real project:** (a) that revoking really stops old links from working, and (b) whether reading a photo creates a new token. This will be part of the production check, together with the lookup limits below.
+- **Still to confirm on the real project:** (a) that revoking really stops old links from working, and (b) whether reading a photo creates a new token. `docs/production-checks.md` covers this (check D).
 
 ## Feed (`app/src/lib/feed.ts`)
 
 - `FeedStore` is registered with `FriendScope`. When a friendship ends, that friend's posts are dropped and the listener covering them is closed straight away, before the screen redraws. Closing the listener also clears their posts from Firestore's in-memory cache.
-- Friends are grouped into chunks of up to **5** per query. Each friend costs the rules 2 lookups, and production limits lookups per query. **This limit hasn't been checked against the real project yet.** `FEED_CHUNK_SIZE` is the single place to change.
+- Friends are grouped into chunks of up to **5** per query. Each friend costs the rules 2 lookups, and the rules limit lookups per query. In the emulator, a query covering 10 friends (20 lookups) works and 12 friends is refused, so 5 is well within that. **Production hasn't been checked yet** (see `docs/production-checks.md`). `FEED_CHUNK_SIZE` is the single place to change.
 - Chunks keep their members stable, so adding or removing one friend re-subscribes only one chunk.
 
 ## App
@@ -67,9 +67,7 @@ A download token turns into a URL that works forever for anyone and skips the ru
 - **Compose:** take a photo with the camera and write notes. Development builds also have **Choose photo (development)**, because the Simulator has no camera.
 - **Photos** are shown from memory (`cachePolicy="none"`), never from expo-image's disk cache.
 
-### Open product question (not blocking)
-
-Should real users be able to post a photo **from their library**, or only with the camera? It's camera-only right now, apart from the development picker.
+**Camera only** for real users (decided). The library picker is compiled only into development builds.
 
 ## Trying it in the Simulator
 

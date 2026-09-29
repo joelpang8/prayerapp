@@ -12,7 +12,7 @@ prayerapp/
 │   ├── firestore.rules       Security rules for Firestore: the privacy boundary
 │   ├── storage.rules         Security rules for post photos (same friendship check)
 │   ├── functions/            Cloud Functions: photo-link revocation, photo cleanup
-│   ├── scripts/              fire-prompt.mjs (emulator-only dev prompt)
+│   ├── scripts/              fire-prompt.mjs (emulator-only), verify-production.mjs
 │   ├── firebase.json         Emulator config (demo project, no cloud needed)
 │   └── tests/                Rules + functions tests, run against the emulators
 ├── app/                      React Native + Expo (TypeScript) client
@@ -25,6 +25,7 @@ prayerapp/
 │   ├── decisions.md          Settled and open decisions
 │   ├── step1-auth-friends.md Data model, security model, cached visibility
 │   ├── step2-posts-feed.md   Posts, on-time/late, feed, Cloud Functions
+│   ├── production-checks.md  Checks you run on the real project (limits, listener, photo links)
 │   └── ios-device-build.md   Running on the Simulator or your iPhone
 └── .github/workflows/ci.yml  Rules tests + app type-check, lint and tests on every push
 ```
