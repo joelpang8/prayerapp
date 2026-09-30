@@ -3,22 +3,26 @@ import { getApps, initializeApp } from "firebase/app";
 import { connectAuthEmulator, getReactNativePersistence, initializeAuth, type Auth } from "firebase/auth";
 import { connectFirestoreEmulator, initializeFirestore, type Firestore } from "firebase/firestore";
 import { connectStorageEmulator, getStorage, type FirebaseStorage } from "firebase/storage";
+import { resolveFirebaseConfig } from "./lib/firebaseConfig";
 import { firestoreSettings } from "./lib/firestoreSettings";
 
 // Firebase web config is not secret; access is controlled by the rules.
-// Values come from app/.env (see .env.example).
-const config = {
+// Values come from app/.env (see .env.example). Each EXPO_PUBLIC_* variable
+// must be read by its full name here: Expo inlines them at build time.
+const resolved = resolveFirebaseConfig({
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-};
+  useEmulators: process.env.EXPO_PUBLIC_USE_EMULATORS,
+  // On a physical phone this must be your Mac's LAN IP, not localhost.
+  emulatorHost: process.env.EXPO_PUBLIC_EMULATOR_HOST,
+});
 
-export const usingEmulators = process.env.EXPO_PUBLIC_USE_EMULATORS === "1";
-// On a physical phone this must be your Mac's LAN IP, not localhost.
-const emulatorHost = process.env.EXPO_PUBLIC_EMULATOR_HOST ?? "127.0.0.1";
+export const usingEmulators = resolved.usingEmulators;
+const emulatorHost = resolved.emulatorHost;
 
 type Services = { auth: Auth; db: Firestore; storage: FirebaseStorage };
 
@@ -27,19 +31,7 @@ function init(): Services {
     // Fast refresh: reuse the instances created on first load.
     return (globalThis as unknown as { __prayerFirebase: Services }).__prayerFirebase;
   }
-  const app = initializeApp(
-    usingEmulators
-      ? {
-          ...config,
-          projectId: "demo-prayerapp",
-          apiKey: config.apiKey ?? "demo",
-          // The emulators' default bucket, which the Cloud Functions triggers
-          // also use. Without one, the first photo upload fails with
-          // storage/no-default-bucket.
-          storageBucket: "demo-prayerapp.appspot.com",
-        }
-      : config,
-  );
+  const app = initializeApp(resolved.options);
   // Auth session (not content) is persisted so the user stays signed in.
   const auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
   const db = initializeFirestore(app, firestoreSettings);
