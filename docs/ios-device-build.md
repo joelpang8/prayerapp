@@ -42,6 +42,7 @@ There are two ways to run the app:
 The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is needed.
 
 **If something goes wrong:**
+- **"No code signing certificates are available to use"** (even for a Simulator): the Sign in with Apple entitlement is in the native project. Make sure `EXPO_PUBLIC_APPLE_SIGN_IN` isn't set in `.env`, then run `npx expo prebuild --clean -p ios` and build again.
 - **Red screen or "Unable to connect to Metro":** Terminal 2 must still be running. Press `r` there to reload.
 - **"Development sign-in" is missing:** `EXPO_PUBLIC_USE_EMULATORS=1` isn't set. After changing `.env`, stop Terminal 2 and run `npm run ios` again.
 - **Sign-in or loading spins forever:** the emulators aren't running, or they were restarted. Restarting wipes the data, so sign up again.
@@ -52,7 +53,7 @@ The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is
 
 ### B1. Apple Developer account
 
-**Sign in with Apple needs the paid Apple Developer Program ($99/year).** A free "Personal Team" can put an app on your phone, but it can't use the Sign in with Apple capability, and its builds expire after 7 days. If you want to hold off on paying: Google sign-in works with a free team if you temporarily remove `usesAppleSignIn` from `app.config.ts`. Ask me and I'll make that switch clean.
+**Sign in with Apple needs the paid Apple Developer Program ($99/year).** A free "Personal Team" can put an app on your phone, but it can't use the Sign in with Apple capability, and its builds expire after 7 days. Sign in with Apple is **off by default**. Its entitlement makes Xcode demand a signing certificate even for Simulator builds, so it stays off until you set `EXPO_PUBLIC_APPLE_SIGN_IN=1` in `app/.env` and run `npx expo prebuild --clean`. Until then, Google sign-in (with a free team on a device) and Development sign-in (Simulator) both work.
 
 1. Enrol at developer.apple.com and wait for approval.
 2. Choose a bundle id, such as `com.yourname.praynow`. It must be unique on the App Store, and you'll use it everywhere below.
@@ -88,7 +89,7 @@ The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is
    - Tick **Automatically manage signing**.
    - **Team:** choose your developer team.
    - Check the **Bundle Identifier** matches your bundle id.
-   - Check that **Sign in with Apple** is listed. `usesAppleSignIn` adds it. If Xcode shows a red error, it usually means the App ID hasn't picked up the capability yet. Clicking "Try Again" normally fixes it.
+   - If you've turned Apple sign-in on (`EXPO_PUBLIC_APPLE_SIGN_IN=1`), check that **Sign in with Apple** is listed. If Xcode shows a red error, it usually means the App ID hasn't picked up the capability yet. Clicking "Try Again" normally fixes it.
 5. On the iPhone:
    - Connect it by cable and tap **Trust This Computer**.
    - Turn on **Settings → Privacy & Security → Developer Mode**. The phone restarts.

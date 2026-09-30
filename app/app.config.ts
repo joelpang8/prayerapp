@@ -1,8 +1,23 @@
 import type { ExpoConfig } from "expo/config";
+import { withEntitlementsPlist, type ConfigPlugin } from "expo/config-plugins";
 
 // Values come from app/.env (copy .env.example). Expo loads .env automatically.
 const bundleId = process.env.IOS_BUNDLE_ID || "com.example.prayerapp";
 const googleUrlScheme = process.env.GOOGLE_IOS_URL_SCHEME;
+// Sign in with Apple needs the paid Apple Developer Program: its entitlement
+// makes Xcode require a signing certificate even for Simulator builds. Off
+// until EXPO_PUBLIC_APPLE_SIGN_IN=1 is set in app/.env (the app hides the
+// Apple button too). Changing it needs a rebuild: npx expo prebuild --clean.
+const appleSignIn = process.env.EXPO_PUBLIC_APPLE_SIGN_IN === "1";
+
+// Expo applies expo-apple-authentication's plugin automatically whenever the
+// package is installed, and that plugin always adds the entitlement. Remove it
+// again while Apple sign-in is off.
+const withoutAppleSignInEntitlement: ConfigPlugin = (c) =>
+  withEntitlementsPlist(c, (mod) => {
+    delete mod.modResults["com.apple.developer.applesignin"];
+    return mod;
+  });
 
 const config: ExpoConfig = {
   name: "Pray Now",
@@ -15,7 +30,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: bundleId,
     supportsTablet: false,
-    usesAppleSignIn: true,
+    usesAppleSignIn: appleSignIn,
   },
   android: {
     package: bundleId,
@@ -30,7 +45,7 @@ const config: ExpoConfig = {
   web: { favicon: "./assets/favicon.png" },
   plugins: [
     "expo-router",
-    "expo-apple-authentication",
+    ...(appleSignIn ? ["expo-apple-authentication"] : []),
     "expo-image",
     [
       "expo-image-picker",
@@ -49,4 +64,4 @@ const config: ExpoConfig = {
   ],
 };
 
-export default config;
+export default appleSignIn ? config : withoutAppleSignInEntitlement(config);

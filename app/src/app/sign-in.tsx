@@ -14,7 +14,10 @@ export default function SignInScreen() {
   const [devName, setDevName] = useState("Tester");
 
   useEffect(() => {
-    if (Platform.OS === "ios") AppleAuthentication.isAvailableAsync().then(setAppleAvailable, () => {});
+    // Only offered once the Apple entitlement is built in (see app.config.ts).
+    if (Platform.OS === "ios" && process.env.EXPO_PUBLIC_APPLE_SIGN_IN === "1") {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable, () => {});
+    }
   }, []);
 
   async function run(which: "apple" | "google" | "dev", fn: () => Promise<SignInResult>) {
