@@ -79,7 +79,14 @@ export function postFromSnapshot(snap: DocumentSnapshot): Post | null {
   };
 }
 
-async function uploadPhoto(storage: FirebaseStorage, path: string, jpeg: Uint8Array) {
+/**
+ * JPEG bytes to upload. In the app this must be a native Blob (see
+ * capture.ts): React Native's Blob can't be built from raw bytes, and
+ * Firebase's upload builds one internally. Tests in Node pass a Uint8Array.
+ */
+export type PhotoData = Blob | Uint8Array;
+
+async function uploadPhoto(storage: FirebaseStorage, path: string, jpeg: PhotoData) {
   await uploadBytes(ref(storage, path), jpeg, { contentType: "image/jpeg" });
 }
 
@@ -87,7 +94,7 @@ export type NewPost = {
   uid: string;
   prompt: Prompt;
   notes: string;
-  jpeg: Uint8Array;
+  jpeg: PhotoData;
   photoId: string;
 };
 
@@ -120,7 +127,7 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
   return id;
 }
 
-export type PostEdit = { notes?: string; newPhoto?: { jpeg: Uint8Array; photoId: string } };
+export type PostEdit = { notes?: string; newPhoto?: { jpeg: PhotoData; photoId: string } };
 
 /**
  * Edit notes and/or replace the photo. Marks the post edited. The old photo

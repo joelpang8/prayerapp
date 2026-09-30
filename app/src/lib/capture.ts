@@ -1,9 +1,23 @@
 import * as Crypto from "expo-crypto";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import { base64ToBytes } from "./base64";
 
-export type CapturedPhoto = { previewUri: string; jpeg: Uint8Array; photoId: string };
+/**
+ * uri: the resized JPEG in the app's cache folder (the user's own photo).
+ * Upload it with photoBlob(uri).
+ */
+export type CapturedPhoto = { previewUri: string; photoId: string };
+
+/**
+ * The JPEG as a native React Native Blob, which is what Firebase Storage's
+ * upload needs here. Uploading raw bytes (Uint8Array) fails under React
+ * Native: Firebase builds a Blob from them internally, and React Native's
+ * Blob can't be created from an ArrayBuffer/ArrayBufferView.
+ */
+export async function photoBlob(uri: string): Promise<Blob> {
+  const response = await fetch(uri);
+  return response.blob();
+}
 
 // ~1600px on the long edge at 70% JPEG is typically 200–400 KB, well under
 // the 5 MB limit in storage.rules and quick to upload.
@@ -16,11 +30,9 @@ async function toJpeg(asset: ImagePicker.ImagePickerAsset): Promise<CapturedPhot
     ctx.resize(landscape ? { width: MAX_EDGE } : { height: MAX_EDGE });
   }
   const image = await ctx.renderAsync();
-  const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
-  if (!result.base64) throw new Error("Could not encode photo");
+  const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.7 });
   return {
     previewUri: result.uri,
-    jpeg: base64ToBytes(result.base64),
     photoId: Crypto.randomUUID().replace(/-/g, ""),
   };
 }

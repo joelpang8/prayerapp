@@ -4,7 +4,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button, colors, ErrorText, Muted } from "../components/ui";
 import { db, storage } from "../firebase";
-import { pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
+import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
 import { createPost, editPost, MAX_NOTES, notesProblem } from "../lib/posts";
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
@@ -60,16 +60,22 @@ function Composer({
     setError(null);
     try {
       if (editing) {
-        await editPost(db, storage, editing, { notes, newPhoto: photo ?? undefined });
+        const newPhoto = photo ? { jpeg: await photoBlob(photo.previewUri), photoId: photo.photoId } : undefined;
+        await editPost(db, storage, editing, { notes, newPhoto });
       } else {
         if (!prompt) throw new Error("no prompt");
         if (!photo) return setError("Take a photo first.");
-        await createPost(db, storage, { uid, prompt, notes, jpeg: photo.jpeg, photoId: photo.photoId });
+        const jpeg = await photoBlob(photo.previewUri);
+        await createPost(db, storage, { uid, prompt, notes, jpeg, photoId: photo.photoId });
       }
       router.back();
     } catch (err) {
-      console.warn(err);
-      setError("Couldn't save your post. Check your connection and try again.");
+      console.warn("post failed", err);
+      setError(
+        "Couldn't save your post. Check your connection and try again." +
+          // Development builds show the real error, to make problems easy to report.
+          (__DEV__ ? `\n\n[dev] ${(err as { code?: string }).code ?? ""} ${(err as Error).message ?? err}` : ""),
+      );
     } finally {
       setBusy(false);
     }
