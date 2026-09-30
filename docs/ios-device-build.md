@@ -13,28 +13,40 @@ There are two ways to run the app:
 
 1. Install **Xcode** from the App Store. Open it once and let it install its extra components.
 2. Install the command-line tools: `xcode-select --install`.
-3. Install Node 22 and Java: `brew install node@22 openjdk`. Java is only needed for the Firebase emulators.
+3. Install Node 22 and Java: `brew install node@22 openjdk`. Java is only needed for the Firebase emulators. Homebrew's `openjdk` isn't on your PATH by default, so follow the `brew info openjdk` hint (the `sudo ln -sfn ...` line), or add `export PATH="$(brew --prefix openjdk)/bin:$PATH"` to `~/.zshrc`. Check with `java -version`.
 4. Install CocoaPods: `brew install cocoapods`. `expo run:ios` uses it to install native dependencies.
 5. Install dependencies:
    ```sh
-   cd firebase && npm install
+   cd firebase && npm install && npm --prefix functions install && npm --prefix notify-proto install
    cd ../app && npm install
    ```
 
 ## A. Simulator against the emulators
 
-1. Terminal 1: `cd firebase && npm run emulators`. This starts the Auth, Firestore and Storage emulators with your real rules.
-2. Terminal 2:
+1. **Terminal 1, start the backend:** `cd firebase && npm run emulators`. This builds the Cloud Functions, then starts the Auth, Firestore, Storage and Functions emulators with your real rules. Wait for "All emulators ready". Leave it running; stopping it wipes all data.
+2. **Terminal 2, configure and build the app:**
    ```sh
    cd app
    cp .env.example .env
-   # in .env, uncomment: EXPO_PUBLIC_USE_EMULATORS=1
+   ```
+   Edit `app/.env` and remove the `#` from `EXPO_PUBLIC_USE_EMULATORS=1`. Leave everything else empty. Then:
+   ```sh
    npm run ios
    ```
-   The first run generates the `ios/` folder, installs pods, builds and opens the Simulator. Expect it to take several minutes.
-3. In the app, tap **Development sign-in** with a name like "Alice". Choose a username. To test friends, sign out, sign in as "Bob", and send Alice a request. Then sign back in as Alice.
+   The first run creates `app/ios/`, installs CocoaPods, builds with Xcode (roughly 5–15 minutes the first time) and opens the Simulator. Later runs are much faster. Keep this terminal open: it's Metro, which serves the app's code. Pressing `r` in it reloads the app.
+3. **Sign in:** tap **Development sign-in**, type a name such as "Alice", then choose a display name and username. The Google button explains that it isn't set up yet, and the Apple button only appears if the Simulator is signed into an Apple ID.
+4. **Send a prompt.** Terminal 3: `cd firebase && npm run dev:prompt`. Today switches to **Time to pray** with today's verse. To see the late label, use `npm run dev:prompt -- --minutes-ago 10` instead.
+5. **Post:** tap **Pray now**, then **Choose photo (development)** (the Simulator has no camera; its Photos app has sample pictures), write notes, then **Post**.
+6. **Friends:** Settings, then **Sign out**. Sign in as "Bob" and choose a username. On Friends, find Alice by her username and tap **Add friend**. Sign out, sign back in as Alice, and **Accept**. Each account's posts now appear in the other's feed. Remove the friendship and they disappear.
 
-The Simulator reaches the emulators at `127.0.0.1`, so nothing else is needed.
+The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is needed.
+
+**If something goes wrong:**
+- **Red screen or "Unable to connect to Metro":** Terminal 2 must still be running. Press `r` there to reload.
+- **"Development sign-in" is missing:** `EXPO_PUBLIC_USE_EMULATORS=1` isn't set. After changing `.env`, stop Terminal 2 and run `npm run ios` again.
+- **Sign-in or loading spins forever:** the emulators aren't running, or they were restarted. Restarting wipes the data, so sign up again.
+- **Build error mentioning pods:** run `cd app/ios && pod install`, then `npm run ios` again. If that fails, send me the last 30 lines of the error.
+- **Photos don't appear on posts:** tell me. Photos load as raw bytes through the security rules, and that one piece hasn't been checked in a real iOS runtime yet.
 
 ## B. Your own iPhone against a real Firebase project
 

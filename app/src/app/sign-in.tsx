@@ -25,7 +25,11 @@ export default function SignInScreen() {
       if (result) setSuggestedDisplayName(result.suggestedName);
     } catch (err) {
       console.warn(err);
-      setError("Sign-in didn't work. Please try again.");
+      setError(
+        err instanceof Error && err.message.includes("isn't configured")
+          ? "Google Sign-In isn't set up yet. In emulator mode, use Development sign-in below."
+          : "Sign-in didn't work. Please try again.",
+      );
     } finally {
       setBusy(null);
     }

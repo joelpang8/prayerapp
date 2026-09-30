@@ -10,10 +10,16 @@ import {
 } from "firebase/auth";
 import { auth, usingEmulators } from "../firebase";
 
-GoogleSignin.configure({
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// Only set up Google Sign-In once it's configured (app/.env). Configuring
+// without a client id makes the native module reject, which shows up as an
+// "unhandled promise rejection" warning at startup (e.g. in emulator mode).
+const googleConfigured = !!process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+if (googleConfigured) {
+  GoogleSignin.configure({
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+}
 
 export type SignInResult = { credential: UserCredential; suggestedName: string | null } | null;
 
@@ -46,6 +52,7 @@ export async function signInWithApple(): Promise<SignInResult> {
 }
 
 export async function signInWithGoogle(): Promise<SignInResult> {
+  if (!googleConfigured) throw new Error("Google Sign-In isn't configured. Set EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID in app/.env.");
   const response = await GoogleSignin.signIn();
   if (!isSuccessResponse(response)) return null;
   const { idToken, user } = response.data;
@@ -69,7 +76,7 @@ export async function signInForDevelopment(name: string): Promise<SignInResult> 
 
 export async function signOut(): Promise<void> {
   try {
-    if (GoogleSignin.hasPreviousSignIn()) await GoogleSignin.signOut();
+    if (googleConfigured && GoogleSignin.hasPreviousSignIn()) await GoogleSignin.signOut();
   } finally {
     await firebaseSignOut(auth);
   }

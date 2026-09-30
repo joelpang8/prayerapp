@@ -28,7 +28,17 @@ function init(): Services {
     return (globalThis as unknown as { __prayerFirebase: Services }).__prayerFirebase;
   }
   const app = initializeApp(
-    usingEmulators ? { ...config, projectId: "demo-prayerapp", apiKey: config.apiKey ?? "demo" } : config,
+    usingEmulators
+      ? {
+          ...config,
+          projectId: "demo-prayerapp",
+          apiKey: config.apiKey ?? "demo",
+          // The emulators' default bucket, which the Cloud Functions triggers
+          // also use. Without one, the first photo upload fails with
+          // storage/no-default-bucket.
+          storageBucket: "demo-prayerapp.appspot.com",
+        }
+      : config,
   );
   // Auth session (not content) is persisted so the user stays signed in.
   const auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
