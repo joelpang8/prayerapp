@@ -49,7 +49,10 @@ export function buildPromptMessage(opts: { topic: string; promptId: string; fire
       priority: "high",
       ttl: PUSH_TTL_MS,
       collapseKey: `prompt-${opts.promptId}`,
-      notification: { channelId: "prompt", tag: `prompt-${opts.promptId}` },
+      // No channelId: the prototype app doesn't create channels, so Android
+      // uses its default one. Integration creates a high-importance "prompt"
+      // channel and names it here.
+      notification: { tag: `prompt-${opts.promptId}` },
     },
   };
 }

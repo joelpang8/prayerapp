@@ -1,9 +1,11 @@
 import type { ExpoConfig } from "expo/config";
 
 // STEP 4 PROTOTYPE app: its own bundle id, so it installs next to the real app.
-// Needs, from Firebase console > Project settings > add an iOS app with this
-// bundle id: GoogleService-Info.plist in this folder (git-ignored).
-const bundleId = process.env.PROTO_IOS_BUNDLE_ID || "com.example.prayerapp.pushproto";
+// Needs, from Firebase console > Project settings, an app registered with this
+// id: google-services.json (Android) and/or GoogleService-Info.plist (iOS)
+// in this folder (both git-ignored).
+// PROTO_BUNDLE_ID sets both the iOS bundle id and the Android package.
+const bundleId = process.env.PROTO_BUNDLE_ID || "com.example.prayerapp.pushproto";
 
 const config: ExpoConfig = {
   name: "Push Proto",
@@ -27,6 +29,8 @@ const config: ExpoConfig = {
   android: {
     package: bundleId,
     googleServicesFile: "./google-services.json",
+    // Android 13+: required to show any notification (asked for at runtime in App.tsx).
+    permissions: ["android.permission.POST_NOTIFICATIONS"],
   },
   plugins: [
     "@react-native-firebase/app",

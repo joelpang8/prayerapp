@@ -38,10 +38,9 @@ admin script ──writes──▶ protoRuns/{id} {fireAt}        (clients denie
 - **Android works now, with no Apple account.** An Android emulator from Android Studio, with a *Google Play* system image, receives real FCM pushes. The whole server path, timing and countdown can be validated there first.
 - **The iOS Simulator can test handling but not delivery.** `xcrun simctl push booted <bundle id> payload.apns` injects a notification locally. It shows how the app reacts to the alert, but not whether it arrives.
 
-## Needed from you before integration
+## Decided for integration
 
-1. **The daily window, and its time zone.** For example: "between 08:00 and 21:00, America/Chicago". Because v1 is global, everyone gets the prompt at the same moment, so people in other time zones may get it at night. That's inherent to the global design; per-user timing is the v2 idea.
-2. **Fixed or varying hours:** the same window every day, or different hours on weekends?
+- The daily window is **08:00–21:00, the same every day**. **Its time zone is still needed** (for example "America/Chicago").
 
 ## Running the prototype
 
@@ -53,16 +52,37 @@ node scripts/proto-run.mjs --project prayerapp-4ce99 --in 90
 ```
 The script reports four timings: enqueued, fired (seconds after the chosen moment), sent (how quickly FCM accepted it), and the message id. It uses your normal `gcloud auth application-default login`; no extra role is needed. To remove the prototype afterwards: `npx firebase functions:delete protoScheduleRun protoFirePrompt --force`.
 
-**App:** from `prototypes/notify-app/`:
-- **Android emulator (possible now):**
-  1. In Firebase console, add an Android app with package `com.example.prayerapp.pushproto`, or your own via `PROTO_IOS_BUNDLE_ID`, which sets both.
-  2. Put `google-services.json` in this folder.
-  3. Run `npm install && npm run android`.
-- **iPhone (after the paid account):**
-  1. In Firebase console, add an iOS app with the prototype's bundle id, and put `GoogleService-Info.plist` in this folder.
-  2. Upload an APNs key (Apple Developer, then Keys) in Firebase, under Project settings, then Cloud Messaging.
-  3. Run `npm install && npm run ios:device`.
-- **In the app:** tap **Allow notifications**, then **Subscribe**.
+**App on an Android emulator (possible now, no Apple account needed).** On your Mac:
+
+1. **Install Android Studio** (developer.android.com/studio). On first launch, let it install the Android SDK. Then add this to `~/.zshrc` and open a new terminal:
+   ```sh
+   export ANDROID_HOME="$HOME/Library/Android/sdk"
+   export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+   ```
+   Android Studio also bundles the Java version Android builds need. If a build later complains about Java, set `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
+2. **Create the emulator.** In Android Studio, open **Device Manager**, then **Create virtual device**, and pick a Pixel. For the system image, choose one whose target says **Google Play**, API 35 or newer. It must be a *Google Play* image: plain "Google APIs" or AOSP images have no Play services, and FCM can't deliver to them. Start the emulator.
+3. **Register the prototype in Firebase.** In the console, go to Project settings, then **Add app**, then Android. Use package `com.example.prayerapp.pushproto`, or your own if you set `PROTO_BUNDLE_ID` before building. Download `google-services.json` into `prototypes/notify-app/`. It's git-ignored.
+4. **Build and install:**
+   ```sh
+   cd prototypes/notify-app
+   npm install
+   npm run android        # first build takes several minutes; installs on the running emulator
+   ```
+   `npm run android` also starts Metro, which the development build loads its JavaScript from. Keep that terminal open.
+5. **In the app:** tap **Allow notifications**. On Android 13 and later this shows the system prompt; allow it. Then tap **Subscribe**.
+6. **Deploy the prototype functions and send a test.** See **Server** above. Then run `node scripts/proto-run.mjs --project prayerapp-4ce99 --in 60` and watch the emulator.
+
+If nothing arrives, check in this order:
+- Permission shows "authorized".
+- The emulator image is a Google Play one.
+- The topic shows "subscribed" (Subscribe needs internet in the emulator).
+- `npx firebase functions:log --only protoFirePrompt` shows "prototype prompt sent".
+- On a fresh emulator, signing into a Google account in the emulator's Settings sometimes wakes up Play services.
+
+**App on iPhone (after the paid account):**
+1. In the Firebase console, add an iOS app with the prototype's bundle id, and put `GoogleService-Info.plist` in `prototypes/notify-app/`.
+2. Upload an APNs key (Apple Developer, then Keys) in Firebase, under Project settings, then Cloud Messaging.
+3. Run `npm run ios:device`, then tap **Allow notifications** and **Subscribe**.
 
 ### Test plan: record each result
 
@@ -73,12 +93,14 @@ Send `proto-run.mjs` several times and note what the phone shows each time:
 | 1 | Open (foreground) | The countdown starts, and the app shows delivery latency |
 | 2 | Backgrounded | An alert appears, and tapping it opens the countdown |
 | 3 | Swiped away / killed | An alert appears, and tapping it opens the countdown |
-| 4 | Locked, screen off | The alert is on the lock screen. Note its timestamp against "fired" |
+| 4 | Locked, screen off (Android emulator: power button) | The alert is on the lock screen. Note its timestamp against "fired" |
 | 5 | Focus / Do Not Disturb on | With Time Sensitive allowed, the alert breaks through; without it, it doesn't |
 | 6 | Low Power Mode on | Note any delay |
 | 7 | Airplane mode, then off within the hour | The alert arrives when back online, with less time shown |
 | 8 | Airplane mode for over an hour | No alert, because it expired. This is correct |
 | 9 | Two runs a minute apart | Two separate prompts, with nothing merged wrongly |
+| 10 | Android only: Doze. Run `adb shell dumpsys deviceidle force-idle`, then send. Afterwards run `adb shell dumpsys deviceidle unforce`. | A high-priority push still arrives promptly. Doze is what an idle, locked phone does |
+| 11 | Android only: notifications turned off for the app in Settings | Nothing is shown, and the app reports the permission as not granted |
 
 Latencies to watch: fired-to-sent should be under 1 s. Sent-to-shown on the phone is normally a few seconds, but can be longer on iOS when the phone is asleep; that's the real-world number we need.
 

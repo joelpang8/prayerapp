@@ -21,6 +21,8 @@
 | Default translation | KJV (public domain) | Confirmed. Ships without waiting on licensing. ESV, NIV and others come later as opt-in, once their licences allow it. |
 | KJV text source | Bundled in the app (`es-kjv`, public domain, cross-checked against CrossWire) | Confirmed. No network dependency and no licensing risk. Licensed translations come later through a provider. |
 | Reference format | Canonical ids like `PHP.4.6-7`, `JHN.3.16-4.2`, `PSA.23`. Books use USFM codes. Validated against KJV versification. | USFM codes are what Bible APIs use. Ids are strict, so one passage can't be stored in two spellings. |
+| Daily prompt window | 08:00–21:00, the same every day (no weekend difference) | Confirmed. The global prompt means friends in other time zones sometimes get it at odd hours; that's accepted. |
+| Push delivery | FCM topic via React Native Firebase messaging; one send reaches everyone, no per-user tokens stored | Chosen for the step 4 prototype; to be confirmed by device tests before integration. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 
 ## Pending (ask before building)
@@ -28,4 +30,5 @@
 | Decision | Needed by | Notes |
 |---|---|---|
 | Bible API provider | Step 3 (licensed translations only) | You're asking providers the seven questions. KJV text can ship without a provider. See `step3-scripture.md`. |
+| Time zone of the daily window | Before the step 4 scheduler | Which time zone the 08:00–21:00 window is in (for example America/Chicago). |
 | Moderation approach | Before a public launch | See the trigger points in `step1-auth-friends.md`. |

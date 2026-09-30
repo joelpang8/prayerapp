@@ -73,6 +73,8 @@ describe("the push message (unit)", () => {
 
   test("Android: high priority, same TTL, same collapse key", () => {
     expect(m.android).toMatchObject({ priority: "high", ttl: PUSH_TTL_MS, collapseKey: "prompt-20260715" });
+    // Prototype uses Android's default channel (it creates none of its own).
+    expect(m.android.notification.channelId).toBeUndefined();
   });
 
   test("never contains verse text or anything personal", () => {

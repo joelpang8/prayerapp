@@ -5,7 +5,7 @@ import {
 } from "@react-native-firebase/messaging";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { PermissionsAndroid, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { mmss, parsePromptData, windowState, type PromptPush } from "./src/promptWindow";
 
 // STEP 4 PROTOTYPE. Standalone on purpose: no auth, no Firestore, nothing
@@ -17,6 +17,31 @@ type RemoteMessage = Parameters<Parameters<typeof onMessage>[1]>[0];
 type Receipt = PromptPush & { how: "foreground" | "opened from background" | "opened from killed"; receivedAtMs: number };
 
 const messaging = getMessaging(getApp());
+
+// On Android, React Native Firebase's requestPermission/hasPermission always
+// report "authorized" without asking. Since Android 13 (API 33) the app must
+// hold POST_NOTIFICATIONS or the system silently hides every notification,
+// so ask for (and report) that permission directly.
+const needsAndroidPermission = Platform.OS === "android" && Number(Platform.Version) >= 33;
+
+async function checkPermission(): Promise<string> {
+  if (needsAndroidPermission) {
+    return (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)) ? "authorized" : "not granted";
+  }
+  if (Platform.OS === "android") return "authorized (Android 12 or older: no runtime permission)";
+  return describe(await hasPermission(messaging));
+}
+
+async function askPermission(): Promise<string> {
+  if (needsAndroidPermission) {
+    const r = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+    return r === PermissionsAndroid.RESULTS.GRANTED ? "authorized"
+      : r === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ? "denied (enable in Settings > Apps)"
+      : "denied";
+  }
+  if (Platform.OS === "android") return checkPermission();
+  return describe(await requestPermission(messaging, { alert: true, sound: true, badge: false }));
+}
 
 export default function App() {
   const [permission, setPermission] = useState<string>("unknown");
@@ -31,7 +56,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    hasPermission(messaging).then((s) => setPermission(describe(s)), () => {});
+    checkPermission().then(setPermission, () => {});
     getInitialNotification(messaging).then((m) => record(m, "opened from killed"), () => {});
     const offOpened = onNotificationOpenedApp(messaging, (m) => record(m, "opened from background"));
     const offMessage = onMessage(messaging, (m) => record(m, "foreground"));
@@ -42,7 +67,7 @@ export default function App() {
   async function allow() {
     setError(null);
     try {
-      setPermission(describe(await requestPermission(messaging, { alert: true, sound: true, badge: false })));
+      setPermission(await askPermission());
     } catch (e) {
       setError(String(e));
     }
