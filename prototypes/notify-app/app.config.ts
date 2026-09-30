@@ -33,6 +33,8 @@ const config: ExpoConfig = {
     permissions: ["android.permission.POST_NOTIFICATIONS"],
   },
   plugins: [
+    // iOS 27 SDK: required, or the app fails at launch (copy of app/plugins/).
+    "./plugins/withSceneLifecycle",
     "@react-native-firebase/app",
     "@react-native-firebase/messaging",
     ["expo-build-properties", { ios: { useFrameworks: "static" } }],

@@ -42,6 +42,7 @@ There are two ways to run the app:
 The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is needed.
 
 **If something goes wrong:**
+- **"UIScene life cycle is required for apps built with this SDK"** at launch: the native project predates the fix in `app/plugins/withSceneLifecycle.js`. Run `npx expo prebuild --clean -p ios` and build again.
 - **"No code signing certificates are available to use"** (even for a Simulator): the Sign in with Apple entitlement is in the native project. Make sure `EXPO_PUBLIC_APPLE_SIGN_IN` isn't set in `.env`, then run `npx expo prebuild --clean -p ios` and build again.
 - **Red screen or "Unable to connect to Metro":** Terminal 2 must still be running. Press `r` there to reload.
 - **"Development sign-in" is missing:** `EXPO_PUBLIC_USE_EMULATORS=1` isn't set. After changing `.env`, stop Terminal 2 and run `npm run ios` again.

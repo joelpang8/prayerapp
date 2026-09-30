@@ -44,6 +44,8 @@ const config: ExpoConfig = {
   },
   web: { favicon: "./assets/favicon.png" },
   plugins: [
+    // iOS 27 SDK: required, or the app fails at launch.
+    "./plugins/withSceneLifecycle",
     "expo-router",
     ...(appleSignIn ? ["expo-apple-authentication"] : []),
     "expo-image",
