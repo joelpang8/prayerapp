@@ -36,6 +36,8 @@
 | Reactions | Added (originally out of scope for v1). One preset reaction per person per post: Praying for you, Love, Happy, Amen, Cool, Hugs. Not on your own post. Visible like comments: only to the reactor's current mutual friends who can see the post. | Requested. Same privacy rule as comments, so nobody's reaction reaches a non-friend. |
 | Profile details | Birthday (year optional), prayer requests, Bible version, denomination and church, alongside the bio. All optional and friends-only. | Requested. Friends-only like the bio; the year is optional so age needn't be shared. |
 | Prayers tab | History renamed **Prayers**, with a month calendar to jump to any day. Tabs: Friends, Prayers, **Today** (middle), Profile, Settings; the app opens on Today. | Requested. |
+| Activity | A bell on Today opens **Activity**: friends praying and having prayers answered, and friends' comments and reactions on my prayers, from the last 7 days. The bell shows how many are new. | Requested. Built from data already on the phone (feed, plus comment and reaction threads on my last week's posts), filtered to current friends, memory only; only "last opened" is stored on the device. |
+| Landing screen | Signing in or finishing onboarding always opens Today. | Requested. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 
 ## Pending (ask before building)

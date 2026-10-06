@@ -3,12 +3,10 @@ import { router } from "expo-router";
 import { useCallback, type ComponentProps } from "react";
 import type { ColorValue } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
+import { ActivityBell } from "../../components/ActivityBell";
 import { navigationFonts, useColors } from "../../components/ui";
 import { useNotificationTaps } from "../../lib/notifications";
 import { useFriendGraph } from "../../session/SessionProvider";
-
-// Open on Today, even though it isn't the first tab.
-export const unstable_settings = { initialRouteName: "index" };
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -40,7 +38,10 @@ export default function TabsLayout() {
         options={{ title: "Friends", tabBarIcon: tabIcon("people-outline", "people"), tabBarBadge: graph.incoming.size || undefined }}
       />
       <Tabs.Screen name="prayers" options={{ title: "Prayers", tabBarIcon: tabIcon("journal-outline", "journal") }} />
-      <Tabs.Screen name="index" options={{ title: "Today", tabBarIcon: tabIcon("sunny-outline", "sunny") }} />
+      <Tabs.Screen
+        name="index"
+        options={{ title: "Today", tabBarIcon: tabIcon("sunny-outline", "sunny"), headerRight: () => <ActivityBell /> }}
+      />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: tabIcon("person-circle-outline", "person-circle") }} />
       <Tabs.Screen name="settings" options={{ title: "Settings", tabBarIcon: tabIcon("settings-outline", "settings") }} />
     </Tabs>

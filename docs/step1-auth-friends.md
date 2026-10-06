@@ -11,10 +11,11 @@ users/{uid}                         public profile. get: any signed-in user. lis
 
 users/{uid}/friendsOnly/about       get: the owner and their current mutual friends. list/delete: no one
   bio: string                       0–160 chars, owner writes
-  birthday?: string                 "MM-DD" or "YYYY-MM-DD" (the year is optional)
+  birthday?: string                 "MM-DD" or "YYYY-MM-DD" (the year is optional); picked from a calendar
+  hometown?: string                 1–80 chars, "where I'm from"
   prayerRequests?: string           1–500 chars
-  bibleVersion?: string             1–40 chars (what they read; separate from the app's display setting)
-  denomination?: string             1–60 chars
+  bibleVersion?: string             1–40 chars, chosen from a list (stored as the abbreviation) or "Other"; separate from the app's display setting
+  denomination?: string             1–60 chars, chosen from a list or "Other" (app/src/lib/faith.ts)
   church?: string                   1–80 chars
 
 Storage avatars/{uid}/{id}.jpg      profile photo. get: any signed-in user.

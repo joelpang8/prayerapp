@@ -1,29 +1,15 @@
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { Avatar } from "../components/Avatar";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db, storage } from "../firebase";
 import { photoBlob, pickAvatar } from "../lib/capture";
-import {
-  ABOUT_LIMITS, aboutProblem, birthdayValue, monthName, parseBirthday, removeAvatar, saveAbout, setAvatar, watchAbout,
-  type About,
-} from "../lib/profile";
+import { BirthdayField } from "../components/BirthdayField";
+import { SelectField } from "../components/SelectField";
+import { BIBLE_VERSIONS, DENOMINATIONS } from "../lib/faith";
+import { ABOUT_LIMITS, aboutProblem, removeAvatar, saveAbout, setAvatar, watchAbout, type About } from "../lib/profile";
 import { useReadySession } from "../session/SessionProvider";
-
-type BirthdayParts = { month: number | null; day: string; year: string };
-
-const partsFrom = (value: string): BirthdayParts => {
-  const b = parseBirthday(value);
-  return b ? { month: b.month, day: String(b.day), year: b.year ? String(b.year) : "" } : { month: null, day: "", year: "" };
-};
-
-/** "" for no birthday, the stored value, or null if what's typed isn't a real date. */
-function birthdayFrom(p: BirthdayParts): string | null {
-  if (p.month === null && !p.day.trim() && !p.year.trim()) return "";
-  if (p.month === null) return null;
-  return birthdayValue(p.month, Number(p.day), p.year.trim() ? Number(p.year) : undefined);
-}
 
 /** Profile photo (camera or library) and the friends-only details. Opened from the Profile tab. */
 export default function EditProfileScreen() {
@@ -35,7 +21,6 @@ export default function EditProfileScreen() {
   const [saved, setSaved] = useState<About | null>(null);
   // The form, filled from the stored details once they've loaded.
   const [form, setForm] = useState<About | null>(null);
-  const [birthday, setBirthday] = useState<BirthdayParts>({ month: null, day: "", year: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState(false);
@@ -48,7 +33,6 @@ export default function EditProfileScreen() {
       if (!filled.current) {
         filled.current = true;
         setForm(about);
-        setBirthday(partsFrom(about.birthday));
       }
     }, () => setError("Couldn't load your profile.")),
     [profile.uid],
@@ -83,9 +67,8 @@ export default function EditProfileScreen() {
     }
   }
 
-  const birthdayValueNow = birthdayFrom(birthday);
-  const next: About | null = form && birthdayValueNow !== null ? { ...form, birthday: birthdayValueNow } : null;
-  const problem = birthdayValueNow === null ? "That birthday isn't a real date." : next ? aboutProblem(next) : null;
+  const next = form;
+  const problem = next ? aboutProblem(next) : null;
   const changed = !!next && !!saved && (Object.keys(next) as (keyof About)[]).some((k) => next[k].trim() !== saved[k]);
 
   async function submit() {
@@ -152,54 +135,36 @@ export default function EditProfileScreen() {
         {field("bio", "Bio", "A line or two about yourself", true)}
 
         <View style={styles.field}>
-          <View style={styles.fieldHeader}>
-            <Text style={styles.label}>Birthday</Text>
-            {birthday.month !== null && (
-              <Pressable onPress={() => { setSavedNote(false); setBirthday({ month: null, day: "", year: "" }); }} hitSlop={8}>
-                <Text style={styles.clear}>Clear</Text>
-              </Pressable>
-            )}
-          </View>
-          <View style={styles.months}>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
-              const selected = birthday.month === m;
-              return (
-                <Pressable
-                  key={m}
-                  onPress={() => { setSavedNote(false); setBirthday((b) => ({ ...b, month: m })); }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={monthName(m)}
-                  style={[styles.month, selected && styles.monthSelected]}
-                >
-                  <Text style={[styles.monthText, selected && styles.monthTextSelected]}>{monthName(m).slice(0, 3)}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <View style={styles.dayYear}>
-            <TextInput
-              value={birthday.day}
-              onChangeText={(t) => { setSavedNote(false); setBirthday((b) => ({ ...b, day: t.replace(/\D/g, "") })); }}
-              placeholder="Day"
-              keyboardType="number-pad"
-              maxLength={2}
-              style={[styles.input, styles.day]}
-            />
-            <TextInput
-              value={birthday.year}
-              onChangeText={(t) => { setSavedNote(false); setBirthday((b) => ({ ...b, year: t.replace(/\D/g, "") })); }}
-              placeholder="Year (optional)"
-              keyboardType="number-pad"
-              maxLength={4}
-              style={[styles.input, styles.year]}
-            />
-          </View>
+          <Text style={styles.label}>Birthday</Text>
+          <BirthdayField value={form?.birthday ?? ""} onChange={set("birthday")} />
         </View>
+        {field("hometown", "Where I'm from", "e.g. Lagos, Nigeria")}
 
         {field("prayerRequests", "Prayer requests", "What would you like your friends to pray for?", true)}
-        {field("bibleVersion", "Bible version I read", "e.g. KJV, ESV, NIV")}
-        {field("denomination", "Denomination", "e.g. Baptist, Catholic, non-denominational")}
+        <View style={styles.field}>
+          <Text style={styles.label}>Bible version I read</Text>
+          <SelectField
+            title="Bible version"
+            value={form?.bibleVersion ?? ""}
+            onChange={set("bibleVersion")}
+            options={BIBLE_VERSIONS.map((v) => ({ value: v.abbr, label: `${v.name} (${v.abbr})` }))}
+            placeholder="Choose a version"
+            otherMaxLength={ABOUT_LIMITS.bibleVersion}
+            otherPlaceholder="Your Bible version"
+          />
+        </View>
+        <View style={styles.field}>
+          <Text style={styles.label}>Denomination</Text>
+          <SelectField
+            title="Denomination"
+            value={form?.denomination ?? ""}
+            onChange={set("denomination")}
+            options={DENOMINATIONS.map((d) => ({ value: d, label: d }))}
+            placeholder="Choose a denomination"
+            otherMaxLength={ABOUT_LIMITS.denomination}
+            otherPlaceholder="Your denomination"
+          />
+        </View>
         {field("church", "My church", "Church name and city")}
 
         {problem && <ErrorText>{problem}</ErrorText>}
@@ -224,7 +189,6 @@ const useStyles = makeStyles((colors) => ({
   fieldHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text },
   counter: { fontSize: 14, color: colors.muted },
-  clear: { fontSize: 15, color: colors.accent },
   input: {
     minHeight: 46,
     borderWidth: 1,
@@ -236,12 +200,4 @@ const useStyles = makeStyles((colors) => ({
     color: colors.text,
   },
   multiline: { minHeight: 80, lineHeight: 24, textAlignVertical: "top" },
-  months: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  month: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingVertical: 6, width: "15%", alignItems: "center" },
-  monthSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-  monthText: { fontSize: 15, color: colors.text },
-  monthTextSelected: { color: colors.onAccent },
-  dayYear: { flexDirection: "row", gap: 8 },
-  day: { width: 90 },
-  year: { flex: 1 },
 }));

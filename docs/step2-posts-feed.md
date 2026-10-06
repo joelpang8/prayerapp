@@ -49,6 +49,10 @@ posts/{postId}/comments/{id}        read: see "Comments" below
 
 Tests: `firebase/tests/comments.test.js` (rules), `app/tests/comments.test.ts` (the thread against the rules, including unfriending).
 
+## Activity
+
+`ActivityStore` (`app/src/lib/activity.ts`) runs for the signed-in session. It combines the feed (friends' posts and answered prayers) with comment and reaction threads on my posts from the last 7 days, and rebuilds the list on every change, keeping only current friends. It's registered with FriendScope and memory-only; the device keeps only when Activity was last opened, to count what's new for the bell on Today. Tests: `app/tests/unit/activity.test.ts`, `app/tests/activity.test.ts`.
+
 ## Reactions
 
 BeReal-style: one preset reaction per person per post (🙏 Praying for you, ❤️ Love, 😊 Happy, 🙌 Amen, 😎 Cool, 🤗 Hugs), changeable or removable, never on your own post. **Visibility is the same as comments:** a reaction is seen only by the reactor's current mutual friends who can see the post. On the phone, `ReactionThread` (like `CommentThread`, both built on `PostThread`) is registered with FriendScope and memory-only. Each post card listens to its own reactions while it's on screen and not minimized, chunked by 5 friends like the feed; that's a listener per visible post, which is fine at a small friend count and worth revisiting if feeds get long. Tests: `firebase/tests/reactions.test.js`, `app/tests/reactions.test.ts`.

@@ -98,6 +98,7 @@ describe("about details (friends only)", () => {
   const details: About = {
     bio: "Hi",
     birthday: "03-14",
+    hometown: "Lagos, Nigeria",
     prayerRequests: "  Wisdom for a big decision.  ",
     bibleVersion: "ESV",
     denomination: "",

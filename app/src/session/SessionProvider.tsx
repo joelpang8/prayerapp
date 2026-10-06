@@ -2,6 +2,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { auth, db, storage } from "../firebase";
+import { ActivityStore } from "../lib/activity";
 import { FeedStore } from "../lib/feed";
 import { EMPTY_GRAPH, type FriendGraph } from "../lib/friends";
 import { FriendScope } from "../lib/friendScope";
@@ -12,7 +13,7 @@ type Session =
   | { status: "loading" }
   | { status: "signedOut" }
   | { status: "needsProfile"; user: User }
-  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache; avatars: PhotoCache; feed: FeedStore };
+  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache; avatars: PhotoCache; feed: FeedStore; activity: ActivityStore };
 
 const SessionContext = createContext<Session>({ status: "loading" });
 
@@ -60,14 +61,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // evict them, but they're memory-only and cleared on sign-out like the rest.
     const avatars = new PhotoCache(storageLoader(storage), 200, ownerOfAvatarPath);
     scope.register({ evictAuthor: () => {}, clear: () => avatars.clear() });
-    return { scope, photos, avatars, feed };
+    // Friends' posts, and comments/reactions on my posts, for the Activity list.
+    const activity = new ActivityStore(db, scope, feed, (err) => console.warn("activity listener failed", err));
+    return { scope, photos, avatars, feed, activity };
   }, [uid]);
 
   useEffect(() => {
     if (!scoped || !hasProfile) return;
     scoped.feed.start();
+    scoped.activity.start();
     scoped.scope.start((err) => console.warn("friend graph listener failed", err));
     return () => {
+      scoped.activity.stop();
       scoped.feed.stop();
       scoped.scope.stop();
     };

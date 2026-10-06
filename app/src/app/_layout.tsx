@@ -1,8 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type Theme } from "expo-router";
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, type Theme } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Centered, fontAssets, fonts, navigationFonts, palettes, useColors } from "../components/ui";
 import { loadAppearance } from "../lib/appearance";
 import { configureNotifications } from "../lib/notifications";
@@ -14,6 +14,15 @@ configureNotifications();
 function RootNavigator() {
   const colors = useColors();
   const session = useSession();
+  // Signing in (or finishing onboarding) always lands on Today, the middle
+  // tab, rather than whichever tab is first or was open at sign-out.
+  const wasReady = useRef<boolean | null>(null);
+  const ready = session.status === "ready";
+  useEffect(() => {
+    if (session.status === "loading") return;
+    if (ready && wasReady.current === false) router.replace("/");
+    wasReady.current = ready;
+  }, [ready, session.status]);
   if (session.status === "loading") return <Centered />;
   // Pushed screens (profile, post) show a header with a back button.
   const pushed = {
@@ -38,6 +47,7 @@ function RootNavigator() {
         <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
         <Stack.Screen name="profile/[uid]" options={pushed} />
         <Stack.Screen name="post/[id]" options={{ ...pushed, title: "Prayer" }} />
+        <Stack.Screen name="activity" options={{ ...pushed, title: "Activity" }} />
       </Stack.Protected>
     </Stack>
   );

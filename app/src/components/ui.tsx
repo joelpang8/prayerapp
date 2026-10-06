@@ -33,6 +33,8 @@ const light = {
   /** Quiet accent fill, e.g. behind initials. */
   accentSoft: "#ECE7F3",
   danger: "#B3261E",
+  /** Text on a danger background (e.g. the Activity badge). */
+  onDanger: "#FFFFFF",
 };
 
 /** Night: warm dark brown rather than pure black, with a lighter accent for contrast. */
@@ -46,6 +48,7 @@ const dark: typeof light = {
   onAccent: "#1B1530",
   accentSoft: "#2D2742",
   danger: "#F2B8B5",
+  onDanger: "#3A0D0B",
 };
 
 export type Colors = typeof light;

@@ -84,10 +84,11 @@ describe("bio: friends only", () => {
   });
 });
 
-describe("about details: birthday, prayer requests, Bible version, denomination, church", () => {
+describe("about details: birthday, hometown, prayer requests, Bible version, denomination, church", () => {
   const full = {
     bio: "Hi",
     birthday: "1990-03-14",
+    hometown: "Lagos, Nigeria",
     prayerRequests: "My mum's health; wisdom at work.",
     bibleVersion: "ESV",
     denomination: "Anglican",
@@ -124,6 +125,9 @@ describe("about details: birthday, prayer requests, Bible version, denomination,
     await assertFails(setDoc(about(db), { bibleVersion: "x".repeat(41) }));
     await assertFails(setDoc(about(db), { denomination: "x".repeat(61) }));
     await assertFails(setDoc(about(db), { church: "x".repeat(81) }));
+    await assertSucceeds(setDoc(about(db), { hometown: "x".repeat(80) }));
+    await assertFails(setDoc(about(db), { hometown: "x".repeat(81) }));
+    await assertFails(setDoc(about(db), { hometown: "" }));
     await assertFails(setDoc(about(db), { church: "" }));
     await assertFails(setDoc(about(db), { church: 7 }));
   });

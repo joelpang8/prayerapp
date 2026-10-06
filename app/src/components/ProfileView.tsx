@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
 import { db } from "../firebase";
+import { bibleVersionLabel } from "../lib/faith";
 import { formatBirthday, watchAbout, type About } from "../lib/profile";
 import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
@@ -9,7 +10,8 @@ import { fonts, makeStyles, Muted, Text } from "./ui";
 
 /**
  * Someone's profile: photo, name, username, and the friends-only details
- * (bio, birthday, prayer requests, Bible version, denomination, church) if
+ * (bio, hometown, birthday, prayer requests, Bible version, denomination,
+ * church) if
  * I'm allowed to see them (myself, or a current friend). Used by the Profile tab and by
  * other people's profile pages.
  */
@@ -24,9 +26,10 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
   const about = useAbout(canSeeBio ? uid : null);
   const details: [string, string][] = about
     ? ([
+        ["From", about.hometown],
         ["Birthday", about.birthday ? formatBirthday(about.birthday) : ""],
         ["Prayer requests", about.prayerRequests],
-        ["Bible version", about.bibleVersion],
+        ["Bible version", about.bibleVersion ? bibleVersionLabel(about.bibleVersion) : ""],
         ["Denomination", about.denomination],
         ["Church", about.church],
       ] as [string, string][]).filter(([, v]) => v)

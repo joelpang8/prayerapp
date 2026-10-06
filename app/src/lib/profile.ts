@@ -137,17 +137,20 @@ export type About = {
   bio: string;
   /** "MM-DD", or "YYYY-MM-DD" if they share the year. */
   birthday: string;
+  /** Where they're from, e.g. "Lagos, Nigeria". */
+  hometown: string;
   prayerRequests: string;
   bibleVersion: string;
   denomination: string;
   church: string;
 };
 
-export const EMPTY_ABOUT: About = { bio: "", birthday: "", prayerRequests: "", bibleVersion: "", denomination: "", church: "" };
+export const EMPTY_ABOUT: About = { bio: "", birthday: "", hometown: "", prayerRequests: "", bibleVersion: "", denomination: "", church: "" };
 
 // Must match firestore.rules.
 export const ABOUT_LIMITS: Record<Exclude<keyof About, "birthday">, number> = {
   bio: BIO_MAX,
+  hometown: 80,
   prayerRequests: 500,
   bibleVersion: 40,
   denomination: 60,
@@ -220,7 +223,7 @@ export async function saveAbout(db: Firestore, uid: string, about: About): Promi
   const problem = aboutProblem(about);
   if (problem) throw new Error(problem);
   const data: Record<string, string> = { bio: about.bio.trim() };
-  for (const key of ["birthday", "prayerRequests", "bibleVersion", "denomination", "church"] as const) {
+  for (const key of ["birthday", "hometown", "prayerRequests", "bibleVersion", "denomination", "church"] as const) {
     const v = about[key].trim();
     if (v) data[key] = v;
   }

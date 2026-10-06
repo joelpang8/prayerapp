@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { db } from "../firebase";
+import { loadLastSeen, saveLastSeen, type Activity } from "../lib/activity";
 import { CommentThread, type Comment } from "../lib/comments";
 import { ReactionThread, type Reaction } from "../lib/reactions";
 import { watchMyPosts, type Post } from "../lib/posts";
@@ -121,6 +122,43 @@ export function useReactions(postId: string | null, postAuthorId: string | null)
     };
   }, [scope, postId, postAuthorId]);
   return reactions;
+}
+
+// When Activity was last opened, shared by the bell's count and the screen.
+const lastSeenStore = { uid: "", at: 0, listeners: new Set<(at: number) => void>() };
+
+/**
+ * The Activity list, and how many items are new since I last opened it.
+ * markSeen() is called when the Activity screen opens.
+ */
+export function useActivity(): { items: Activity[]; unseen: number; markSeen: () => void } {
+  const { activity, profile } = useReadySession();
+  const [items, setItems] = useState<Activity[]>(activity.items);
+  const [lastSeen, setLastSeen] = useState(lastSeenStore.uid === profile.uid ? lastSeenStore.at : Number.MAX_SAFE_INTEGER);
+  useEffect(() => activity.subscribe(setItems), [activity]);
+  useEffect(() => {
+    let live = true;
+    lastSeenStore.listeners.add(setLastSeen);
+    if (lastSeenStore.uid !== profile.uid) {
+      loadLastSeen(profile.uid).then((at) => {
+        lastSeenStore.uid = profile.uid;
+        lastSeenStore.at = at;
+        if (live) setLastSeen(at);
+      });
+    }
+    return () => {
+      live = false;
+      lastSeenStore.listeners.delete(setLastSeen);
+    };
+  }, [profile.uid]);
+  const markSeen = useCallback(() => {
+    const now = Date.now();
+    lastSeenStore.uid = profile.uid;
+    lastSeenStore.at = now;
+    saveLastSeen(profile.uid, now);
+    for (const l of lastSeenStore.listeners) l(now);
+  }, [profile.uid]);
+  return { items, unseen: items.filter((a) => a.at.getTime() > lastSeen).length, markSeen };
 }
 
 /** The current time, refreshed every `intervalMs`. */

@@ -110,13 +110,14 @@ service cloud.firestore {
         }
         allow create, update: if isSelf(uid)
           && docId == 'about'
-          && request.resource.data.keys().hasOnly(['bio', 'birthday', 'prayerRequests', 'bibleVersion', 'denomination', 'church'])
+          && request.resource.data.keys().hasOnly(['bio', 'birthday', 'hometown', 'prayerRequests', 'bibleVersion', 'denomination', 'church'])
           && (!('bio' in request.resource.data) || (request.resource.data.bio is string && request.resource.data.bio.size() <= 160))
           && validBirthday(request.resource.data)
           && optionalText(request.resource.data, 'prayerRequests', 500)
           && optionalText(request.resource.data, 'bibleVersion', 40)
           && optionalText(request.resource.data, 'denomination', 60)
-          && optionalText(request.resource.data, 'church', 80);
+          && optionalText(request.resource.data, 'church', 80)
+          && optionalText(request.resource.data, 'hometown', 80);
         // Clear the bio by saving an empty one; the doc goes with the account (step 5).
         allow delete: if false;
       }
