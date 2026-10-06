@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
@@ -7,6 +8,8 @@ import { usePhoto } from "../session/hooks";
 import { Avatar } from "./Avatar";
 import { fonts, makeStyles, Text, useColors } from "./ui";
 import { VerseBlock } from "./VerseBlock";
+
+const day = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
 function when(d: Date): string {
   return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -18,6 +21,8 @@ export function PostCard({
   footer,
   showVerse = true,
   commentsLink = true,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   post: Post;
   /** Undefined while the author's profile is loading. */
@@ -27,10 +32,15 @@ export function PostCard({
   showVerse?: boolean;
   /** Off on the post's own page, which shows the comments itself. */
   commentsLink?: boolean;
+  /** Friends' posts in the feed can be shrunk to one line. */
+  collapsed?: boolean;
+  /** Shows the collapse chevron when set. */
+  onToggleCollapsed?: () => void;
 }) {
   const styles = useStyles();
   const colors = useColors();
-  const uri = usePhoto(post.photoPath, post.authorId);
+  // Not loaded while collapsed: nothing to show it in.
+  const uri = usePhoto(collapsed ? null : post.photoPath, post.authorId);
   const late = isLate(post);
   return (
     <View style={styles.card}>
@@ -45,9 +55,36 @@ export function PostCard({
           <Text style={styles.author} numberOfLines={1}>{author?.displayName ?? "…"}</Text>
         </Pressable>
         <Text style={styles.meta}>{when(post.createdAt)}</Text>
+        {onToggleCollapsed && (
+          <Pressable
+            onPress={onToggleCollapsed}
+            accessibilityRole="button"
+            accessibilityLabel={collapsed ? "Show this prayer" : "Minimize this prayer"}
+            hitSlop={10}
+          >
+            <Ionicons name={collapsed ? "chevron-down" : "chevron-up"} size={22} color={colors.muted} />
+          </Pressable>
+        )}
       </View>
+      {collapsed && (
+        <Pressable onPress={onToggleCollapsed} accessibilityRole="button" accessibilityLabel="Show this prayer">
+          <Text style={styles.preview} numberOfLines={1}>
+            {post.answeredAt ? "Answered · " : ""}{post.notes}
+          </Text>
+        </Pressable>
+      )}
+      {!collapsed && expanded()}
+    </View>
+  );
+
+  // A plain function, not a component, so the verse's open/closed state
+  // survives re-renders.
+  function expanded() {
+    return (
+      <>
       {post.place && <Text style={styles.place}>📍 {post.place}</Text>}
       <View style={styles.labels}>
+        {post.answeredAt && <Text style={[styles.label, styles.answered]}>Answered</Text>}
         {late && <Text style={[styles.label, styles.late]}>Late</Text>}
         {post.editedAt && <Text style={styles.label}>Edited</Text>}
       </View>
@@ -61,6 +98,12 @@ export function PostCard({
         )}
       </View>
       <Text style={styles.notes}>{post.notes}</Text>
+      {post.answeredAt && (
+        <View style={styles.answer}>
+          <Text style={styles.answerTitle}>Answered · {day(post.answeredAt)}</Text>
+          {post.answerNote && <Text style={styles.answerNote}>{post.answerNote}</Text>}
+        </View>
+      )}
       {showVerse && post.verseRef && <VerseBlock refId={post.verseRef} collapsed />}
       {commentsLink && (
         <Pressable accessibilityRole="link" onPress={() => router.push(`/post/${post.id}`)} style={styles.commentsLink}>
@@ -68,8 +111,9 @@ export function PostCard({
         </Pressable>
       )}
       {footer}
-    </View>
-  );
+      </>
+    );
+  }
 }
 
 const useStyles = makeStyles((colors) => ({
@@ -84,6 +128,11 @@ const useStyles = makeStyles((colors) => ({
   labels: { flexDirection: "row", gap: 6 },
   label: { fontSize: 13, color: colors.muted, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: "hidden" },
   late: { color: colors.muted },
+  answered: { color: colors.accent, borderColor: colors.accent },
+  answer: { backgroundColor: colors.accentSoft, borderRadius: 12, padding: 12, gap: 4 },
+  answerTitle: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent },
+  answerNote: { fontSize: 17, lineHeight: 24, fontFamily: fonts.serifItalic, color: colors.text },
+  preview: { fontSize: 16, color: colors.muted },
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.bg, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   notes: { fontSize: 18, lineHeight: 26, fontFamily: fonts.serif, color: colors.text },
 }));

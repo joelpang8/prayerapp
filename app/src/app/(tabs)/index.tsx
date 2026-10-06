@@ -1,10 +1,11 @@
 import { router } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
-import { useNotificationPermission } from "../../lib/notifications";
+import { setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
@@ -21,6 +22,17 @@ export default function TodayScreen() {
   const { posts: mine } = useMyPosts();
   const feed = useFeed();
   const notifications = useNotificationPermission();
+  const notificationsOn = useNotificationsEnabled();
+  // Friends' posts I've minimized. Memory only: forgotten when the app
+  // closes or I sign out (nothing about other people's posts goes to disk).
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (id: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  const allCollapsed = feed.length > 0 && feed.every((p) => collapsed.has(p.id));
   const names = useProfiles(new Set(feed.map((p) => p.authorId)));
 
   const myPost = prompt ? mine.find((p) => p.promptId === prompt.id) : undefined;
@@ -32,18 +44,6 @@ export default function TodayScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      {notifications.status === "undetermined" && (
-        <View style={styles.notice}>
-          <Text style={styles.noticeTitle}>Know when it&apos;s time to pray</Text>
-          <Muted>Once a day, at a random moment, you&apos;ll get a notification. You&apos;ll have 2 minutes to pause and pray.</Muted>
-          <Button title="Turn on notifications" onPress={notifications.request} />
-        </View>
-      )}
-      {promptVerseShown && (
-        <View style={styles.wordOfTheDay}>
-          <WordOfTheDay refId={prompt!.verseRef!} />
-        </View>
-      )}
       {!loaded ? null : myPost ? (
         <>
           <SectionTitle>Your prayer today</SectionTitle>
@@ -57,7 +57,7 @@ export default function TodayScreen() {
               ? `The prompt went out at ${time(prompt!.firedAt)}. Post by ${time(onTimeUntil)} to be on time.`
               : `The prompt went out at ${time(prompt!.firedAt)}. You can still post; it will be marked late.`}
           </Muted>
-          <Button title="Pray now" onPress={() => router.push("/compose")} />
+          <Button title="Pray now" size="large" onPress={() => router.push("/compose")} />
         </View>
       ) : (
         <View style={styles.prompt}>
@@ -65,8 +65,32 @@ export default function TodayScreen() {
           <Muted>Once a day, at a random moment, everyone is asked to pray right then.</Muted>
         </View>
       )}
+      {promptVerseShown && (
+        <View style={styles.wordOfTheDay}>
+          <WordOfTheDay refId={prompt!.verseRef!} />
+        </View>
+      )}
+      {notifications.status === "undetermined" && notificationsOn && (
+        <View style={styles.notice}>
+          <Text style={styles.noticeTitle}>Know when it&apos;s time to pray</Text>
+          <Muted>Once a day, at a random moment, you&apos;ll get a notification. You&apos;ll have 2 minutes to pause and pray.</Muted>
+          <Button title="Turn on notifications" onPress={notifications.request} />
+          <Button title="Not now" kind="secondary" onPress={() => setNotificationsEnabled(false)} />
+        </View>
+      )}
 
-      <SectionTitle>Friends</SectionTitle>
+      <View style={styles.friendsHeader}>
+        <SectionTitle>Friends</SectionTitle>
+        {feed.length > 0 && (
+          <Pressable
+            onPress={() => setCollapsed(allCollapsed ? new Set() : new Set(feed.map((p) => p.id)))}
+            accessibilityRole="button"
+            hitSlop={8}
+          >
+            <Text style={styles.collapseAll}>{allCollapsed ? "Show all" : "Minimize all"}</Text>
+          </Pressable>
+        )}
+      </View>
       {feed.length === 0 && <Muted>Nothing from friends yet.</Muted>}
       {feed.map((post) => (
         <PostCard
@@ -75,6 +99,8 @@ export default function TodayScreen() {
           author={names.get(post.authorId)}
           // Don't repeat the verse already shown at the top; older posts keep theirs.
           showVerse={!(promptVerseShown && post.verseRef === prompt?.verseRef)}
+          collapsed={collapsed.has(post.id)}
+          onToggleCollapsed={() => toggle(post.id)}
         />
       ))}
     </ScrollView>
@@ -84,8 +110,10 @@ export default function TodayScreen() {
 const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
-  wordOfTheDay: { marginBottom: 16 },
-  notice: { backgroundColor: colors.accentSoft, borderRadius: 16, padding: 16, gap: 10, marginBottom: 16 },
+  wordOfTheDay: { marginTop: 16 },
+  friendsHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  collapseAll: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent, marginTop: 24 },
+  notice: { backgroundColor: colors.accentSoft, borderRadius: 16, padding: 16, gap: 10, marginTop: 16 },
   noticeTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.text },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
   promptTitle: { fontSize: 30, fontFamily: fonts.displayBold, color: colors.text },

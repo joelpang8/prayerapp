@@ -30,6 +30,9 @@
 | Post location | Opt-in per post, off by default. A town-level name only ("Austin, Texas"), never coordinates. Removable when editing, never added or changed later. | Confirmed. Friends see roughly where, not exactly. |
 | Night mode | Settings → Appearance: Match phone (default), Light or Dark. Kept on the device. | A display preference, not shared. Colors come from `useColors`/`makeStyles` in `app/src/components/ui.tsx`. |
 | Profile page | Its own tab, showing your profile as friends see it, with Edit profile. Settings holds appearance, translation and sign-out. | Confirmed. |
+| Answered prayers | The author can later mark a post "answered", with an optional note (up to 1000 characters) on how. Friends see an Answered label and the note. It doesn't add the Edited label, and it can be unmarked. | Requested. Rules: a separate update from editing (`answeredAt` is the server time when first marked). |
+| Notifications switch | An on/off switch in Settings (kept on the device). Off means the app stops showing prompts and, once real pushes exist, unsubscribes the phone. If iOS permission was refused, the switch points to the phone's Settings. | iOS doesn't let an app withdraw its own permission. |
+| Minimizing friends' posts | Each friend's post in the Today feed can be minimized to one line, or all at once. Remembered only while the app is open. | Nothing about other people's posts is written to the device. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 
 ## Pending (ask before building)

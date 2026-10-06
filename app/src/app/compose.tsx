@@ -1,12 +1,13 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db, storage } from "../firebase";
 import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
 import { currentPlaceName, LocationUnavailableError } from "../lib/location";
-import { createPost, editPost, MAX_NOTES, notesProblem } from "../lib/posts";
+import { createPost, editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, setAnswered } from "../lib/posts";
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
 
@@ -51,6 +52,9 @@ function Composer({
   const [place, setPlace] = useState<string | null>(editing?.place ?? null);
   const [placeNote, setPlaceNote] = useState<string | null>(null);
   const [placeBusy, setPlaceBusy] = useState(false);
+  // Editing only: "this prayer was answered" and how.
+  const [answered, setAnsweredBox] = useState(!!editing?.answeredAt);
+  const [answerNote, setAnswerNote] = useState(editing?.answerNote ?? "");
 
   async function togglePlace(on: boolean) {
     setShowPlace(on);
@@ -89,8 +93,16 @@ function Composer({
     setError(null);
     try {
       if (editing) {
-        const newPhoto = photo ? { jpeg: await photoBlob(photo.previewUri), photoId: photo.photoId } : undefined;
-        await editPost(db, storage, editing, { notes, newPhoto, removePlace: !!editing.place && !showPlace });
+        // The prayer itself (marks it "edited") and its answer are saved
+        // separately, so answering alone doesn't add the Edited label.
+        const removePlace = !!editing.place && !showPlace;
+        if (notes.trim() !== editing.notes || photo || removePlace) {
+          const newPhoto = photo ? { jpeg: await photoBlob(photo.previewUri), photoId: photo.photoId } : undefined;
+          await editPost(db, storage, editing, { notes, newPhoto, removePlace });
+        }
+        const answerChanged =
+          answered !== !!editing.answeredAt || (answered && answerNote.trim() !== (editing.answerNote ?? ""));
+        if (answerChanged) await setAnswered(db, editing, answered, answerNote);
       } else {
         if (!prompt) throw new Error("no prompt");
         if (!photo) return setError("Take a photo first.");
@@ -159,6 +171,32 @@ function Composer({
           </View>
         )}
         {placeNote && <Muted>{placeNote}</Muted>}
+        {editing && (
+          <View style={styles.answerBox}>
+            <Pressable
+              onPress={() => setAnsweredBox(!answered)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: answered }}
+              style={styles.checkRow}
+              disabled={busy}
+            >
+              <Ionicons name={answered ? "checkbox" : "square-outline"} size={28} color={colors.accent} />
+              <Text style={styles.checkLabel}>This prayer was answered</Text>
+            </Pressable>
+            {answered && (
+              <TextInput
+                value={answerNote}
+                onChangeText={setAnswerNote}
+                multiline
+                maxLength={MAX_ANSWER_NOTE}
+                style={styles.input}
+                placeholder="How was it answered? (optional)"
+                textAlignVertical="top"
+              />
+            )}
+            <Muted>Your friends will see it marked Answered{answered && answerNote.trim() ? ", with your note" : ""}.</Muted>
+          </View>
+        )}
         {error && <ErrorText>{error}</ErrorText>}
         <Button title={editing ? "Save changes" : "Post"} onPress={submit} busy={busy} disabled={!notes.trim() || (!editing && !photo) || placeBusy} />
         <Button title="Cancel" kind="secondary" onPress={() => router.back()} disabled={busy} />
@@ -174,6 +212,9 @@ const useStyles = makeStyles((colors) => ({
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
   placeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  answerBox: { gap: 8, marginTop: 8 },
+  checkRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 },
+  checkLabel: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text },
   placeText: { flex: 1, gap: 2 },
   // Prayer notes are written in the same serif they're read in.
   input: { minHeight: 120, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 18, lineHeight: 25, fontFamily: fonts.serif, backgroundColor: colors.card },

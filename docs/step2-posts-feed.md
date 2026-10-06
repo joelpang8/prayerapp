@@ -14,6 +14,8 @@ posts/{promptId}_{authorId}         at most one post per user per prompt
   photoPath: string                 postPhotos/{authorId}/{photoId}.jpg
   editedAt?: timestamp              set on every edit, must be the server time (rules)
   place?: string                    1–80 chars, opt-in town name; removable on edit, never added or changed
+  answeredAt?: timestamp            "this prayer was answered": server time when first marked; author only
+  answerNote?: string               1–1000 chars, only with answeredAt. Not an edit (no editedAt)
 
 posts/{postId}/comments/{id}        read: see "Comments" below
   authorId: string                  the commenter; must be the writer

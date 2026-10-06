@@ -146,12 +146,15 @@ export function Button({
   kind = "primary",
   disabled,
   busy,
+  size = "normal",
 }: {
   title: string;
   onPress: () => void;
   kind?: "primary" | "secondary" | "danger";
   disabled?: boolean;
   busy?: boolean;
+  /** "large": the one main action on a screen, e.g. Pray now. */
+  size?: "normal" | "large";
 }) {
   const styles = useStyles();
   const colors = useColors();
@@ -164,6 +167,7 @@ export function Button({
       disabled={inactive}
       style={({ pressed }) => [
         styles.button,
+        size === "large" && styles.buttonLarge,
         kind === "primary" && { backgroundColor: colors.accent },
         kind === "secondary" && styles.secondary,
         kind === "danger" && styles.secondary,
@@ -176,6 +180,7 @@ export function Button({
         <Text
           style={[
             styles.buttonText,
+            size === "large" && styles.buttonTextLarge,
             kind !== "primary" && { color: kind === "danger" ? colors.danger : colors.accent },
           ]}
         >
@@ -220,6 +225,8 @@ const useStyles = makeStyles((colors) => ({
   text: { fontFamily: fonts.serif, color: colors.text },
   input: { fontFamily: fonts.serif, fontSize: 17, color: colors.text },
   buttonText: { color: colors.onAccent, fontSize: 17, fontFamily: fonts.serifSemiBold },
+  buttonLarge: { minHeight: 68, borderRadius: 16 },
+  buttonTextLarge: { fontSize: 30, fontFamily: fonts.displayBold, letterSpacing: 0.5 },
   section: { fontSize: 14, fontFamily: fonts.serifSemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 24, marginBottom: 8 },
   muted: { color: colors.muted, fontSize: 16, lineHeight: 22 },
   error: { color: colors.danger, fontSize: 16, marginTop: 8 },

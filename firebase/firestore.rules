@@ -275,6 +275,24 @@ service cloud.firestore {
         // it records where the post was made.
         && (!('place' in request.resource.data) || request.resource.data.place == resource.data.get('place', null));
 
+      // "This prayer was answered", marked later by the author, with an
+      // optional note on how. A separate update from editing: it doesn't need
+      // editedAt (the prayer itself didn't change) and can't be combined with
+      // an edit. answeredAt is the server time when first marked and stays put
+      // while only the note changes; unmarking removes both fields.
+      function validAnswer() {
+        let d = request.resource.data;
+        return (!('answeredAt' in d) && !('answerNote' in d))
+          || ('answeredAt' in d
+              && (d.answeredAt == request.time || d.answeredAt == resource.data.get('answeredAt', null))
+              && (!('answerNote' in d) || (d.answerNote is string && d.answerNote.size() >= 1 && d.answerNote.size() <= 1000)));
+      }
+
+      allow update: if signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answeredAt', 'answerNote'])
+        && validAnswer();
+
       // Deletable by the author. The photo and comments are removed by
       // Cloud Functions.
       allow delete: if signedIn() && resource.data.authorId == request.auth.uid;

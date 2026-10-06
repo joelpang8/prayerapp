@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { getMetadata, ref } from "firebase/storage";
 import { follow } from "../src/lib/friends";
-import { createPost, deletePost, editPost, isLate, watchMyPosts, type Post } from "../src/lib/posts";
+import { createPost, deletePost, editPost, isLate, setAnswered, watchMyPosts, type Post } from "../src/lib/posts";
 import { watchLatestPrompt, type Prompt } from "../src/lib/prompts";
 import { clearBucket, dbAs, seedPrompt, seedUser, setupEnv, storageAs, until } from "./env";
 
@@ -78,6 +78,29 @@ describe("posting against the real rules", () => {
       await until(() => mine.state.posts?.[0]?.place === "Austin, Texas");
       await editPost(dbAs(env, "alice"), storageAs(env, "alice"), mine.state.posts![0], { removePlace: true });
       await until(() => mine.state.posts?.[0]?.place === null && !!mine.state.posts?.[0]?.editedAt);
+    } finally {
+      mine.stop();
+    }
+  });
+
+  test("marking a prayer answered, changing the note, and unmarking it; not labelled edited", async () => {
+    const mine = watchMine("alice");
+    try {
+      await createPost(dbAs(env, "alice"), storageAs(env, "alice"), {
+        uid: "alice", prompt, notes: "For the job interview", jpeg: JPEG, photoId: "ans1",
+      });
+      await until(() => mine.state.posts?.length === 1);
+      await setAnswered(dbAs(env, "alice"), mine.state.posts![0], true, "  Got the job!  ");
+      await until(() => mine.state.posts?.[0]?.answerNote === "Got the job!" && !!mine.state.posts?.[0]?.answeredAt);
+      const firstAnsweredAt = mine.state.posts![0].answeredAt!.getTime();
+      expect(mine.state.posts![0].editedAt).toBeNull();
+
+      await setAnswered(dbAs(env, "alice"), mine.state.posts![0], true, "");
+      await until(() => mine.state.posts?.[0]?.answerNote === null);
+      expect(mine.state.posts![0].answeredAt!.getTime()).toBe(firstAnsweredAt);
+
+      await setAnswered(dbAs(env, "alice"), mine.state.posts![0], false);
+      await until(() => mine.state.posts?.[0]?.answeredAt === null);
     } finally {
       mine.stop();
     }

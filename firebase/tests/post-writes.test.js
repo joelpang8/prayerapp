@@ -236,3 +236,60 @@ describe("place name (opt-in location)", () => {
     await assertFails(updateDoc(postRef(db, "alice"), { place: "Austin, Texas", editedAt: serverTimestamp() }));
   });
 });
+
+describe("answered prayers", () => {
+  const answer = (db, fields) => updateDoc(postRef(db, "alice"), fields);
+
+  test("the author can mark a prayer answered, with an optional note, without it counting as an edit", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(create("alice"));
+    await assertSucceeds(answer(db, { answeredAt: serverTimestamp() }));
+    await assertSucceeds(answer(db, { answerNote: "She's home and recovering." }));
+    const snap = await getDoc(postRef(db, "alice"));
+    expect(snap.data().answeredAt).toBeInstanceOf(Timestamp);
+    expect(snap.data().editedAt).toBeUndefined();
+  });
+
+  test("marked at the server's time, which stays put while the note changes", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(create("alice"));
+    await assertFails(answer(db, { answeredAt: Timestamp.fromMillis(0) }));
+    await assertSucceeds(answer(db, { answeredAt: serverTimestamp(), answerNote: "Yes" }));
+    await assertFails(answer(db, { answeredAt: Timestamp.fromMillis(0) }));
+    await assertSucceeds(answer(db, { answerNote: "Yes, fully" }));
+  });
+
+  test("a note needs the answered mark, and must be 1–1000 characters", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(create("alice"));
+    await assertFails(answer(db, { answerNote: "no mark" }));
+    await assertFails(answer(db, { answeredAt: serverTimestamp(), answerNote: "" }));
+    await assertFails(answer(db, { answeredAt: serverTimestamp(), answerNote: "x".repeat(1001) }));
+    await assertSucceeds(answer(db, { answeredAt: serverTimestamp(), answerNote: "x".repeat(1000) }));
+  });
+
+  test("it can be unmarked, removing the note with it", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(create("alice"));
+    await assertSucceeds(answer(db, { answeredAt: serverTimestamp(), answerNote: "Yes" }));
+    await assertFails(answer(db, { answeredAt: deleteField() }));
+    await assertSucceeds(answer(db, { answeredAt: deleteField(), answerNote: deleteField() }));
+  });
+
+  test("can't be combined with an edit, set at creation, or done by anyone else", async () => {
+    const db = signedInAs(env, "alice");
+    await assertFails(create("alice", { answeredAt: serverTimestamp() }));
+    await assertSucceeds(create("alice"));
+    await assertFails(answer(db, { notes: "changed", editedAt: serverTimestamp(), answeredAt: serverTimestamp() }));
+    await seedFriends(env, "alice", "bob");
+    await assertFails(answer(signedInAs(env, "bob"), { answeredAt: serverTimestamp() }));
+  });
+
+  test("editing an answered prayer still works and keeps the answer", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(create("alice"));
+    await assertSucceeds(answer(db, { answeredAt: serverTimestamp(), answerNote: "Yes" }));
+    await assertSucceeds(updateDoc(postRef(db, "alice"), { notes: "Updated", editedAt: serverTimestamp() }));
+    expect((await getDoc(postRef(db, "alice"))).data().answerNote).toBe("Yes");
+  });
+});

@@ -1,5 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { AppState, Linking, Platform } from "react-native";
 
 /**
@@ -26,17 +27,50 @@ export function statusFrom(p: Pick<Notifications.NotificationPermissionsStatus, 
   return p.canAskAgain ? "undetermined" : "denied";
 }
 
+// The app's own on/off switch (Settings). iOS doesn't let an app withdraw
+// its permission, so "off" is the app's choice: it stops showing prompts
+// and, once real pushes exist, it unsubscribes this phone from them.
+// A preference about this device, not anyone's content, so it's kept on disk.
+const ENABLED_KEY = "notifications.enabled";
+let enabled = true;
+const enabledListeners = new Set<(on: boolean) => void>();
+
+export async function loadNotificationsEnabled(): Promise<void> {
+  try {
+    enabled = (await AsyncStorage.getItem(ENABLED_KEY)) !== "0";
+  } catch {
+    enabled = true;
+  }
+  for (const l of enabledListeners) l(enabled);
+}
+
+export function setNotificationsEnabled(on: boolean): void {
+  enabled = on;
+  for (const l of enabledListeners) l(on);
+  AsyncStorage.setItem(ENABLED_KEY, on ? "1" : "0").catch(() => {});
+}
+
+function subscribeEnabled(listener: () => void): () => void {
+  enabledListeners.add(listener);
+  return () => { enabledListeners.delete(listener); };
+}
+
+export function useNotificationsEnabled(): boolean {
+  return useSyncExternalStore(subscribeEnabled, () => enabled);
+}
+
 let configured = false;
 
-/** Call once at startup. Shows prompts even while the app is open. */
+/** Call once at startup. Shows prompts even while the app is open, unless switched off. */
 export function configureNotifications(): void {
   if (configured) return;
   configured = true;
+  loadNotificationsEnabled();
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
+      shouldShowBanner: enabled,
+      shouldShowList: enabled,
+      shouldPlaySound: enabled,
       shouldSetBadge: false,
     }),
   });

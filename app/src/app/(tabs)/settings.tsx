@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, Switch, View } from "react-native";
 import { signOut } from "../../auth/signIn";
-import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
+import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { db } from "../../firebase";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
-import { openPhoneSettings, useNotificationPermission } from "../../lib/notifications";
+import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
 import { setBibleVersion } from "../../lib/settings";
 import { useSettings } from "../../session/hooks";
@@ -16,6 +16,15 @@ export default function SettingsScreen() {
   const settings = useSettings();
   const appearance = useAppearance();
   const notifications = useNotificationPermission();
+  const notificationsOn = useNotificationsEnabled();
+  const colors = useColors();
+
+  async function toggleNotifications(on: boolean) {
+    setNotificationsEnabled(on);
+    // Turning on for the first time asks iOS; if iOS was refused before,
+    // only the phone's Settings can change it (the note below says so).
+    if (on && notifications.status === "undetermined") await notifications.request();
+  }
   const [error, setError] = useState<string | null>(null);
 
   async function choose(id: TranslationId) {
@@ -31,18 +40,24 @@ export default function SettingsScreen() {
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <SectionTitle>Notifications</SectionTitle>
       <View style={styles.card}>
-        {notifications.status === "granted" && <Text style={styles.optionText}>On: you&apos;ll be notified when it&apos;s time to pray.</Text>}
-        {notifications.status === "undetermined" && (
-          <>
-            <Muted>Get a notification at the daily moment to pray.</Muted>
-            <Button title="Turn on notifications" onPress={notifications.request} />
-          </>
-        )}
-        {notifications.status === "denied" && (
-          <>
-            <Muted>Notifications are off for this app. You can turn them on in your phone&apos;s Settings.</Muted>
-            <Button title="Open phone Settings" kind="secondary" onPress={openPhoneSettings} />
-          </>
+        <View style={styles.option}>
+          <Text style={styles.optionText}>Prompt notifications</Text>
+          <Switch
+            value={notificationsOn && notifications.status === "granted"}
+            onValueChange={toggleNotifications}
+            trackColor={{ true: colors.accent, false: colors.border }}
+            accessibilityLabel="Prompt notifications"
+          />
+        </View>
+        <Muted>
+          {notifications.status === "denied" && notificationsOn
+            ? "Blocked in your phone's Settings. Turn them on there to be notified."
+            : notificationsOn && notifications.status === "granted"
+              ? "On: you'll be notified when it's time to pray."
+              : "Off: turn on to be notified at the daily moment to pray."}
+        </Muted>
+        {notifications.status === "denied" && notificationsOn && (
+          <Button title="Open phone Settings" kind="secondary" onPress={openPhoneSettings} />
         )}
       </View>
 

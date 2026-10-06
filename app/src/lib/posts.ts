@@ -23,6 +23,7 @@ import type { Prompt } from "./prompts";
 export const ON_TIME_WINDOW_MS = 7 * 60 * 1000;
 export const MAX_NOTES = 2000;
 export const MAX_PLACE = 80; // must match firestore.rules
+export const MAX_ANSWER_NOTE = 1000; // must match firestore.rules
 
 export type Post = {
   id: string;
@@ -37,6 +38,10 @@ export type Post = {
   verseRef: string | null;
   /** Where it was posted, as a place name like "Austin, Texas"; opt-in, never coordinates. */
   place: string | null;
+  /** When the author marked the prayer answered, or null. */
+  answeredAt: Date | null;
+  /** The author's optional note on how it was answered. */
+  answerNote: string | null;
 };
 
 /**
@@ -81,6 +86,8 @@ export function postFromSnapshot(snap: DocumentSnapshot): Post | null {
     photoPath: d.photoPath,
     verseRef: d.verseRef ?? null,
     place: typeof d.place === "string" ? d.place : null,
+    answeredAt: date(d.answeredAt),
+    answerNote: typeof d.answerNote === "string" ? d.answerNote : null,
   };
 }
 
@@ -166,6 +173,30 @@ export async function editPost(db: Firestore, storage: FirebaseStorage, post: Po
     if (photoPath !== post.photoPath) await deleteObject(ref(storage, photoPath)).catch(() => {});
     throw err;
   }
+}
+
+/**
+ * Mark the prayer answered (with an optional note on how), change the note,
+ * or unmark it. Separate from editPost: it doesn't add the "edited" label.
+ */
+export async function setAnswered(
+  db: Firestore,
+  post: Pick<Post, "id" | "answeredAt">,
+  answered: boolean,
+  note?: string | null,
+): Promise<void> {
+  const ref = doc(db, "posts", post.id);
+  if (!answered) {
+    await updateDoc(ref, { answeredAt: deleteField(), answerNote: deleteField() });
+    return;
+  }
+  const trimmed = (note ?? "").trim();
+  if (trimmed.length > MAX_ANSWER_NOTE) throw new Error(`At most ${MAX_ANSWER_NOTE} characters.`);
+  await updateDoc(ref, {
+    // First time: the server's time. Afterwards it stays as it was.
+    ...(post.answeredAt ? {} : { answeredAt: serverTimestamp() }),
+    answerNote: trimmed ? trimmed : deleteField(),
+  });
 }
 
 /** Deletes the post; its photo is deleted by a Cloud Function. */
