@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { Button, colors, fonts, Muted, SectionTitle } from "../../components/ui";
-import { VerseBlock } from "../../components/VerseBlock";
+import { WordOfTheDay } from "../../components/WordOfTheDay";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
@@ -29,20 +29,19 @@ export default function TodayScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      {promptVerseShown && (
+        <View style={styles.wordOfTheDay}>
+          <WordOfTheDay refId={prompt!.verseRef!} />
+        </View>
+      )}
       {!loaded ? null : myPost ? (
         <>
-          {prompt?.verseRef && (
-            <View style={styles.verse}>
-              <VerseBlock refId={prompt.verseRef} />
-            </View>
-          )}
           <SectionTitle>Your prayer today</SectionTitle>
           <PostCard post={myPost} authorName={profile.displayName} footer={<OwnPostActions post={myPost} />} showVerse={false} />
         </>
       ) : open && onTimeUntil ? (
         <View style={styles.prompt}>
           <Text style={styles.promptTitle}>Time to pray</Text>
-          {prompt!.verseRef && <VerseBlock refId={prompt!.verseRef} />}
           <Muted>
             {now <= onTimeUntil.getTime()
               ? `The prompt went out at ${time(prompt!.firedAt)}. Post by ${time(onTimeUntil)} to be on time.`
@@ -75,7 +74,7 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
+  wordOfTheDay: { marginBottom: 16 },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
   promptTitle: { fontSize: 30, fontFamily: fonts.displayBold, color: colors.text },
-  verse: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 },
 });
