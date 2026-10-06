@@ -37,7 +37,7 @@ export default function TodayScreen() {
       {!loaded ? null : myPost ? (
         <>
           <SectionTitle>Your prayer today</SectionTitle>
-          <PostCard post={myPost} authorName={profile.displayName} footer={<OwnPostActions post={myPost} />} showVerse={false} />
+          <PostCard post={myPost} author={profile} footer={<OwnPostActions post={myPost} />} showVerse={false} />
         </>
       ) : open && onTimeUntil ? (
         <View style={styles.prompt}>
@@ -62,7 +62,7 @@ export default function TodayScreen() {
         <PostCard
           key={post.id}
           post={post}
-          authorName={names.get(post.authorId)?.displayName ?? "…"}
+          author={names.get(post.authorId)}
           // Don't repeat the verse already shown at the top; older posts keep theirs.
           showVerse={!(promptVerseShown && post.verseRef === prompt?.verseRef)}
         />

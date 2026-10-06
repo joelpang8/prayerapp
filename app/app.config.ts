@@ -52,9 +52,10 @@ const config: ExpoConfig = {
     [
       "expo-image-picker",
       {
-        cameraPermission: "Take a photo to go with your prayer. Only your friends can see it.",
-        // Library access is only used by the development-only photo picker.
-        photosPermission: "Choose a photo to go with your prayer.",
+        cameraPermission: "Take a photo to go with your prayer, or for your profile picture.",
+        // Real users choose from the library only for their profile picture;
+        // posts are camera-only (the post picker is development-only).
+        photosPermission: "Choose a profile picture.",
         microphonePermission: false,
       },
     ],

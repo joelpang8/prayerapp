@@ -1,5 +1,7 @@
 // Must match storage.rules: postPhotos/{authorId}/{photoId}.jpg
 const POST_PHOTO = /^postPhotos\/([A-Za-z0-9]+)\/[A-Za-z0-9]{1,64}\.jpg$/;
+// Must match storage.rules: avatars/{uid}/{avatarId}.jpg
+const AVATAR = /^avatars\/([A-Za-z0-9]+)\/[A-Za-z0-9]{1,64}\.jpg$/;
 const UID = /^[A-Za-z0-9]{1,128}$/;
 
 /** The author uid if `path` is a post photo, else null. */
@@ -7,6 +9,19 @@ export function postPhotoAuthor(path: string | undefined | null): string | null 
   if (!path) return null;
   const m = POST_PHOTO.exec(path);
   return m ? m[1] : null;
+}
+
+/** The owner uid if `path` is a profile photo, else null. */
+export function avatarOwner(path: string | undefined | null): string | null {
+  if (!path) return null;
+  const m = AVATAR.exec(path);
+  return m ? m[1] : null;
+}
+
+/** A profile's photo path, only if it's in that user's own avatars folder. */
+export function ownedAvatarPath(uid: string, profile: { avatarPath?: unknown } | undefined): string | null {
+  const p = profile?.avatarPath;
+  return typeof p === "string" && avatarOwner(p) === uid ? p : null;
 }
 
 /**
@@ -47,7 +62,8 @@ export function isNotFound(err: unknown): boolean {
 }
 
 export async function revokeFileToken(file: FileLike): Promise<boolean> {
-  if (!postPhotoAuthor(file.name) || !hasDownloadToken(file)) return false;
+  // Post photos and profile photos: neither should have a permanent link.
+  if ((!postPhotoAuthor(file.name) && !avatarOwner(file.name)) || !hasDownloadToken(file)) return false;
   try {
     await file.setMetadata({ metadata: { [TOKEN_KEY]: null } });
   } catch (err) {

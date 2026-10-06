@@ -57,10 +57,11 @@ service cloud.firestore {
     }
 
     // ---------- public profiles ----------
-    // Minimal, non-sensitive: username + display name. Readable by any
-    // signed-in user who already knows the uid (needed to show a follow
-    // request / friend). Listing is denied so the user base can't be
-    // enumerated.
+    // Minimal: username, display name and (optional) profile photo path.
+    // Readable by any signed-in user who already knows the uid (needed to
+    // show a follow request / friend, and to recognise who it is). Listing
+    // is denied so the user base can't be enumerated. The bio is NOT here:
+    // it's friends-only (users/{uid}/friendsOnly/about below).
     match /users/{uid} {
       allow get: if signedIn();
       allow list: if false;
@@ -75,14 +76,36 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && getAfter(usernameDoc(request.resource.data.username)).data.uid == uid;
 
-      // Only the display name is mutable. Usernames are fixed in v1.
+      // Display name and profile photo are mutable; usernames are fixed in
+      // v1. The photo must be in the owner's own avatars/ folder (storage
+      // rules only let the owner write there); removing it deletes the field.
       allow update: if isSelf(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
-        && isValidDisplayName(request.resource.data.displayName);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'avatarPath'])
+        && isValidDisplayName(request.resource.data.displayName)
+        && (!('avatarPath' in request.resource.data)
+            || (request.resource.data.avatarPath is string
+                && request.resource.data.avatarPath.matches('^avatars/' + uid + '/[A-Za-z0-9]{1,64}[.]jpg$')));
 
       // Account deletion goes through a Cloud Function (step 5) so that the
       // user's posts, follows and photos are removed together.
       allow delete: if false;
+
+      // ---------- friends-only profile ----------
+      // users/{uid}/friendsOnly/about: { bio } (up to 160 characters).
+      // Same boundary as posts: only the owner and CURRENT mutual friends,
+      // checked against the live follow docs on every read.
+      match /friendsOnly/{docId} {
+        allow get: if docId == 'about' && signedIn() && (
+          request.auth.uid == uid || areFriends(request.auth.uid, uid));
+        allow list: if false;
+        allow create, update: if isSelf(uid)
+          && docId == 'about'
+          && request.resource.data.keys().hasOnly(['bio'])
+          && request.resource.data.bio is string
+          && request.resource.data.bio.size() <= 160;
+        // Clear the bio by saving an empty one; the doc goes with the account (step 5).
+        allow delete: if false;
+      }
 
       // ---------- private settings ----------
       // users/{uid}/private/settings: only the owner can read or write it.

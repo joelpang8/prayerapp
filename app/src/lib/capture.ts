@@ -55,3 +55,36 @@ export async function pickPhotoForDevelopment(): Promise<CapturedPhoto | null> {
   if (result.canceled || !result.assets[0]) return null;
   return toJpeg(result.assets[0]);
 }
+
+// Profile photos are shown small, so 512px square is plenty (~40–80 KB).
+const AVATAR_EDGE = 512;
+
+/**
+ * A square profile photo from the camera or the photo library (both allowed
+ * for profile photos, unlike posts). The picker offers a square crop; the
+ * centre is cropped again here in case the platform ignored it.
+ * Returns null if cancelled or permission denied.
+ */
+export async function pickAvatar(source: "camera" | "library"): Promise<CapturedPhoto | null> {
+  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ["images"], quality: 1, exif: false, allowsEditing: true, aspect: [1, 1] };
+  let result: ImagePicker.ImagePickerResult;
+  if (source === "camera") {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return null;
+    result = await ImagePicker.launchCameraAsync(options);
+  } else {
+    result = await ImagePicker.launchImageLibraryAsync(options);
+  }
+  const asset = result.canceled ? null : result.assets[0];
+  if (!asset) return null;
+
+  const side = Math.min(asset.width, asset.height);
+  const ctx = ImageManipulator.manipulate(asset.uri);
+  if (asset.width !== asset.height) {
+    ctx.crop({ originX: (asset.width - side) / 2, originY: (asset.height - side) / 2, width: side, height: side });
+  }
+  if (side > AVATAR_EDGE) ctx.resize({ width: AVATAR_EDGE, height: AVATAR_EDGE });
+  const image = await ctx.renderAsync();
+  const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
+  return { previewUri: saved.uri, photoId: Crypto.randomUUID().replace(/-/g, "") };
+}

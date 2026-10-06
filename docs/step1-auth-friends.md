@@ -6,7 +6,14 @@
 users/{uid}                         public profile. get: any signed-in user. list: no one
   username: string                  unique, lowercase, can't be changed
   displayName: string               1–50 chars, owner can edit
+  avatarPath?: string               avatars/{uid}/{id}.jpg, owner can set or remove
   createdAt: timestamp              must be the server time
+
+users/{uid}/friendsOnly/about       get: the owner and their current mutual friends
+  bio: string                       0–160 chars, owner writes. list/delete: no one
+
+Storage avatars/{uid}/{id}.jpg      profile photo. get: any signed-in user.
+                                    write: owner only, JPEG under 2 MB. list: no one
 
 usernames/{username}                exact-match lookup for "add friend by username"
   uid: string                       get: any signed-in user. list: no one
@@ -19,6 +26,8 @@ posts/{postId}                      read: the author and the author's current mu
   authorId: string                  writes: denied until step 2
   ...                               step 2 defines the rest
 ```
+
+**Profile photo and bio (added later).** The photo is public to signed-in users, like the name, so people can recognise each other when adding friends. The bio is friends-only and uses the same live `follows` check as posts, in its own doc so the public profile never carries it. When the photo changes, the `deleteReplacedAvatar` function deletes the old file, and its download token is stripped on upload like post photos. In the app, profile photos load with `getBytes` into a memory-only cache (cleared on sign-out); the profile screen stops its bio listener and drops the text as soon as the friend graph says the friendship ended. Tests: `firebase/tests/profile-extras.test.js` and `app/tests/profile.test.ts`.
 
 **Friend states**, from the point of view of user A and user B:
 
@@ -79,6 +88,7 @@ The step 2 feed (`app/src/lib/feed.ts`) is registered with FriendScope. `evictAu
 Moderation is deferred, but these are the points where it stops being optional:
 
 - **Follow-request spam or harassment.** Anyone who knows a username can send requests without limit, and there is no **block** yet. Declining just deletes the edge, and the sender can send again. A block list and rate limit (probably a Cloud Function) are needed before strangers can find each other.
+- **Profile photos are visible to strangers.** Anyone signed in who knows a username can see that person's photo. That widens the reporting need below beyond friends.
 - **Photo content.** Once photos exist (step 2), there is no reporting path. Friends-only visibility lowers the risk but doesn't remove it. App Store Guideline 1.2 requires a way to report and block for user-generated content, so this is a **launch blocker for the App Store**, not just nice to have.
 
 ## Step 1 app (built)
@@ -86,7 +96,8 @@ Moderation is deferred, but these are the points where it stops being optional:
 - **Sign-in:** Apple (with a nonce, as Firebase requires) and Google, in `app/src/auth/signIn.ts`. In emulator mode there is also a development sign-in that uses the Auth emulator's fake Google token. Its provider is still `google.com`, so the same rules apply.
 - **Onboarding:** name and username, written in one batch. A taken username gets a clear message. `app/src/app/onboarding.tsx`
 - **Friends tab:** find by exact username, send a request, see incoming requests (with a badge on the tab), accept or decline, cancel sent requests, and remove friends (with a confirmation). `app/src/app/(tabs)/friends.tsx`
-- **Settings:** your profile and sign-out. Sign-out stops FriendScope, which clears every friend-scoped cache.
+- **Settings:** your profile (photo from camera or library, 160-character bio), translation and sign-out.
+- **Profile screen** (`app/src/app/profile/[uid].tsx`): opened by tapping a name on a post or in Friends. Shows photo, name, username, and the bio to friends only. Sign-out stops FriendScope, which clears every friend-scoped cache.
 - The Today tab is empty until step 2.
 
 Checked here: type-check, lint, an iOS JavaScript bundle build, and 31 data-layer tests (22 unit, 9 against the emulators). **Not checked yet: running on a device or simulator.** This environment is Linux, with no Xcode. See `docs/ios-device-build.md`.

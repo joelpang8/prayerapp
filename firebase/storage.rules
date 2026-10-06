@@ -46,6 +46,22 @@ service firebase.storage {
       allow delete: if signedIn() && request.auth.uid == authorId;
     }
 
+    // Profile photos: avatars/{uid}/{avatarId}.jpg
+    // Visible to any signed-in user (decided: people should recognise who a
+    // friend request is from). Like post photos, they're read through the
+    // SDK, never via download URLs. Owner-only writes, square JPEG < 2 MB.
+    match /avatars/{uid}/{avatarId} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && avatarId.matches('^[A-Za-z0-9]{1,64}\\.jpg$')
+        && request.resource.size > 0
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg';
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
     // Everything else in the bucket is closed.
     match /{path=**} {
       allow read, write: if false;

@@ -43,6 +43,7 @@ Both are allowed, as you decided.
 | `stripPhotoDownloadTokens` | a photo finishes uploading | Removes the token Storage attaches at upload. |
 | `deletePhotoOfDeletedPost` | a post is deleted | Deletes its photo. |
 | `deleteReplacedPhoto` | a post's photo changes | Deletes the old photo. |
+| `deleteReplacedAvatar` | a profile photo changes or is removed | Deletes the old profile photo. |
 
 ### Why revoking at unfriend is the real protection
 

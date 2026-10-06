@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { deleteDoc, doc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
-import { isNotFound, ownedPhotoPath, postPhotoAuthor, revokeFileToken, revokeUserPhotoTokens } from "../functions/lib/photos.js";
+import { avatarOwner, isNotFound, ownedAvatarPath, ownedPhotoPath, postPhotoAuthor, revokeFileToken, revokeUserPhotoTokens } from "../functions/lib/photos.js";
 import { clearBucket, seed, seedUser, setupEnv, signedInAs, storageAs } from "./helpers.js";
 
 // These run against the Functions emulator (triggers fire for real).
@@ -45,6 +45,17 @@ describe("photo path ownership (unit)", () => {
   });
 });
 
+describe("profile photo ownership (unit)", () => {
+  test("parses and checks the owner of an avatar path", () => {
+    expect(avatarOwner("avatars/alice/a1.jpg")).toBe("alice");
+    expect(avatarOwner("avatars/alice/../bob/a.jpg")).toBeNull();
+    expect(avatarOwner("postPhotos/alice/a1.jpg")).toBeNull();
+    expect(ownedAvatarPath("alice", { avatarPath: "avatars/alice/a1.jpg" })).toBe("avatars/alice/a1.jpg");
+    expect(ownedAvatarPath("alice", { avatarPath: "avatars/bob/a1.jpg" })).toBeNull();
+    expect(ownedAvatarPath("alice", {})).toBeNull();
+  });
+});
+
 describe("download-token revocation logic (unit)", () => {
   // The Storage emulator keeps tokens outside custom metadata and re-adds
   // them, so revocation can't be observed there. It's verified against the
@@ -63,6 +74,11 @@ describe("download-token revocation logic (unit)", () => {
     const f = fakeFile("postPhotos/alice/a.jpg");
     expect(await revokeFileToken(f)).toBe(true);
     expect(f.calls).toEqual([{ metadata: { firebaseStorageDownloadTokens: null } }]);
+  });
+
+  test("profile photos lose their token too", async () => {
+    const f = fakeFile("avatars/alice/a1.jpg");
+    expect(await revokeFileToken(f)).toBe(true);
   });
 
   test("leaves files without a token, and non-post files, alone", async () => {
@@ -130,6 +146,18 @@ describe("Cloud Functions against the emulators", () => {
     await updateDoc(doc(signedInAs(env, "alice"), "posts", "20260929_alice"), {
       photoPath: "postPhotos/alice/new1.jpg", editedAt: serverTimestamp(),
     });
+    await eventually(async () => (await errorCode(oldRef.getMetadata())) === "storage/object-not-found");
+    await expect(newRef.getMetadata()).resolves.toBeTruthy();
+  });
+
+  e2e("changing a profile photo deletes the old one", async () => {
+    const storage = storageAs(env, "alice");
+    const oldRef = storage.ref("avatars/alice/old1.jpg");
+    const newRef = storage.ref("avatars/alice/new1.jpg");
+    await oldRef.put(JPEG, { contentType: "image/jpeg" });
+    await newRef.put(JPEG, { contentType: "image/jpeg" });
+    await seed(env, (db) => updateDoc(doc(db, "users", "alice"), { avatarPath: "avatars/alice/old1.jpg" }));
+    await updateDoc(doc(signedInAs(env, "alice"), "users", "alice"), { avatarPath: "avatars/alice/new1.jpg" });
     await eventually(async () => (await errorCode(oldRef.getMetadata())) === "storage/object-not-found");
     await expect(newRef.getMetadata()).resolves.toBeTruthy();
   });

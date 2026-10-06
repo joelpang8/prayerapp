@@ -24,6 +24,7 @@
 | Daily prompt window | 08:00–21:00, the same every day (no weekend difference) | Confirmed. The global prompt means friends in other time zones sometimes get it at odd hours; that's accepted. |
 | Push delivery | FCM topic via React Native Firebase messaging; one send reaches everyone, no per-user tokens stored | Chosen for the step 4 prototype; to be confirmed by device tests before integration. |
 | Typography | Cormorant Garamond for titles, names and verse references; EB Garamond for scripture and prayer notes (its true italic for the KJV's supplied words); system font for buttons, labels and inputs | Chosen for a reverent, printed-Bible feel without hurting legibility. Change in one place: `fonts` in `app/src/components/ui.tsx`. |
+| Profile photo and bio | Photo, name and username visible to any signed-in user; bio (max 160 characters) visible to the owner and current mutual friends only. Profile photos may come from the camera or the library. | Confirmed. The photo helps people recognise who they're adding; the bio stays as private as posts. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 
 ## Pending (ask before building)

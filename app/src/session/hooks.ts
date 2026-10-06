@@ -48,6 +48,33 @@ export function usePhoto(path: string | null, authorId: string): string | null {
   return uri;
 }
 
+/**
+ * A profile photo as an in-memory data URI. Profile photos are visible to
+ * any signed-in user, so there's no friend check here; the Storage rules
+ * still run on every fetch. Null while loading, or if there's no photo.
+ */
+export function useAvatar(path: string | null): string | null {
+  const { avatars } = useReadySession();
+  const [state, setState] = useState<{ path: string; uri: string } | null>(() => {
+    const hit = path ? avatars.peek(path) : undefined;
+    return path && hit ? { path, uri: hit } : null;
+  });
+  useEffect(() => {
+    if (!path) return;
+    let live = true;
+    avatars.get(path).then(
+      (uri) => { if (live) setState({ path, uri }); },
+      (err) => {
+        // A replaced photo is deleted, so an out-of-date profile can point
+        // at a missing file for a moment. The initials show instead.
+        if (!(err instanceof PhotoEvictedError) && err?.code !== "storage/object-not-found") console.warn("profile photo failed", err);
+      },
+    );
+    return () => { live = false; };
+  }, [path, avatars]);
+  return state && state.path === path ? state.uri : null;
+}
+
 /** The current time, refreshed every `intervalMs`. */
 export function useNow(intervalMs = 15_000): number {
   const [now, setNow] = useState(() => Date.now());

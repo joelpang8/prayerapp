@@ -1,5 +1,7 @@
+import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Avatar } from "../../components/Avatar";
 import { Button, colors, ErrorText, fonts, Muted, SectionTitle } from "../../components/ui";
 import { db } from "../../firebase";
 import {
@@ -44,10 +46,7 @@ export default function FriendsScreen() {
     const p = profiles.get(uid);
     return (
       <View key={uid} style={styles.row}>
-        <View style={styles.who}>
-          <Text style={styles.name}>{p?.displayName ?? "…"}</Text>
-          {p && <Muted>@{p.username}</Muted>}
-        </View>
+        <Who profile={p} uid={uid} />
         <View style={styles.rowActions}>{actions}</View>
       </View>
     );
@@ -87,6 +86,19 @@ export default function FriendsScreen() {
         row(uid, <Button title="Cancel" kind="secondary" busy={pending === uid} onPress={() => act(uid, () => cancelRequest(db, me.uid, uid))} />),
       )}
     </ScrollView>
+  );
+}
+
+/** Photo, name and username; tapping opens their profile. */
+function Who({ profile, uid }: { profile: Profile | undefined; uid: string }) {
+  return (
+    <Pressable accessibilityRole="link" onPress={() => router.push(`/profile/${uid}`)} style={styles.who}>
+      <Avatar path={profile?.avatarPath ?? null} name={profile?.displayName ?? ""} size={44} />
+      <View style={styles.names}>
+        <Text style={styles.name} numberOfLines={1}>{profile?.displayName ?? "…"}</Text>
+        {profile && <Muted>@{profile.username}</Muted>}
+      </View>
+    </Pressable>
   );
 }
 
@@ -139,10 +151,7 @@ function FindFriend({ me, graph }: { me: string; graph: ReturnType<typeof useFri
       {result === "none" && <Muted>Nobody with that username.</Muted>}
       {result && result !== "none" && (
         <View style={styles.row}>
-          <View style={styles.who}>
-            <Text style={styles.name}>{result.displayName}</Text>
-            <Muted>@{result.username}</Muted>
-          </View>
+          <Who profile={result} uid={result.uid} />
           {rel === "none" && <Button title="Add friend" onPress={() => send(result)} busy={busy} />}
           {rel === "incoming" && <Button title="Accept" onPress={() => send(result)} busy={busy} />}
           {rel === "outgoing" && <Muted>Request sent</Muted>}
@@ -172,7 +181,8 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
   },
-  who: { flex: 1, gap: 2 },
+  who: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  names: { flex: 1, gap: 2 },
   name: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   rowActions: { flexDirection: "row", gap: 8 },
 });

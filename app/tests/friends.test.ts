@@ -22,7 +22,7 @@ describe("profile", () => {
     await createProfile(dbAs(env, "alice"), "alice", "alice_p", " Alice ");
     await expect(createProfile(dbAs(env, "bob"), "bob", "alice_p", "Bob")).rejects.toBeInstanceOf(UsernameTakenError);
     const found = await findByUsername(dbAs(env, "bob"), "@Alice_P ");
-    expect(found).toEqual({ uid: "alice", username: "alice_p", displayName: "Alice" });
+    expect(found).toEqual({ uid: "alice", username: "alice_p", displayName: "Alice", avatarPath: null });
     expect(await findByUsername(dbAs(env, "bob"), "nobody")).toBeNull();
     expect(await findByUsername(dbAs(env, "bob"), "bad name!")).toBeNull();
   });

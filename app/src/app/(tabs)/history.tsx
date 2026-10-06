@@ -16,7 +16,7 @@ export default function HistoryScreen() {
       keyExtractor={(p) => p.id}
       ListEmptyComponent={loaded ? <Muted>Your past prayers will appear here.</Muted> : null}
       renderItem={({ item }) => (
-        <PostCard post={item} authorName={profile.displayName} footer={<OwnPostActions post={item} />} />
+        <PostCard post={item} author={profile} footer={<OwnPostActions post={item} />} />
       )}
     />
   );

@@ -1,7 +1,10 @@
 import { Image } from "expo-image";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { isLate, type Post } from "../lib/posts";
+import type { Profile } from "../lib/profile";
 import { usePhoto } from "../session/hooks";
+import { Avatar } from "./Avatar";
 import { colors, fonts } from "./ui";
 import { VerseBlock } from "./VerseBlock";
 
@@ -11,12 +14,13 @@ function when(d: Date): string {
 
 export function PostCard({
   post,
-  authorName,
+  author,
   footer,
   showVerse = true,
 }: {
   post: Post;
-  authorName: string;
+  /** Undefined while the author's profile is loading. */
+  author: Profile | undefined;
   footer?: React.ReactNode;
   /** Off when the same verse is already shown above (e.g. under today's prompt). */
   showVerse?: boolean;
@@ -26,7 +30,15 @@ export function PostCard({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.author}>{authorName}</Text>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={author ? `${author.displayName}'s profile` : undefined}
+          onPress={() => router.push(`/profile/${post.authorId}`)}
+          style={styles.who}
+        >
+          <Avatar path={author?.avatarPath ?? null} name={author?.displayName ?? ""} size={36} />
+          <Text style={styles.author} numberOfLines={1}>{author?.displayName ?? "…"}</Text>
+        </Pressable>
         <Text style={styles.meta}>{when(post.createdAt)}</Text>
       </View>
       <View style={styles.labels}>
@@ -51,8 +63,9 @@ export function PostCard({
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 16, gap: 8 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  author: { fontSize: 21, fontFamily: fonts.display, color: colors.text },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+  who: { flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1 },
+  author: { fontSize: 21, fontFamily: fonts.display, color: colors.text, flexShrink: 1 },
   meta: { fontSize: 13, color: colors.muted },
   labels: { flexDirection: "row", gap: 6 },
   label: { fontSize: 12, color: colors.muted, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: "hidden" },

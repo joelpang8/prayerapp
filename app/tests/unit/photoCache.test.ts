@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { authorOfPhotoPath, PhotoCache, PhotoEvictedError } from "../../src/lib/photoCache";
+import { authorOfPhotoPath, ownerOfAvatarPath, PhotoCache, PhotoEvictedError } from "../../src/lib/photoCache";
 
 const bytes = (s: string) => new TextEncoder().encode(s).buffer as ArrayBuffer;
 
@@ -83,5 +83,22 @@ describe("PhotoCache", () => {
     expect(cache.peek("postPhotos/a/2.jpg")).toBeUndefined();
     expect(cache.peek("postPhotos/a/1.jpg")).toBeDefined();
     expect(cache.size).toBe(2);
+  });
+});
+
+describe("profile photo cache", () => {
+  test("parses the owner from an avatar path and rejects anything else", () => {
+    expect(ownerOfAvatarPath("avatars/alice123/a1.jpg")).toBe("alice123");
+    expect(() => ownerOfAvatarPath("postPhotos/alice/a1.jpg")).toThrow();
+    expect(() => ownerOfAvatarPath("avatars/alice/../bob/a1.jpg")).toThrow();
+  });
+
+  test("a cache built for avatars accepts avatar paths and refuses post photos", async () => {
+    const cache = new PhotoCache(instant, 10, ownerOfAvatarPath);
+    await cache.get("avatars/alice/a1.jpg");
+    expect(cache.peek("avatars/alice/a1.jpg")).toBeDefined();
+    await expect(cache.get("postPhotos/alice/p1.jpg")).rejects.toThrow();
+    cache.clear();
+    expect(cache.size).toBe(0);
   });
 });

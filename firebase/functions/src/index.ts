@@ -3,7 +3,7 @@ import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions";
 import { onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
-import { ownedPhotoPath, revokeFileToken, revokeUserPhotoTokens, type FileLike } from "./photos";
+import { ownedAvatarPath, ownedPhotoPath, revokeFileToken, revokeUserPhotoTokens, type FileLike } from "./photos";
 
 initializeApp();
 
@@ -66,4 +66,10 @@ export const deletePhotoOfDeletedPost = onDocumentDeleted("posts/{postId}", asyn
 export const deleteReplacedPhoto = onDocumentUpdated("posts/{postId}", async (event) => {
   const oldPath = ownedPhotoPath(event.data?.before.data());
   if (oldPath && oldPath !== event.data?.after.data()?.photoPath) await deletePhoto(oldPath);
+});
+
+/** Changing or removing a profile photo deletes the old file. */
+export const deleteReplacedAvatar = onDocumentUpdated("users/{uid}", async (event) => {
+  const oldPath = ownedAvatarPath(event.params.uid, event.data?.before.data());
+  if (oldPath && oldPath !== event.data?.after.data()?.avatarPath) await deletePhoto(oldPath);
 });

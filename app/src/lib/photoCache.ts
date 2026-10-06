@@ -11,6 +11,13 @@ export function authorOfPhotoPath(path: string): string {
   return m[1];
 }
 
+/** avatars/{uid}/{avatarId}.jpg -> uid */
+export function ownerOfAvatarPath(path: string): string {
+  const m = /^avatars\/([A-Za-z0-9]+)\/[A-Za-z0-9]+\.jpg$/.exec(path);
+  if (!m) throw new Error(`Not a profile photo path: ${path}`);
+  return m[1];
+}
+
 export class PhotoEvictedError extends Error {
   constructor(path: string) {
     super(`Photo evicted while loading: ${path}`);
@@ -44,6 +51,8 @@ export class PhotoCache implements FriendScopedCache {
   constructor(
     private readonly load: PhotoLoader,
     private readonly maxEntries = 60,
+    // Which user a path belongs to; profile photos use ownerOfAvatarPath.
+    private readonly authorOf: (path: string) => string = authorOfPhotoPath,
   ) {}
 
   get size(): number {
@@ -65,7 +74,7 @@ export class PhotoCache implements FriendScopedCache {
     const pending = this.inflight.get(path);
     if (pending) return pending;
 
-    const author = authorOfPhotoPath(path);
+    const author = this.authorOf(path);
     const gen = this.generation.get(author) ?? 0;
     const clears = this.clearCount;
     const promise = this.load(path)

@@ -5,14 +5,14 @@ import { auth, db, storage } from "../firebase";
 import { FeedStore } from "../lib/feed";
 import { EMPTY_GRAPH, type FriendGraph } from "../lib/friends";
 import { FriendScope } from "../lib/friendScope";
-import { PhotoCache, storageLoader } from "../lib/photoCache";
-import type { Profile } from "../lib/profile";
+import { ownerOfAvatarPath, PhotoCache, storageLoader } from "../lib/photoCache";
+import { profileFromData, type Profile } from "../lib/profile";
 
 type Session =
   | { status: "loading" }
   | { status: "signedOut" }
   | { status: "needsProfile"; user: User }
-  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache; feed: FeedStore };
+  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache; avatars: PhotoCache; feed: FeedStore };
 
 const SessionContext = createContext<Session>({ status: "loading" });
 
@@ -38,10 +38,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       (snap) => {
         if (snap.metadata.fromCache && !snap.exists()) return; // wait for the server
         const data = snap.data();
-        setProfileState({
-          uid,
-          profile: data ? { uid, username: data.username, displayName: data.displayName } : null,
-        });
+        setProfileState({ uid, profile: data ? profileFromData(uid, data) : null });
       },
       () => setProfileState({ uid, profile: null }),
     );
@@ -59,7 +56,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const photos = new PhotoCache(storageLoader(storage));
     scope.register(photos);
     const feed = new FeedStore(db, scope, { onError: (err) => console.warn("feed listener failed", err) });
-    return { scope, photos, feed };
+    // Profile photos: visible to any signed-in user, so unfriending doesn't
+    // evict them, but they're memory-only and cleared on sign-out like the rest.
+    const avatars = new PhotoCache(storageLoader(storage), 200, ownerOfAvatarPath);
+    scope.register({ evictAuthor: () => {}, clear: () => avatars.clear() });
+    return { scope, photos, avatars, feed };
   }, [uid]);
 
   useEffect(() => {
