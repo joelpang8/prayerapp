@@ -1,13 +1,14 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useEffect, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signInForDevelopment, signInWithApple, signInWithGoogle, type SignInResult } from "../auth/signIn";
-import { Button, colors, ErrorText, fonts, Muted, Text, TextInput } from "../components/ui";
+import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../components/ui";
 import { usingEmulators } from "../firebase";
 import { setSuggestedDisplayName } from "../session/SessionProvider";
 
 export default function SignInScreen() {
+  const styles = useStyles();
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [busy, setBusy] = useState<null | "apple" | "google" | "dev">(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +69,7 @@ export default function SignInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg, padding: 24, justifyContent: "space-between" },
   hero: { marginTop: 80, gap: 12 },
   title: { fontSize: 48, fontFamily: fonts.displayBold, color: colors.text },
@@ -76,4 +77,4 @@ const styles = StyleSheet.create({
   appleButton: { height: 48 },
   dev: { gap: 8, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.card },
-});
+}));

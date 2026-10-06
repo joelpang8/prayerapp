@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
-import { Button, colors, ErrorText, fonts, Muted, SectionTitle, Text, TextInput } from "../../components/ui";
+import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, TextInput } from "../../components/ui";
 import { db } from "../../firebase";
 import {
   acceptRequest, cancelRequest, declineRequest, follow, relationshipTo, removeFriend,
@@ -12,6 +12,7 @@ import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
 
 export default function FriendsScreen() {
+  const styles = useStyles();
   const { profile: me } = useReadySession();
   const { graph, loaded } = useFriendGraph();
   const profiles = useProfiles([...graph.friends, ...graph.incoming, ...graph.outgoing]);
@@ -91,6 +92,7 @@ export default function FriendsScreen() {
 
 /** Photo, name and username; tapping opens their profile. */
 function Who({ profile, uid }: { profile: Profile | undefined; uid: string }) {
+  const styles = useStyles();
   return (
     <Pressable accessibilityRole="link" onPress={() => router.push(`/profile/${uid}`)} style={styles.who}>
       <Avatar path={profile?.avatarPath ?? null} name={profile?.displayName ?? ""} size={44} />
@@ -103,6 +105,7 @@ function Who({ profile, uid }: { profile: Profile | undefined; uid: string }) {
 }
 
 function FindFriend({ me, graph }: { me: string; graph: ReturnType<typeof useFriendGraph>["graph"] }) {
+  const styles = useStyles();
   const [text, setText] = useState("");
   const [result, setResult] = useState<Profile | null | "none">(null);
   const [busy, setBusy] = useState(false);
@@ -164,7 +167,7 @@ function FindFriend({ me, graph }: { me: string; graph: ReturnType<typeof useFri
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: 48 },
   find: { gap: 8 },
@@ -185,4 +188,4 @@ const styles = StyleSheet.create({
   names: { flex: 1, gap: 2 },
   name: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   rowActions: { flexDirection: "row", gap: 8 },
-});
+}));

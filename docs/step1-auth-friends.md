@@ -96,8 +96,9 @@ Moderation is deferred, but these are the points where it stops being optional:
 - **Sign-in:** Apple (with a nonce, as Firebase requires) and Google, in `app/src/auth/signIn.ts`. In emulator mode there is also a development sign-in that uses the Auth emulator's fake Google token. Its provider is still `google.com`, so the same rules apply.
 - **Onboarding:** name and username, written in one batch. A taken username gets a clear message. `app/src/app/onboarding.tsx`
 - **Friends tab:** find by exact username, send a request, see incoming requests (with a badge on the tab), accept or decline, cancel sent requests, and remove friends (with a confirmation). `app/src/app/(tabs)/friends.tsx`
-- **Settings:** your profile (photo from camera or library, 160-character bio), translation and sign-out.
-- **Profile screen** (`app/src/app/profile/[uid].tsx`): opened by tapping a name on a post or in Friends. Shows photo, name, username, and the bio to friends only. Sign-out stops FriendScope, which clears every friend-scoped cache.
+- **Profile tab:** your profile as friends see it, with **Edit profile** (photo from camera or library, 160-character bio).
+- **Settings tab:** appearance (night mode), Bible translation and sign-out.
+- **Other people's profiles** (`app/src/app/profile/[uid].tsx`): opened by tapping a name on a post, a comment or in Friends. Shows photo, name, username, and the bio to friends only. Sign-out stops FriendScope, which clears every friend-scoped cache.
 - The Today tab is empty until step 2.
 
 Checked here: type-check, lint, an iOS JavaScript bundle build, and 31 data-layer tests (22 unit, 9 against the emulators). **Not checked yet: running on a device or simulator.** This environment is Linux, with no Xcode. See `docs/ios-device-build.md`.

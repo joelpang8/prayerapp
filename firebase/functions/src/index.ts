@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions";
 import { onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
@@ -60,6 +61,15 @@ async function deletePhoto(path: string) {
 export const deletePhotoOfDeletedPost = onDocumentDeleted("posts/{postId}", async (event) => {
   const path = ownedPhotoPath(event.data?.data());
   if (path) await deletePhoto(path);
+});
+
+/**
+ * Deleting a post deletes its comments. They're already unreadable (the
+ * rules need the post to exist), but nobody's words should be left behind.
+ */
+export const deleteCommentsOfDeletedPost = onDocumentDeleted("posts/{postId}", async (event) => {
+  const comments = getFirestore().collection(`posts/${event.params.postId}/comments`);
+  await getFirestore().recursiveDelete(comments);
 });
 
 /** Replacing a post's photo (an edit) deletes the old one. */

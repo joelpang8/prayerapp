@@ -1,15 +1,17 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { Button, colors, ErrorText, fonts, Muted, Text, TextInput } from "../components/ui";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db, storage } from "../firebase";
 import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
+import { currentPlaceName, LocationUnavailableError } from "../lib/location";
 import { createPost, editPost, MAX_NOTES, notesProblem } from "../lib/posts";
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
 
 export default function ComposeScreen() {
+  const styles = useStyles();
   const { postId } = useLocalSearchParams<{ postId?: string }>();
   const { profile } = useReadySession();
   const { prompt } = useLatestPrompt();
@@ -36,11 +38,38 @@ function Composer({
   prompt: ReturnType<typeof useLatestPrompt>["prompt"];
   editing: ReturnType<typeof useMyPosts>["posts"][number] | undefined;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const [photo, setPhoto] = useState<CapturedPhoto | null>(null);
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const existingUri = usePhoto(editing?.photoPath ?? null, uid);
+  // Location is opt-in for each post and off by default. Only a place name
+  // is kept; it can be removed when editing, but not added or changed.
+  const [showPlace, setShowPlace] = useState(!!editing?.place);
+  const [place, setPlace] = useState<string | null>(editing?.place ?? null);
+  const [placeNote, setPlaceNote] = useState<string | null>(null);
+  const [placeBusy, setPlaceBusy] = useState(false);
+
+  async function togglePlace(on: boolean) {
+    setShowPlace(on);
+    setPlaceNote(null);
+    if (!on || editing || place) return;
+    setPlaceBusy(true);
+    try {
+      setPlace(await currentPlaceName());
+    } catch (err) {
+      setShowPlace(false);
+      setPlaceNote(
+        err instanceof LocationUnavailableError && err.reason === "permission"
+          ? "Location access is off for this app. You can turn it on in your phone's Settings."
+          : "Couldn't find where you are right now.",
+      );
+    } finally {
+      setPlaceBusy(false);
+    }
+  }
 
   async function capture(fn: () => Promise<CapturedPhoto | null>) {
     setError(null);
@@ -61,12 +90,12 @@ function Composer({
     try {
       if (editing) {
         const newPhoto = photo ? { jpeg: await photoBlob(photo.previewUri), photoId: photo.photoId } : undefined;
-        await editPost(db, storage, editing, { notes, newPhoto });
+        await editPost(db, storage, editing, { notes, newPhoto, removePlace: !!editing.place && !showPlace });
       } else {
         if (!prompt) throw new Error("no prompt");
         if (!photo) return setError("Take a photo first.");
         const jpeg = await photoBlob(photo.previewUri);
-        await createPost(db, storage, { uid, prompt, notes, jpeg, photoId: photo.photoId });
+        await createPost(db, storage, { uid, prompt, notes, jpeg, photoId: photo.photoId, place: showPlace ? place : null });
       }
       router.back();
     } catch (err) {
@@ -108,20 +137,44 @@ function Composer({
           placeholder="A few words for your friends"
           textAlignVertical="top"
         />
+        {(!editing || editing.place) && (
+          <View style={styles.placeRow}>
+            <View style={styles.placeText}>
+              <Text style={styles.label}>{editing ? "Show location" : "Show where I prayed"}</Text>
+              <Muted>
+                {placeBusy
+                  ? "Finding your town…"
+                  : showPlace && place
+                    ? `📍 ${place}`
+                    : "Only your town or city is shared, never your exact location."}
+              </Muted>
+            </View>
+            <Switch
+              value={showPlace}
+              onValueChange={togglePlace}
+              disabled={busy || placeBusy}
+              trackColor={{ true: colors.accent, false: colors.border }}
+              accessibilityLabel="Show where I prayed"
+            />
+          </View>
+        )}
+        {placeNote && <Muted>{placeNote}</Muted>}
         {error && <ErrorText>{error}</ErrorText>}
-        <Button title={editing ? "Save changes" : "Post"} onPress={submit} busy={busy} disabled={!notes.trim() || (!editing && !photo)} />
+        <Button title={editing ? "Save changes" : "Post"} onPress={submit} busy={busy} disabled={!notes.trim() || (!editing && !photo) || placeBusy} />
         <Button title="Cancel" kind="secondary" onPress={() => router.back()} disabled={busy} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   title: { fontSize: 32, fontFamily: fonts.displayBold, color: colors.text },
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
+  placeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  placeText: { flex: 1, gap: 2 },
   // Prayer notes are written in the same serif they're read in.
   input: { minHeight: 120, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 18, lineHeight: 25, fontFamily: fonts.serif, backgroundColor: colors.card },
-});
+}));

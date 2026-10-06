@@ -56,4 +56,4 @@ In a sandbox that routes traffic through an HTTPS proxy, use `npm run test:sandb
 2. Posts and feed: photo and notes, on-time/late flag, personal history, friend feed. **(done in code; still needs a run on a device)**
 3. Scripture: store only the verse reference, and render it in each viewer's chosen version. **(done in code: references, KJV text, curated list, per-viewer display; still needs a run on a device)**
 4. Notifications and countdown: prototyped on its own first. **(prototype built and emulator-tested; device testing needs the paid Apple account, or an Android emulator now)**
-5. Account deletion and data export. Must also remove the profile photo (`avatars/{uid}/`) and bio (`users/{uid}/friendsOnly/about`).
+5. Account deletion and data export. Must also remove the profile photo (`avatars/{uid}/`), bio (`users/{uid}/friendsOnly/about`) and the user's comments on other people's posts.

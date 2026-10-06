@@ -219,6 +219,12 @@ service cloud.firestore {
         return n is string && n.size() >= 1 && n.size() <= 2000;
       }
 
+      // Where the post was made, as a place name only (e.g. "Austin, Texas").
+      // Optional and opt-in per post; coordinates are never stored.
+      function validPlace(p) {
+        return p is string && p.size() >= 1 && p.size() <= 80;
+      }
+
       // The photo lives in the author's own folder; storage.rules only lets
       // the author write there.
       function validPhotoPath(p) {
@@ -234,7 +240,7 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(
-             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef'])
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef', 'place'])
         && request.resource.data.keys().hasAll(
              ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath'])
         && request.resource.data.authorId == request.auth.uid
@@ -253,20 +259,61 @@ service cloud.firestore {
         && request.time < prompt().firedAt + duration.value(24, 'h')
         && request.resource.data.createdAt == request.time
         && validNotes(request.resource.data.notes)
-        && validPhotoPath(request.resource.data.photoPath);
+        && validPhotoPath(request.resource.data.photoPath)
+        && (!('place' in request.resource.data) || validPlace(request.resource.data.place));
 
       // Editable by the author: notes and/or photo. editedAt marks the post
       // as edited and must be the server time. Timing fields never change,
       // so editing can't turn a late post into an on-time one.
       allow update: if signedIn()
         && resource.data.authorId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes', 'photoPath', 'editedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes', 'photoPath', 'editedAt', 'place'])
         && request.resource.data.editedAt == request.time
         && validNotes(request.resource.data.notes)
-        && validPhotoPath(request.resource.data.photoPath);
+        && validPhotoPath(request.resource.data.photoPath)
+        // The place can be removed, but not added or changed after posting:
+        // it records where the post was made.
+        && (!('place' in request.resource.data) || request.resource.data.place == resource.data.get('place', null));
 
-      // Deletable by the author. The photo is removed by a Cloud Function.
+      // Deletable by the author. The photo and comments are removed by
+      // Cloud Functions.
       allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+
+      // Comments. A comment is shown only to people who are CURRENT mutual
+      // friends of its author and can see the post: the post's author, or
+      // a friend of theirs. So nobody's words reach someone who isn't their
+      // friend, and unfriending hides comments both ways. A comment's author
+      // can always read their own. Orphans (post deleted) are unreadable,
+      // because get() of a missing post fails.
+      match /comments/{commentId} {
+        function postAuthor() {
+          return get(/databases/$(database)/documents/posts/$(postId)).data.authorId;
+        }
+
+        function canSeePost() {
+          return postAuthor() == request.auth.uid || areFriends(request.auth.uid, postAuthor());
+        }
+
+        allow get, list: if signedIn() && (
+          resource.data.authorId == request.auth.uid ||
+          (areFriends(request.auth.uid, resource.data.authorId) && canSeePost()));
+
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['authorId', 'text', 'createdAt'])
+          && request.resource.data.keys().hasAll(['authorId', 'text', 'createdAt'])
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.trim().size() >= 1
+          && request.resource.data.text.size() <= 500
+          && request.resource.data.createdAt == request.time
+          && canSeePost();
+
+        // Comments can't be edited. The commenter or the post's author can
+        // delete one.
+        allow update: if false;
+        allow delete: if signedIn() && (
+          resource.data.authorId == request.auth.uid || postAuthor() == request.auth.uid);
+      }
     }
   }
 }

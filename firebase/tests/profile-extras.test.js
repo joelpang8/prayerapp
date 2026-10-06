@@ -115,18 +115,23 @@ describe("avatar files in Storage", () => {
   const meta = { contentType: "image/jpeg" };
   const up = (s, path, bytes = JPEG, m = meta) => s.ref(path).put(bytes, m);
 
+  // A fresh file name per test: a cleanup function still running from an
+  // earlier test can't delete this test's file.
+  let n = 0;
+  let A1;
   beforeEach(async () => {
     await clearBucket(env);
-    await env.withSecurityRulesDisabled((ctx) => adminStorage(ctx).ref("avatars/alice/a1.jpg").put(JPEG, meta));
+    A1 = `avatars/alice/seeded${++n}.jpg`;
+    await env.withSecurityRulesDisabled((ctx) => adminStorage(ctx).ref(A1).put(JPEG, meta));
   });
 
   test("any signed-in user can see a profile photo (decided: recognisable in requests)", async () => {
-    await assertSucceeds(storageAs(env, "carol").ref("avatars/alice/a1.jpg").getMetadata());
+    await assertSucceeds(storageAs(env, "carol").ref(A1).getMetadata());
   });
 
   test("signed-out and anonymous users can't", async () => {
-    await assertFails(signedOutStorage(env).ref("avatars/alice/a1.jpg").getMetadata());
-    await assertFails(anonymousStorage(env, "x").ref("avatars/alice/a1.jpg").getMetadata());
+    await assertFails(signedOutStorage(env).ref(A1).getMetadata());
+    await assertFails(anonymousStorage(env, "x").ref(A1).getMetadata());
   });
 
   test("only the owner uploads, as a JPEG under 2 MB with a plain name", async () => {
@@ -138,8 +143,8 @@ describe("avatar files in Storage", () => {
   });
 
   test("only the owner deletes; nobody lists", async () => {
-    await assertFails(storageAs(env, "bob").ref("avatars/alice/a1.jpg").delete());
+    await assertFails(storageAs(env, "bob").ref(A1).delete());
     await assertFails(storageAs(env, "alice").ref("avatars/alice").listAll());
-    await assertSucceeds(storageAs(env, "alice").ref("avatars/alice/a1.jpg").delete());
+    await assertSucceeds(storageAs(env, "alice").ref(A1).delete());
   });
 });

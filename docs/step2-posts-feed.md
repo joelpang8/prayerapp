@@ -13,7 +13,34 @@ posts/{promptId}_{authorId}         at most one post per user per prompt
   notes: string                     1–2000 chars
   photoPath: string                 postPhotos/{authorId}/{photoId}.jpg
   editedAt?: timestamp              set on every edit, must be the server time (rules)
+  place?: string                    1–80 chars, opt-in town name; removable on edit, never added or changed
+
+posts/{postId}/comments/{id}        read: see "Comments" below
+  authorId: string                  the commenter; must be the writer
+  text: string                      1–500 chars, not just spaces
+  createdAt: timestamp              must be the server time. Comments can't be edited.
 ```
+
+## Location (opt-in)
+
+- Off by default, per post: the **Show where I prayed** switch on the compose screen.
+- Only a **town-level name** is stored ("Austin, Texas"). The phone asks for approximate location (iOS defaults to reduced accuracy; Android never gets the precise-location permission), turns it into a name on the device, and drops the coordinates. The rules reject anything but a short string, so coordinates can't be stored.
+- The place can be **removed** when editing, but not added or changed later: it records where the post was made.
+- Like the rest of the post, only the author and their current friends can see it.
+
+## Comments
+
+**Who sees a comment (decided):** someone who is a *current mutual friend of the commenter* and can see the post (the post's author, or a friend of theirs). The commenter always sees their own. So:
+
+- If Bob and Carol are both friends with Alice but not with each other, they each see Alice's replies, but not each other's comments.
+- Unfriending hides comments in both directions straight away, on the server (the rules check the live `follows` docs on every read) and on the phone (`CommentThread` is registered with `FriendScope`).
+- Comments on a deleted post are unreadable at once (the rules need the post to exist) and then deleted by `deleteCommentsOfDeletedPost`.
+
+**Who can delete (decided):** the commenter, or the post's author. Nobody can edit a comment.
+
+**On the phone:** a post's comments load only while its page is open (tap **Comments** on a post). The query names the authors it asks for: me plus my friends, in chunks of 5, the same as the feed. Each comment costs the rules a lookup of the post plus two follow lookups for the reader and post author, and two per commenter in the chunk: 13 for a chunk of 5, under the limit. Like the feed's chunk size, this should be confirmed on the real project.
+
+Tests: `firebase/tests/comments.test.js` (rules), `app/tests/comments.test.ts` (the thread against the rules, including unfriending).
 
 ## On time vs late
 
@@ -44,6 +71,7 @@ Both are allowed, as you decided.
 | `deletePhotoOfDeletedPost` | a post is deleted | Deletes its photo. |
 | `deleteReplacedPhoto` | a post's photo changes | Deletes the old photo. |
 | `deleteReplacedAvatar` | a profile photo changes or is removed | Deletes the old profile photo. |
+| `deleteCommentsOfDeletedPost` | a post is deleted | Deletes its comments. |
 
 ### Why revoking at unfriend is the real protection
 
@@ -65,6 +93,7 @@ A download token turns into a URL that works forever for anyone and skips the ru
 
 - **Today tab:** shows the latest prompt ("post by 3:07 pm to be on time", or "it will be marked late"), your post for it with Edit and Delete, and friends' posts.
 - **History tab:** your own posts, newest first, with Edit and Delete.
+- **Post page:** tap **Comments** on any post to see it with its comments and add one.
 - **Compose:** take a photo with the camera and write notes. Development builds also have **Choose photo (development)**, because the Simulator has no camera.
 - **Photos** are shown from memory (`cachePolicy="none"`), never from expo-image's disk cache.
 

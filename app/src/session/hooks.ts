@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
+import { CommentThread, type Comment } from "../lib/comments";
 import { watchMyPosts, type Post } from "../lib/posts";
 import { PhotoEvictedError } from "../lib/photoCache";
 import { watchLatestPrompt, type Prompt } from "../lib/prompts";
@@ -73,6 +74,29 @@ export function useAvatar(path: string | null): string | null {
     return () => { live = false; };
   }, [path, avatars]);
   return state && state.path === path ? state.uri : null;
+}
+
+/**
+ * A post's comments, live, while the calling screen is open. The thread is
+ * registered with FriendScope (memory only) and torn down on unmount.
+ */
+export function useComments(postId: string | null, postAuthorId: string | null): Comment[] {
+  const { scope } = useReadySession();
+  const [comments, setComments] = useState<Comment[]>([]);
+  useEffect(() => {
+    if (!postId || !postAuthorId) return;
+    const thread = new CommentThread(db, scope, { id: postId, authorId: postAuthorId }, {
+      onError: (err) => console.warn("comments listener failed", err),
+    });
+    thread.start();
+    const unsubscribe = thread.subscribe(setComments);
+    return () => {
+      unsubscribe();
+      thread.stop();
+      setComments([]);
+    };
+  }, [scope, postId, postAuthorId]);
+  return comments;
 }
 
 /** The current time, refreshed every `intervalMs`. */

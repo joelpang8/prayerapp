@@ -1,8 +1,8 @@
 import { router } from "expo-router";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
-import { Button, colors, fonts, Muted, SectionTitle, Text } from "../../components/ui";
+import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
@@ -14,6 +14,7 @@ const OPEN_FOR_MS = 24 * 60 * 60 * 1000; // must match firestore.rules
 const time = (d: Date) => d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
 export default function TodayScreen() {
+  const styles = useStyles();
   const { profile } = useReadySession();
   const { prompt, loaded } = useLatestPrompt();
   const { posts: mine } = useMyPosts();
@@ -71,10 +72,10 @@ export default function TodayScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
   wordOfTheDay: { marginBottom: 16 },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
   promptTitle: { fontSize: 30, fontFamily: fonts.displayBold, color: colors.text },
-});
+}));

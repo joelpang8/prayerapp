@@ -1,8 +1,9 @@
 import { Tabs } from "expo-router/js-tabs";
-import { colors, navigationFonts } from "../../components/ui";
+import { navigationFonts, useColors } from "../../components/ui";
 import { useFriendGraph } from "../../session/SessionProvider";
 
 export default function TabsLayout() {
+  const colors = useColors();
   const { graph } = useFriendGraph();
   return (
     <Tabs
@@ -19,6 +20,7 @@ export default function TabsLayout() {
         name="friends"
         options={{ title: "Friends", tabBarBadge: graph.incoming.size || undefined }}
       />
+      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>
   );

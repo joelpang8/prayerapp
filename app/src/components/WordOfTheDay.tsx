@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
-import { LayoutAnimation, Pressable, StyleSheet, View } from "react-native";
+import { LayoutAnimation, Pressable, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
-import { colors, fonts, Text } from "./ui";
+import { fonts, makeStyles, Text } from "./ui";
 import { VerseBlock } from "./VerseBlock";
 
 // A display preference only (no one's content), so it's fine to keep on disk.
@@ -22,6 +22,7 @@ function displayRef(refId: string): string {
  * remembered on this device.
  */
 export function WordOfTheDay({ refId }: { refId: string }) {
+  const styles = useStyles();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export function WordOfTheDay({ refId }: { refId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 },
   header: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerText: { flex: 1, gap: 2 },
@@ -72,4 +73,4 @@ const styles = StyleSheet.create({
   reference: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   chevron: { fontSize: 26, color: colors.muted, width: 24, textAlign: "center" },
   body: { marginTop: 12 },
-});
+}));

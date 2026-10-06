@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
 import { usePassage } from "../session/hooks";
-import { colors, fonts, Span, Text } from "./ui";
+import { fonts, makeStyles, Span, Text } from "./ui";
 
 const PREVIEW_VERSES = 4;
 
@@ -16,6 +16,7 @@ function displayRef(refId: string): string {
 }
 
 function Verses({ passage, limit }: { passage: Passage; limit: number }) {
+  const styles = useStyles();
   const shown = passage.verses.slice(0, limit);
   const showNumbers = passage.verses.length > 1;
   return (
@@ -39,6 +40,7 @@ function Verses({ passage, limit }: { passage: Passage; limit: number }) {
  * collapsed: show just the reference; tap to show the text.
  */
 export function VerseBlock({ refId, collapsed = false }: { refId: string; collapsed?: boolean }) {
+  const styles = useStyles();
   const [open, setOpen] = useState(!collapsed);
   const [all, setAll] = useState(false);
   const { passage, failed } = usePassage(open ? refId : null);
@@ -68,7 +70,7 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   block: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 12, gap: 6 },
   text: { fontSize: 19, lineHeight: 28, color: colors.text, fontFamily: fonts.serif },
   num: { fontSize: 13, color: colors.muted, fontFamily: fonts.serifMedium },
@@ -78,4 +80,4 @@ const styles = StyleSheet.create({
   refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
   more: { fontSize: 15, color: colors.accent },
   muted: { fontSize: 15, color: colors.muted },
-});
+}));

@@ -25,6 +25,10 @@
 | Push delivery | FCM topic via React Native Firebase messaging; one send reaches everyone, no per-user tokens stored | Chosen for the step 4 prototype; to be confirmed by device tests before integration. |
 | Typography | Garamond everywhere: Cormorant Garamond for titles, names, headers and verse references; EB Garamond for all other text, including scripture, notes, buttons, labels, inputs and tab labels (its true italic for the KJV's supplied words) | Confirmed: one consistent, reverent look. Enforced by lint: screens use `Text`/`TextInput`/`Span` from `app/src/components/ui.tsx`, which apply the font. Only system dialogs (alerts, permission prompts, pickers) stay in the system font. |
 | Profile photo and bio | Photo, name and username visible to any signed-in user; bio (max 160 characters) visible to the owner and current mutual friends only. Profile photos may come from the camera or the library. | Confirmed. The photo helps people recognise who they're adding; the bio stays as private as posts. |
+| Comments | Added to v1 (originally out of scope). A comment is visible only to current mutual friends of its author who can also see the post; the commenter and the post's author can delete it; no editing. | Confirmed. Nobody's words reach someone who isn't their friend, matching how posts work. |
+| Post location | Opt-in per post, off by default. A town-level name only ("Austin, Texas"), never coordinates. Removable when editing, never added or changed later. | Confirmed. Friends see roughly where, not exactly. |
+| Night mode | Settings → Appearance: Match phone (default), Light or Dark. Kept on the device. | A display preference, not shared. Colors come from `useColors`/`makeStyles` in `app/src/components/ui.tsx`. |
+| Profile page | Its own tab, showing your profile as friends see it, with Edit profile. Settings holds appearance, translation and sign-out. | Confirmed. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 
 ## Pending (ask before building)
@@ -33,4 +37,4 @@
 |---|---|---|
 | Bible API provider | Step 3 (licensed translations only) | You're asking providers the seven questions. KJV text can ship without a provider. See `step3-scripture.md`. |
 | Time zone of the daily window | Before the step 4 scheduler | Which time zone the 08:00–21:00 window is in (for example America/Chicago). |
-| Moderation approach | Before a public launch | See the trigger points in `step1-auth-friends.md`. |
+| Moderation approach | Before a public launch | See the trigger points in `step1-auth-friends.md`. Comments add text written to other people, so report and block matter more now. |

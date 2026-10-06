@@ -69,6 +69,20 @@ describe("posting against the real rules", () => {
     }
   });
 
+  test("an opt-in place name is stored with the post and can be removed by editing", async () => {
+    const mine = watchMine("alice");
+    try {
+      await createPost(dbAs(env, "alice"), storageAs(env, "alice"), {
+        uid: "alice", prompt, notes: "From the park", jpeg: JPEG, photoId: "place1", place: "Austin, Texas",
+      });
+      await until(() => mine.state.posts?.[0]?.place === "Austin, Texas");
+      await editPost(dbAs(env, "alice"), storageAs(env, "alice"), mine.state.posts![0], { removePlace: true });
+      await until(() => mine.state.posts?.[0]?.place === null && !!mine.state.posts?.[0]?.editedAt);
+    } finally {
+      mine.stop();
+    }
+  });
+
   test("posting well after the prompt is allowed and labelled late", async () => {
     const old = { id: "20260928", firedAt: await seedPrompt(env, "20260928", 60), verseRef: null };
     const mine = watchMine("alice");

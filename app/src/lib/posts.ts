@@ -1,6 +1,7 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   limit,
   onSnapshot,
@@ -21,6 +22,7 @@ import type { Prompt } from "./prompts";
 /** 2-minute response window + 5-minute grace period. Must match firestore.rules. */
 export const ON_TIME_WINDOW_MS = 7 * 60 * 1000;
 export const MAX_NOTES = 2000;
+export const MAX_PLACE = 80; // must match firestore.rules
 
 export type Post = {
   id: string;
@@ -33,6 +35,8 @@ export type Post = {
   photoPath: string;
   /** The prompt's verse reference (never text); null if the prompt had none. */
   verseRef: string | null;
+  /** Where it was posted, as a place name like "Austin, Texas"; opt-in, never coordinates. */
+  place: string | null;
 };
 
 /**
@@ -76,6 +80,7 @@ export function postFromSnapshot(snap: DocumentSnapshot): Post | null {
     notes: d.notes,
     photoPath: d.photoPath,
     verseRef: d.verseRef ?? null,
+    place: typeof d.place === "string" ? d.place : null,
   };
 }
 
@@ -96,6 +101,8 @@ export type NewPost = {
   notes: string;
   jpeg: PhotoData;
   photoId: string;
+  /** Opt-in place name from location.ts; omit for none. */
+  place?: string | null;
 };
 
 /**
@@ -119,6 +126,7 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
       photoPath,
       // Carried from the prompt; the rules require it to match exactly.
       ...(p.prompt.verseRef ? { verseRef: p.prompt.verseRef } : {}),
+      ...(p.place ? { place: p.place.slice(0, MAX_PLACE) } : {}),
     });
   } catch (err) {
     await deleteObject(ref(storage, photoPath)).catch(() => {});
@@ -127,7 +135,12 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
   return id;
 }
 
-export type PostEdit = { notes?: string; newPhoto?: { jpeg: PhotoData; photoId: string } };
+export type PostEdit = {
+  notes?: string;
+  newPhoto?: { jpeg: PhotoData; photoId: string };
+  /** The place can only be removed after posting, not added or changed. */
+  removePlace?: boolean;
+};
 
 /**
  * Edit notes and/or replace the photo. Marks the post edited. The old photo
@@ -143,7 +156,12 @@ export async function editPost(db: Firestore, storage: FirebaseStorage, post: Po
     await uploadPhoto(storage, photoPath, edit.newPhoto.jpeg);
   }
   try {
-    await updateDoc(doc(db, "posts", post.id), { notes: notes.trim(), photoPath, editedAt: serverTimestamp() });
+    await updateDoc(doc(db, "posts", post.id), {
+      notes: notes.trim(),
+      photoPath,
+      editedAt: serverTimestamp(),
+      ...(edit.removePlace && post.place ? { place: deleteField() } : {}),
+    });
   } catch (err) {
     if (photoPath !== post.photoPath) await deleteObject(ref(storage, photoPath)).catch(() => {});
     throw err;

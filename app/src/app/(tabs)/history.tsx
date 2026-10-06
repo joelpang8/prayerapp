@@ -1,11 +1,12 @@
-import { FlatList, StyleSheet } from "react-native";
+import { FlatList } from "react-native";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
-import { colors, Muted } from "../../components/ui";
+import { makeStyles, Muted } from "../../components/ui";
 import { useMyPosts } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 
 export default function HistoryScreen() {
+  const styles = useStyles();
   const { profile } = useReadySession();
   const { posts, loaded } = useMyPosts();
   return (
@@ -22,7 +23,7 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
-});
+}));

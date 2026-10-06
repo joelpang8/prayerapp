@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { Alert, View } from "react-native";
 import { db } from "../firebase";
 import { deletePost, type Post } from "../lib/posts";
-import { Button } from "./ui";
+import { Button, makeStyles } from "./ui";
 
 export function OwnPostActions({ post }: { post: Post }) {
+  const styles = useStyles();
   const [busy, setBusy] = useState(false);
   const confirmDelete = () =>
     Alert.alert("Delete this post?", "Your friends will no longer see it. This can't be undone.", [
@@ -37,7 +38,7 @@ export function OwnPostActions({ post }: { post: Post }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: { flexDirection: "row", gap: 8, marginTop: 4 },
   flex: { flex: 1 },
-});
+}));

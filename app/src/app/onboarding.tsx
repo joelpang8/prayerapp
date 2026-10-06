@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "../auth/signIn";
-import { Button, colors, ErrorText, fonts, Muted, Text, TextInput } from "../components/ui";
+import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../components/ui";
 import { db } from "../firebase";
 import {
   createProfile, displayNameProblem, normalizeUsername, usernameProblem, UsernameTakenError,
@@ -10,6 +10,7 @@ import {
 import { getSuggestedDisplayName, useSession } from "../session/SessionProvider";
 
 export default function OnboardingScreen() {
+  const styles = useStyles();
   const session = useSession();
   const [displayName, setDisplayName] = useState(getSuggestedDisplayName() ?? "");
   const [username, setUsername] = useState("");
@@ -72,7 +73,7 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   body: { flex: 1, padding: 24, gap: 12 },
   title: { fontSize: 34, fontFamily: fonts.displayBold, color: colors.text, marginTop: 24 },
@@ -80,4 +81,4 @@ const styles = StyleSheet.create({
   label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.card },
   actions: { gap: 12, marginTop: 16 },
-});
+}));

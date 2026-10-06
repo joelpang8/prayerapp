@@ -26,11 +26,16 @@ const config: ExpoConfig = {
   version: "0.1.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
-  userInterfaceStyle: "light",
+  // "automatic" lets night mode follow the phone; the in-app setting can override it.
+  userInterfaceStyle: "automatic",
   ios: {
     bundleIdentifier: bundleId,
     supportsTablet: false,
     usesAppleSignIn: appleSignIn,
+    infoPlist: {
+      // Ask iOS for approximate location by default: only a town name is shown.
+      NSLocationDefaultAccuracyReduced: true,
+    },
   },
   android: {
     package: bundleId,
@@ -41,6 +46,8 @@ const config: ExpoConfig = {
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: false,
+    // Only a town name is ever shown, so approximate location is enough.
+    blockedPermissions: ["android.permission.ACCESS_FINE_LOCATION"],
   },
   web: { favicon: "./assets/favicon.png" },
   plugins: [
@@ -57,6 +64,19 @@ const config: ExpoConfig = {
         // posts are camera-only (the post picker is development-only).
         photosPermission: "Choose a profile picture.",
         microphonePermission: false,
+      },
+    ],
+    [
+      "expo-location",
+      {
+        // Asked only when someone turns on "Show where I prayed" for a post.
+        locationWhenInUsePermission: "Show your friends the town or city where you prayed, if you choose to for a post. Your exact location is never shared.",
+        locationAlwaysAndWhenInUsePermission: false,
+        locationAlwaysPermission: false,
+        isIosBackgroundLocationEnabled: false,
+        isAndroidBackgroundLocationEnabled: false,
+        isAndroidForegroundServiceEnabled: false,
+        motionUsagePermission: false,
       },
     ],
     // Google Sign-In needs the reversed iOS client id as a URL scheme. It's

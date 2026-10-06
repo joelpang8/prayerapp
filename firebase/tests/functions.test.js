@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
-import { deleteDoc, doc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
 import { avatarOwner, isNotFound, ownedAvatarPath, ownedPhotoPath, postPhotoAuthor, revokeFileToken, revokeUserPhotoTokens } from "../functions/lib/photos.js";
 import { clearBucket, seed, seedUser, setupEnv, signedInAs, storageAs } from "./helpers.js";
 
@@ -131,6 +131,25 @@ describe("Cloud Functions against the emulators", () => {
     }));
     await deleteDoc(doc(signedInAs(env, "alice"), "posts", "20260929_alice"));
     await eventually(async () => (await errorCode(ref.getMetadata())) === "storage/object-not-found");
+  });
+
+  e2e("deleting a post deletes its comments", async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "posts", "20260929_alice"), {
+        authorId: "alice", promptId: "20260929", promptFiredAt: Timestamp.now(), createdAt: Timestamp.now(),
+        notes: "x", photoPath: "postPhotos/alice/none.jpg",
+      });
+      await setDoc(doc(db, "posts", "20260929_alice", "comments", "c1"), { authorId: "bob", text: "amen", createdAt: Timestamp.now() });
+      await setDoc(doc(db, "posts", "20260929_alice", "comments", "c2"), { authorId: "alice", text: "thanks", createdAt: Timestamp.now() });
+    });
+    await deleteDoc(doc(signedInAs(env, "alice"), "posts", "20260929_alice"));
+    await eventually(async () => {
+      let left = 0;
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        left = (await getDocs(collection(ctx.firestore(), "posts", "20260929_alice", "comments"))).size;
+      });
+      return left === 0;
+    });
   });
 
   e2e("replacing a post's photo deletes the old one and keeps the new one", async () => {

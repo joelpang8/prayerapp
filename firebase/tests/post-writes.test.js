@@ -212,3 +212,27 @@ describe("verse reference carried from the prompt", () => {
     await assertSucceeds(updateDoc(ref, { notes: "edited notes", editedAt: serverTimestamp() }));
   });
 });
+
+describe("place name (opt-in location)", () => {
+  test("a post can carry a place name of 1–80 characters", async () => {
+    await assertSucceeds(create("alice", { place: "Austin, Texas" }));
+  });
+
+  test("bad place names are rejected", async () => {
+    await assertFails(create("alice", { place: "" }));
+    await assertFails(create("alice", { place: "x".repeat(81) }));
+    await assertFails(create("alice", { place: { lat: 30.27, lng: -97.74 } }));
+  });
+
+  test("coordinates can't be stored", async () => {
+    await assertFails(create("alice", { place: "Austin, Texas", latitude: 30.27, longitude: -97.74 }));
+  });
+
+  test("the place can be removed when editing, but not added or changed", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(create("alice", { place: "Austin, Texas" }));
+    await assertFails(updateDoc(postRef(db, "alice"), { place: "Paris, France", editedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(postRef(db, "alice"), { place: deleteField(), editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(postRef(db, "alice"), { place: "Austin, Texas", editedAt: serverTimestamp() }));
+  });
+});
