@@ -98,11 +98,25 @@ service cloud.firestore {
         allow get: if docId == 'about' && signedIn() && (
           request.auth.uid == uid || areFriends(request.auth.uid, uid));
         allow list: if false;
+        // The friends-only "about" fields. Each is optional; an empty field
+        // is left out rather than stored empty (the bio may be "").
+        function optionalText(d, key, max) {
+          return !(key in d) || (d[key] is string && d[key].size() >= 1 && d[key].size() <= max);
+        }
+        // "MM-DD", or "YYYY-MM-DD" if they choose to share the year.
+        function validBirthday(d) {
+          return !('birthday' in d) || (d.birthday is string
+            && d.birthday.matches('^([0-9]{4}-)?(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'));
+        }
         allow create, update: if isSelf(uid)
           && docId == 'about'
-          && request.resource.data.keys().hasOnly(['bio'])
-          && request.resource.data.bio is string
-          && request.resource.data.bio.size() <= 160;
+          && request.resource.data.keys().hasOnly(['bio', 'birthday', 'prayerRequests', 'bibleVersion', 'denomination', 'church'])
+          && (!('bio' in request.resource.data) || (request.resource.data.bio is string && request.resource.data.bio.size() <= 160))
+          && validBirthday(request.resource.data)
+          && optionalText(request.resource.data, 'prayerRequests', 500)
+          && optionalText(request.resource.data, 'bibleVersion', 40)
+          && optionalText(request.resource.data, 'denomination', 60)
+          && optionalText(request.resource.data, 'church', 80);
         // Clear the bio by saving an empty one; the doc goes with the account (step 5).
         allow delete: if false;
       }
@@ -303,15 +317,18 @@ service cloud.firestore {
       // friend, and unfriending hides comments both ways. A comment's author
       // can always read their own. Orphans (post deleted) are unreadable,
       // because get() of a missing post fails.
+      // For comments and reactions: the post's author, and whether I may see
+      // the post (its author, or their current mutual friend). get() of a
+      // deleted post fails, so its comments and reactions become unreadable.
+      function postAuthor() {
+        return get(/databases/$(database)/documents/posts/$(postId)).data.authorId;
+      }
+
+      function canSeePost() {
+        return postAuthor() == request.auth.uid || areFriends(request.auth.uid, postAuthor());
+      }
+
       match /comments/{commentId} {
-        function postAuthor() {
-          return get(/databases/$(database)/documents/posts/$(postId)).data.authorId;
-        }
-
-        function canSeePost() {
-          return postAuthor() == request.auth.uid || areFriends(request.auth.uid, postAuthor());
-        }
-
         allow get, list: if signedIn() && (
           resource.data.authorId == request.auth.uid ||
           (areFriends(request.auth.uid, resource.data.authorId) && canSeePost()));
@@ -331,6 +348,33 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if signedIn() && (
           resource.data.authorId == request.auth.uid || postAuthor() == request.auth.uid);
+      }
+
+      // Reactions: one preset reaction per person per post, BeReal-style.
+      // The doc id is the reactor's uid. Same visibility as comments: only
+      // the reactor's current mutual friends who can see the post (and the
+      // reactor). Not on your own post. Change it by writing again; remove
+      // it by deleting. Must match app/src/lib/reactions.ts.
+      match /reactions/{reactorId} {
+        function reactionKinds() {
+          return ['praying', 'love', 'happy', 'amen', 'cool', 'hug'];
+        }
+
+        allow get, list: if signedIn() && (
+          resource.data.authorId == request.auth.uid ||
+          (areFriends(request.auth.uid, resource.data.authorId) && canSeePost()));
+
+        allow create, update: if signedIn()
+          && reactorId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['authorId', 'kind', 'createdAt'])
+          && request.resource.data.keys().hasAll(['authorId', 'kind', 'createdAt'])
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.kind in reactionKinds()
+          && request.resource.data.createdAt == request.time
+          && canSeePost()
+          && postAuthor() != request.auth.uid;
+
+        allow delete: if signedIn() && reactorId == request.auth.uid;
       }
     }
   }

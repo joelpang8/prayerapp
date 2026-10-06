@@ -130,27 +130,101 @@ export function removeAvatar(db: Firestore, uid: string): Promise<void> {
 const aboutDoc = (db: Firestore, uid: string) => doc(db, "users", uid, "friendsOnly", "about");
 
 /**
- * A user's bio, live. Readable only by them and their current mutual
- * friends; anyone else gets permission-denied (reported via onError).
- * A user with no bio yet gives "".
+ * The friends-only part of a profile. Every field is optional; "" means not
+ * filled in (and isn't stored).
  */
-export function watchBio(
-  db: Firestore,
-  uid: string,
-  onBio: (bio: string) => void,
-  onError: (err: Error) => void = () => {},
-): Unsubscribe {
-  return onSnapshot(
-    aboutDoc(db, uid),
-    (snap) => onBio(typeof snap.data()?.bio === "string" ? snap.data()!.bio : ""),
-    onError,
-  );
+export type About = {
+  bio: string;
+  /** "MM-DD", or "YYYY-MM-DD" if they share the year. */
+  birthday: string;
+  prayerRequests: string;
+  bibleVersion: string;
+  denomination: string;
+  church: string;
+};
+
+export const EMPTY_ABOUT: About = { bio: "", birthday: "", prayerRequests: "", bibleVersion: "", denomination: "", church: "" };
+
+// Must match firestore.rules.
+export const ABOUT_LIMITS: Record<Exclude<keyof About, "birthday">, number> = {
+  bio: BIO_MAX,
+  prayerRequests: 500,
+  bibleVersion: 40,
+  denomination: 60,
+  church: 80,
+};
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+export const monthName = (m: number) => MONTHS[m - 1];
+
+/** Days in a month; February allows the 29th, since the year is optional. */
+export function daysInMonth(month: number, year?: number): number {
+  if (month === 2) return year && !(year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 28 : 29;
+  return [4, 6, 9, 11].includes(month) ? 30 : 31;
 }
 
-export async function saveBio(db: Firestore, uid: string, bio: string): Promise<void> {
-  const problem = bioProblem(bio);
+/** {month, day, year?} -> "MM-DD" / "YYYY-MM-DD", or null if it isn't a real date. */
+export function birthdayValue(month: number, day: number, year?: number): string | null {
+  if (!Number.isInteger(month) || month < 1 || month > 12) return null;
+  if (year !== undefined && (!Number.isInteger(year) || year < 1900 || year > new Date().getFullYear())) return null;
+  if (!Number.isInteger(day) || day < 1 || day > daysInMonth(month, year)) return null;
+  const md = `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return year ? `${year}-${md}` : md;
+}
+
+export function parseBirthday(value: string): { month: number; day: number; year?: number } | null {
+  const m = /^(?:(\d{4})-)?(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  return { year: m[1] ? Number(m[1]) : undefined, month: Number(m[2]), day: Number(m[3]) };
+}
+
+/** "March 14" or "March 14, 1990". */
+export function formatBirthday(value: string): string {
+  const b = parseBirthday(value);
+  if (!b) return "";
+  return `${monthName(b.month)} ${b.day}${b.year ? `, ${b.year}` : ""}`;
+}
+
+export function aboutProblem(a: About): string | null {
+  for (const [key, max] of Object.entries(ABOUT_LIMITS) as [keyof typeof ABOUT_LIMITS, number][]) {
+    if (a[key].trim().length > max) return `At most ${max} characters.`;
+  }
+  const b = a.birthday && parseBirthday(a.birthday);
+  if (a.birthday && (!b || !birthdayValue(b.month, b.day, b.year))) return "That birthday isn't a real date.";
+  return null;
+}
+
+function aboutFromData(data: Record<string, unknown> | undefined): About {
+  const out = { ...EMPTY_ABOUT };
+  for (const key of Object.keys(out) as (keyof About)[]) {
+    if (typeof data?.[key] === "string") out[key] = data[key] as string;
+  }
+  return out;
+}
+
+/**
+ * The friends-only "about" details, live. Readable only by the owner and
+ * their current mutual friends; anyone else gets permission-denied (onError).
+ */
+export function watchAbout(
+  db: Firestore,
+  uid: string,
+  onAbout: (about: About) => void,
+  onError: (err: Error) => void = () => {},
+): Unsubscribe {
+  return onSnapshot(aboutDoc(db, uid), (snap) => onAbout(aboutFromData(snap.data())), onError);
+}
+
+/** Saves all the about details at once; empty ones are left out. */
+export async function saveAbout(db: Firestore, uid: string, about: About): Promise<void> {
+  const problem = aboutProblem(about);
   if (problem) throw new Error(problem);
-  await setDoc(aboutDoc(db, uid), { bio: bio.trim() });
+  const data: Record<string, string> = { bio: about.bio.trim() };
+  for (const key of ["birthday", "prayerRequests", "bibleVersion", "denomination", "church"] as const) {
+    const v = about[key].trim();
+    if (v) data[key] = v;
+  }
+  await setDoc(aboutDoc(db, uid), data);
 }
 
 export async function findByUsername(db: Firestore, input: string): Promise<Profile | null> {

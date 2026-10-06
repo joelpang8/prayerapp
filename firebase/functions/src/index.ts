@@ -64,12 +64,15 @@ export const deletePhotoOfDeletedPost = onDocumentDeleted("posts/{postId}", asyn
 });
 
 /**
- * Deleting a post deletes its comments. They're already unreadable (the
- * rules need the post to exist), but nobody's words should be left behind.
+ * Deleting a post deletes its comments and reactions. They're already
+ * unreadable (the rules need the post to exist), but nobody's words or
+ * reactions should be left behind. (Named before reactions existed.)
  */
 export const deleteCommentsOfDeletedPost = onDocumentDeleted("posts/{postId}", async (event) => {
-  const comments = getFirestore().collection(`posts/${event.params.postId}/comments`);
-  await getFirestore().recursiveDelete(comments);
+  const db = getFirestore();
+  for (const sub of ["comments", "reactions"]) {
+    await db.recursiveDelete(db.collection(`posts/${event.params.postId}/${sub}`));
+  }
 });
 
 /** Replacing a post's photo (an edit) deletes the old one. */

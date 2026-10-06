@@ -8,7 +8,8 @@ import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, TextIn
 import { db } from "../../firebase";
 import { addComment, canDeleteComment, deleteComment, MAX_COMMENT, type Comment } from "../../lib/comments";
 import type { Profile } from "../../lib/profile";
-import { useComments, useFeed, useMyPosts } from "../../session/hooks";
+import { reactionInfo } from "../../lib/reactions";
+import { useComments, useFeed, useMyPosts, useReactions } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
 
@@ -29,7 +30,10 @@ export default function PostScreen() {
   const { posts: mine, loaded } = useMyPosts();
   const post = mine.find((p) => p.id === id) ?? feed.find((p) => p.id === id);
   const comments = useComments(post?.id ?? null, post?.authorId ?? null);
-  const people = useProfiles(new Set([post?.authorId, ...comments.map((c) => c.authorId)].filter((u): u is string => !!u && u !== me.uid)));
+  const reactions = useReactions(post?.id ?? null, post?.authorId ?? null);
+  const people = useProfiles(
+    new Set([post?.authorId, ...comments.map((c) => c.authorId), ...reactions.map((r) => r.authorId)].filter((u): u is string => !!u && u !== me.uid)),
+  );
   const profileOf = (uid: string): Profile | undefined => (uid === me.uid ? me : people.get(uid));
 
   const [text, setText] = useState("");
@@ -75,6 +79,23 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <PostCard post={post} author={profileOf(post.authorId)} commentsLink={false} footer={isMine ? <OwnPostActions post={post} /> : undefined} />
 
+        {reactions.length > 0 && (
+          <>
+            <SectionTitle>Reactions</SectionTitle>
+            {reactions.map((r) => {
+              const who = profileOf(r.authorId);
+              const info = reactionInfo(r.kind);
+              return (
+                <View key={r.authorId} style={styles.reaction}>
+                  <Text style={styles.reactionEmoji}>{info.emoji}</Text>
+                  <Text style={styles.commentName} numberOfLines={1}>{who?.displayName ?? "…"}</Text>
+                  <Text style={styles.commentTime}>{info.label}</Text>
+                </View>
+              );
+            })}
+          </>
+        )}
+
         <SectionTitle>Comments</SectionTitle>
         {comments.length === 0 && <Muted>No comments yet.</Muted>}
         {comments.map((c) => {
@@ -99,7 +120,7 @@ export default function PostScreen() {
             </View>
           );
         })}
-        <Muted>Each comment is shown only to people who are friends with the person who wrote it.</Muted>
+        <Muted>Each comment and reaction is shown only to people who are friends with the person who wrote it.</Muted>
 
         <View style={styles.composer}>
           <TextInput
@@ -122,6 +143,8 @@ const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48, gap: 8 },
   comment: { flexDirection: "row", gap: 10, paddingVertical: 6 },
+  reaction: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
+  reactionEmoji: { fontSize: 22, width: 32, textAlign: "center" },
   commentBody: { flex: 1, gap: 2 },
   commentHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 },
   commentName: { fontSize: 18, fontFamily: fonts.display, color: colors.text, flexShrink: 1 },

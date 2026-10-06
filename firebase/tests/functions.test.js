@@ -133,7 +133,7 @@ describe("Cloud Functions against the emulators", () => {
     await eventually(async () => (await errorCode(ref.getMetadata())) === "storage/object-not-found");
   });
 
-  e2e("deleting a post deletes its comments", async () => {
+  e2e("deleting a post deletes its comments and reactions", async () => {
     await seed(env, async (db) => {
       await setDoc(doc(db, "posts", "20260929_alice"), {
         authorId: "alice", promptId: "20260929", promptFiredAt: Timestamp.now(), createdAt: Timestamp.now(),
@@ -141,12 +141,14 @@ describe("Cloud Functions against the emulators", () => {
       });
       await setDoc(doc(db, "posts", "20260929_alice", "comments", "c1"), { authorId: "bob", text: "amen", createdAt: Timestamp.now() });
       await setDoc(doc(db, "posts", "20260929_alice", "comments", "c2"), { authorId: "alice", text: "thanks", createdAt: Timestamp.now() });
+      await setDoc(doc(db, "posts", "20260929_alice", "reactions", "bob"), { authorId: "bob", kind: "praying", createdAt: Timestamp.now() });
     });
     await deleteDoc(doc(signedInAs(env, "alice"), "posts", "20260929_alice"));
     await eventually(async () => {
       let left = 0;
       await env.withSecurityRulesDisabled(async (ctx) => {
-        left = (await getDocs(collection(ctx.firestore(), "posts", "20260929_alice", "comments"))).size;
+        left = (await getDocs(collection(ctx.firestore(), "posts", "20260929_alice", "comments"))).size
+          + (await getDocs(collection(ctx.firestore(), "posts", "20260929_alice", "reactions"))).size;
       });
       return left === 0;
     });

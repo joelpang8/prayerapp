@@ -64,7 +64,7 @@ describe("bio: friends only", () => {
     await assertFails(setDoc(about(signedInAs(env, "bob")), { bio: "hacked" }));
   });
 
-  test("160 characters max, bio only, nothing else in friendsOnly/", async () => {
+  test("160 characters max, only the known fields, nothing else in friendsOnly/", async () => {
     const db = signedInAs(env, "alice");
     await assertSucceeds(setDoc(about(db), { bio: "x".repeat(160) }));
     await assertFails(setDoc(about(db), { bio: "x".repeat(161) }));
@@ -81,6 +81,56 @@ describe("bio: friends only", () => {
 
   test("the public profile never carries a bio", async () => {
     await assertFails(updateDoc(user(signedInAs(env, "alice")), { bio: "visible to strangers" }));
+  });
+});
+
+describe("about details: birthday, prayer requests, Bible version, denomination, church", () => {
+  const full = {
+    bio: "Hi",
+    birthday: "1990-03-14",
+    prayerRequests: "My mum's health; wisdom at work.",
+    bibleVersion: "ESV",
+    denomination: "Anglican",
+    church: "St Mark's, Austin",
+  };
+
+  test("the owner can save any of them, each optional", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(setDoc(about(db), full));
+    await assertSucceeds(setDoc(about(db), { birthday: "03-14" }));
+    await assertSucceeds(setDoc(about(db), { church: "Grace Church" }));
+    await assertSucceeds(setDoc(about(db), {}));
+  });
+
+  test("they're friends-only, like the bio", async () => {
+    await seed(env, (db) => setDoc(about(db), full));
+    await assertFails(getDoc(about(signedInAs(env, "carol"))));
+    await seedFriends(env, "alice", "bob");
+    await assertSucceeds(getDoc(about(signedInAs(env, "bob"))));
+  });
+
+  test("birthday is MM-DD or YYYY-MM-DD, a real month and day", async () => {
+    const db = signedInAs(env, "alice");
+    for (const ok of ["01-01", "12-31", "02-29", "2000-07-04"]) await assertSucceeds(setDoc(about(db), { birthday: ok }));
+    for (const bad of ["13-01", "00-10", "04-32", "3-14", "March 14", "90-03-14", "2000-3-14", ""]) {
+      await assertFails(setDoc(about(db), { birthday: bad }));
+    }
+  });
+
+  test("length limits, and no empty strings (left out instead)", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(setDoc(about(db), { prayerRequests: "x".repeat(500), bibleVersion: "x".repeat(40), denomination: "x".repeat(60), church: "x".repeat(80) }));
+    await assertFails(setDoc(about(db), { prayerRequests: "x".repeat(501) }));
+    await assertFails(setDoc(about(db), { bibleVersion: "x".repeat(41) }));
+    await assertFails(setDoc(about(db), { denomination: "x".repeat(61) }));
+    await assertFails(setDoc(about(db), { church: "x".repeat(81) }));
+    await assertFails(setDoc(about(db), { church: "" }));
+    await assertFails(setDoc(about(db), { church: 7 }));
+  });
+
+  test("a friend can't write them", async () => {
+    await seedFriends(env, "alice", "bob");
+    await assertFails(setDoc(about(signedInAs(env, "bob")), { prayerRequests: "spam" }));
   });
 });
 

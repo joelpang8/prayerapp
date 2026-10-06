@@ -9,8 +9,13 @@ users/{uid}                         public profile. get: any signed-in user. lis
   avatarPath?: string               avatars/{uid}/{id}.jpg, owner can set or remove
   createdAt: timestamp              must be the server time
 
-users/{uid}/friendsOnly/about       get: the owner and their current mutual friends
-  bio: string                       0–160 chars, owner writes. list/delete: no one
+users/{uid}/friendsOnly/about       get: the owner and their current mutual friends. list/delete: no one
+  bio: string                       0–160 chars, owner writes
+  birthday?: string                 "MM-DD" or "YYYY-MM-DD" (the year is optional)
+  prayerRequests?: string           1–500 chars
+  bibleVersion?: string             1–40 chars (what they read; separate from the app's display setting)
+  denomination?: string             1–60 chars
+  church?: string                   1–80 chars
 
 Storage avatars/{uid}/{id}.jpg      profile photo. get: any signed-in user.
                                     write: owner only, JPEG under 2 MB. list: no one

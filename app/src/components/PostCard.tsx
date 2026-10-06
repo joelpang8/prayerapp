@@ -6,6 +6,7 @@ import { isLate, type Post } from "../lib/posts";
 import type { Profile } from "../lib/profile";
 import { usePhoto } from "../session/hooks";
 import { Avatar } from "./Avatar";
+import { ReactionBar } from "./ReactionBar";
 import { fonts, makeStyles, Text, useColors } from "./ui";
 import { VerseBlock } from "./VerseBlock";
 
@@ -105,6 +106,7 @@ export function PostCard({
         </View>
       )}
       {showVerse && post.verseRef && <VerseBlock refId={post.verseRef} collapsed />}
+      <ReactionBar post={post} />
       {commentsLink && (
         <Pressable accessibilityRole="link" onPress={() => router.push(`/post/${post.id}`)} style={styles.commentsLink}>
           <Text style={styles.commentsText}>Comments</Text>

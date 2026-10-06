@@ -204,7 +204,7 @@ export function deletePost(db: Firestore, post: Pick<Post, "id">): Promise<void>
   return deleteDoc(doc(db, "posts", post.id));
 }
 
-/** My own posts, newest first (personal history). */
+/** My own posts, newest first (the Prayers tab). */
 export function watchMyPosts(
   db: Firestore,
   uid: string,
@@ -214,6 +214,31 @@ export function watchMyPosts(
 ): Unsubscribe {
   return onSnapshot(
     query(collection(db, "posts"), where("authorId", "==", uid), orderBy("createdAt", "desc"), limit(max)),
+    (snap) => onPosts(snap.docs.map(postFromSnapshot).filter((p): p is Post => !!p)),
+    onError,
+  );
+}
+
+/**
+ * My own posts made in [from, to), newest first: one calendar month in the
+ * Prayers tab. Uses the same (authorId, createdAt desc) index as the feed.
+ */
+export function watchMyPostsBetween(
+  db: Firestore,
+  uid: string,
+  from: Date,
+  to: Date,
+  onPosts: (posts: Post[]) => void,
+  onError: (err: Error) => void = () => {},
+): Unsubscribe {
+  return onSnapshot(
+    query(
+      collection(db, "posts"),
+      where("authorId", "==", uid),
+      where("createdAt", ">=", Timestamp.fromDate(from)),
+      where("createdAt", "<", Timestamp.fromDate(to)),
+      orderBy("createdAt", "desc"),
+    ),
     (snap) => onPosts(snap.docs.map(postFromSnapshot).filter((p): p is Post => !!p)),
     onError,
   );

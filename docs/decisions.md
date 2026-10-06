@@ -33,6 +33,9 @@
 | Answered prayers | The author can later mark a post "answered", with an optional note (up to 1000 characters) on how. Friends see an Answered label and the note. It doesn't add the Edited label, and it can be unmarked. | Requested. Rules: a separate update from editing (`answeredAt` is the server time when first marked). |
 | Notifications switch | An on/off switch in Settings (kept on the device). Off means the app stops showing prompts and, once real pushes exist, unsubscribes the phone. If iOS permission was refused, the switch points to the phone's Settings. | iOS doesn't let an app withdraw its own permission. |
 | Minimizing friends' posts | Each friend's post in the Today feed can be minimized to one line, or all at once. Remembered only while the app is open. | Nothing about other people's posts is written to the device. |
+| Reactions | Added (originally out of scope for v1). One preset reaction per person per post: Praying for you, Love, Happy, Amen, Cool, Hugs. Not on your own post. Visible like comments: only to the reactor's current mutual friends who can see the post. | Requested. Same privacy rule as comments, so nobody's reaction reaches a non-friend. |
+| Profile details | Birthday (year optional), prayer requests, Bible version, denomination and church, alongside the bio. All optional and friends-only. | Requested. Friends-only like the bio; the year is optional so age needn't be shared. |
+| Prayers tab | History renamed **Prayers**, with a month calendar to jump to any day. Tabs: Friends, Prayers, **Today** (middle), Profile, Settings; the app opens on Today. | Requested. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 
 ## Pending (ask before building)

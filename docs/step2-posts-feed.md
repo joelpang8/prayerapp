@@ -17,6 +17,11 @@ posts/{promptId}_{authorId}         at most one post per user per prompt
   answeredAt?: timestamp            "this prayer was answered": server time when first marked; author only
   answerNote?: string               1–1000 chars, only with answeredAt. Not an edit (no editedAt)
 
+posts/{postId}/reactions/{uid}     one per person (doc id = reactor); read: same as comments
+  authorId: string                  the reactor (= doc id)
+  kind: string                      praying | love | happy | amen | cool | hug
+  createdAt: timestamp              server time. Not on your own post. Change by writing again.
+
 posts/{postId}/comments/{id}        read: see "Comments" below
   authorId: string                  the commenter; must be the writer
   text: string                      1–500 chars, not just spaces
@@ -43,6 +48,10 @@ posts/{postId}/comments/{id}        read: see "Comments" below
 **On the phone:** a post's comments load only while its page is open (tap **Comments** on a post). The query names the authors it asks for: me plus my friends, in chunks of 5, the same as the feed. Each comment costs the rules a lookup of the post plus two follow lookups for the reader and post author, and two per commenter in the chunk: 13 for a chunk of 5, under the limit. Like the feed's chunk size, this should be confirmed on the real project.
 
 Tests: `firebase/tests/comments.test.js` (rules), `app/tests/comments.test.ts` (the thread against the rules, including unfriending).
+
+## Reactions
+
+BeReal-style: one preset reaction per person per post (🙏 Praying for you, ❤️ Love, 😊 Happy, 🙌 Amen, 😎 Cool, 🤗 Hugs), changeable or removable, never on your own post. **Visibility is the same as comments:** a reaction is seen only by the reactor's current mutual friends who can see the post. On the phone, `ReactionThread` (like `CommentThread`, both built on `PostThread`) is registered with FriendScope and memory-only. Each post card listens to its own reactions while it's on screen and not minimized, chunked by 5 friends like the feed; that's a listener per visible post, which is fine at a small friend count and worth revisiting if feeds get long. Tests: `firebase/tests/reactions.test.js`, `app/tests/reactions.test.ts`.
 
 ## On time vs late
 
@@ -73,7 +82,7 @@ Both are allowed, as you decided.
 | `deletePhotoOfDeletedPost` | a post is deleted | Deletes its photo. |
 | `deleteReplacedPhoto` | a post's photo changes | Deletes the old photo. |
 | `deleteReplacedAvatar` | a profile photo changes or is removed | Deletes the old profile photo. |
-| `deleteCommentsOfDeletedPost` | a post is deleted | Deletes its comments. |
+| `deleteCommentsOfDeletedPost` | a post is deleted | Deletes its comments and reactions. |
 
 ### Why revoking at unfriend is the real protection
 
@@ -94,7 +103,7 @@ A download token turns into a URL that works forever for anyone and skips the ru
 ## App
 
 - **Today tab:** shows the latest prompt ("post by 3:07 pm to be on time", or "it will be marked late"), your post for it with Edit and Delete, and friends' posts.
-- **History tab:** your own posts, newest first, with Edit and Delete.
+- **Prayers tab** (was History): a month calendar with a dot on each day you prayed (a ring if it was answered). Tap a day to jump to it, use the arrows to go to any month, and **Back to this month** to return. Below the calendar are that month's prayers, with Edit and Delete. Each month is loaded on its own (`watchMyPostsBetween`), so older months don't depend on the latest 50.
 - **Post page:** tap **Comments** on any post to see it with its comments and add one.
 - **Compose:** take a photo with the camera and write notes. Development builds also have **Choose photo (development)**, because the Simulator has no camera.
 - **Photos** are shown from memory (`cachePolicy="none"`), never from expo-image's disk cache.

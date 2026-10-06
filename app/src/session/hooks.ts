@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { CommentThread, type Comment } from "../lib/comments";
+import { ReactionThread, type Reaction } from "../lib/reactions";
 import { watchMyPosts, type Post } from "../lib/posts";
 import { PhotoEvictedError } from "../lib/photoCache";
 import { watchLatestPrompt, type Prompt } from "../lib/prompts";
@@ -97,6 +98,29 @@ export function useComments(postId: string | null, postAuthorId: string | null):
     };
   }, [scope, postId, postAuthorId]);
   return comments;
+}
+
+/**
+ * A post's reactions, live, while the calling card is on screen (and not
+ * minimized: pass nulls then). Registered with FriendScope; memory only.
+ */
+export function useReactions(postId: string | null, postAuthorId: string | null): Reaction[] {
+  const { scope } = useReadySession();
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+  useEffect(() => {
+    if (!postId || !postAuthorId) return;
+    const thread = new ReactionThread(db, scope, { id: postId, authorId: postAuthorId }, {
+      onError: (err) => console.warn("reactions listener failed", err),
+    });
+    thread.start();
+    const unsubscribe = thread.subscribe(setReactions);
+    return () => {
+      unsubscribe();
+      thread.stop();
+      setReactions([]);
+    };
+  }, [scope, postId, postAuthorId]);
+  return reactions;
 }
 
 /** The current time, refreshed every `intervalMs`. */

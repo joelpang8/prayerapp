@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { getMetadata, ref } from "firebase/storage";
 import { follow } from "../src/lib/friends";
-import { createPost, deletePost, editPost, isLate, setAnswered, watchMyPosts, type Post } from "../src/lib/posts";
+import { createPost, deletePost, editPost, isLate, setAnswered, watchMyPosts, watchMyPostsBetween, type Post } from "../src/lib/posts";
 import { watchLatestPrompt, type Prompt } from "../src/lib/prompts";
 import { clearBucket, dbAs, seedPrompt, seedUser, setupEnv, storageAs, until } from "./env";
 
@@ -103,6 +103,23 @@ describe("posting against the real rules", () => {
       await until(() => mine.state.posts?.[0]?.answeredAt === null);
     } finally {
       mine.stop();
+    }
+  });
+
+  test("a month's prayers: only mine, only in the range, newest first", async () => {
+    await createPost(dbAs(env, "alice"), storageAs(env, "alice"), { uid: "alice", prompt, notes: "This month", jpeg: JPEG, photoId: "m1" });
+    await createPost(dbAs(env, "bob"), storageAs(env, "bob"), { uid: "bob", prompt, notes: "Bob's", jpeg: JPEG, photoId: "m2" });
+    const now = Date.now();
+    const seen: { inRange: Post[] | null; before: Post[] | null } = { inRange: null, before: null };
+    const stop1 = watchMyPostsBetween(dbAs(env, "alice"), "alice", new Date(now - 3600_000), new Date(now + 3600_000), (p) => { seen.inRange = p; });
+    const stop2 = watchMyPostsBetween(dbAs(env, "alice"), "alice", new Date(now - 7200_000), new Date(now - 3600_000), (p) => { seen.before = p; });
+    try {
+      await until(() => seen.inRange?.length === 1 && seen.before !== null);
+      expect(seen.inRange![0].notes).toBe("This month");
+      expect(seen.before).toEqual([]);
+    } finally {
+      stop1();
+      stop2();
     }
   });
 
