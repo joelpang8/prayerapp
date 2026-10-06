@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type Theme } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -61,7 +62,8 @@ function useNavigationTheme(): Theme {
 export default function RootLayout() {
   // Fonts load from the app bundle in a moment. If loading ever fails, carry
   // on: text falls back to the system font rather than blocking the app.
-  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  // The icon font loads with the text fonts, so tab icons don't pop in late.
+  const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
   useEffect(() => { loadAppearance().finally(() => setAppearanceLoaded(true)); }, []);
   const theme = useNavigationTheme();
