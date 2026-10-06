@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
 import { usePassage } from "../session/hooks";
-import { colors } from "./ui";
+import { colors, fonts } from "./ui";
 
 const PREVIEW_VERSES = 4;
 
@@ -70,11 +70,12 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
 
 const styles = StyleSheet.create({
   block: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 12, gap: 6 },
-  text: { fontSize: 16, lineHeight: 24, color: colors.text, fontFamily: "Georgia" },
-  num: { fontSize: 11, color: colors.muted },
-  supplied: { fontStyle: "italic" },
-  ref: { fontSize: 13, color: colors.muted, fontWeight: "600" },
-  refLink: { fontSize: 14, color: colors.accent, fontWeight: "600" },
+  text: { fontSize: 19, lineHeight: 28, color: colors.text, fontFamily: fonts.serif },
+  num: { fontSize: 12, color: colors.muted, fontFamily: fonts.serifMedium },
+  // EB Garamond's true italic, as the KJV prints the translators' supplied words.
+  supplied: { fontFamily: fonts.serifItalic },
+  ref: { fontSize: 16, color: colors.muted, fontFamily: fonts.display },
+  refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
   more: { fontSize: 14, color: colors.accent },
   muted: { fontSize: 14, color: colors.muted },
 });

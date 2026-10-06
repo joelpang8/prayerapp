@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { Button, colors, ErrorText, Muted, SectionTitle } from "../../components/ui";
+import { Button, colors, ErrorText, fonts, Muted, SectionTitle } from "../../components/ui";
 import { db } from "../../firebase";
 import {
   acceptRequest, cancelRequest, declineRequest, follow, relationshipTo, removeFriend,
@@ -173,6 +173,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   who: { flex: 1, gap: 2 },
-  name: { fontSize: 16, fontWeight: "600", color: colors.text },
+  name: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   rowActions: { flexDirection: "row", gap: 8 },
 });

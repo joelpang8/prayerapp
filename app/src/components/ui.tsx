@@ -1,3 +1,10 @@
+// Per-weight imports: the packages' main entry would bundle every weight
+// (~10 MB); these five are all the app uses.
+import { CormorantGaramond_600SemiBold } from "@expo-google-fonts/cormorant-garamond/600SemiBold";
+import { CormorantGaramond_700Bold } from "@expo-google-fonts/cormorant-garamond/700Bold";
+import { EBGaramond_400Regular } from "@expo-google-fonts/eb-garamond/400Regular";
+import { EBGaramond_400Regular_Italic } from "@expo-google-fonts/eb-garamond/400Regular_Italic";
+import { EBGaramond_500Medium } from "@expo-google-fonts/eb-garamond/500Medium";
 import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 
@@ -9,6 +16,32 @@ export const colors = {
   border: "#E6E1DA",
   accent: "#5B4B8A",
   danger: "#B3261E",
+};
+
+/**
+ * Typefaces (SIL Open Font License; see docs/credits.md):
+ *  - display: Cormorant Garamond, for titles, names and verse references
+ *  - serif:   EB Garamond, for scripture and prayer notes; its true italic
+ *             renders the KJV's supplied words, as printed Bibles do
+ * Buttons, labels and inputs stay in the system font for legibility.
+ * Custom fonts don't synthesize weights, so each weight is its own family:
+ * use these names instead of fontWeight/fontStyle.
+ */
+export const fonts = {
+  display: "CormorantGaramond_600SemiBold",
+  displayBold: "CormorantGaramond_700Bold",
+  serif: "EBGaramond_400Regular",
+  serifItalic: "EBGaramond_400Regular_Italic",
+  serifMedium: "EBGaramond_500Medium",
+} as const;
+
+/** Passed to useFonts() in the root layout. Keys must match `fonts`. */
+export const fontAssets = {
+  CormorantGaramond_600SemiBold,
+  CormorantGaramond_700Bold,
+  EBGaramond_400Regular,
+  EBGaramond_400Regular_Italic,
+  EBGaramond_500Medium,
 };
 
 export function Screen({ children, style }: { children: ReactNode; style?: ViewStyle }) {

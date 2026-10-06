@@ -1,6 +1,7 @@
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Centered } from "../components/ui";
+import { Centered, fontAssets } from "../components/ui";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 
 function RootNavigator() {
@@ -23,6 +24,10 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  // Fonts load from the app bundle in a moment. If loading ever fails, carry
+  // on: text falls back to the system font rather than blocking the app.
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  if (!fontsLoaded && !fontError) return <Centered />;
   return (
     <SessionProvider>
       <StatusBar style="dark" />

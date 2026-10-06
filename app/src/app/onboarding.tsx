@@ -2,7 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "../auth/signIn";
-import { Button, colors, ErrorText, Muted } from "../components/ui";
+import { Button, colors, ErrorText, fonts, Muted } from "../components/ui";
 import { db } from "../firebase";
 import {
   createProfile, displayNameProblem, normalizeUsername, usernameProblem, UsernameTakenError,
@@ -75,7 +75,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   body: { flex: 1, padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: "700", color: colors.text, marginTop: 24 },
+  title: { fontSize: 34, fontFamily: fonts.displayBold, color: colors.text, marginTop: 24 },
   field: { gap: 6, marginTop: 8 },
   label: { fontWeight: "600", color: colors.text },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 16, backgroundColor: colors.card },

@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
-import { Button, colors, Muted, SectionTitle } from "../../components/ui";
+import { Button, colors, fonts, Muted, SectionTitle } from "../../components/ui";
 import { VerseBlock } from "../../components/VerseBlock";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
-  promptTitle: { fontSize: 22, fontWeight: "700", color: colors.text },
+  promptTitle: { fontSize: 30, fontFamily: fonts.displayBold, color: colors.text },
   verse: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 },
 });

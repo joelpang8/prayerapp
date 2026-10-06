@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { Button, colors, ErrorText, Muted } from "../components/ui";
+import { Button, colors, ErrorText, fonts, Muted } from "../components/ui";
 import { db, storage } from "../firebase";
 import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
 import { createPost, editPost, MAX_NOTES, notesProblem } from "../lib/posts";
@@ -119,8 +119,9 @@ function Composer({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
-  title: { fontSize: 24, fontWeight: "700", color: colors.text },
+  title: { fontSize: 32, fontFamily: fonts.displayBold, color: colors.text },
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   label: { fontWeight: "600", color: colors.text, marginTop: 8 },
-  input: { minHeight: 120, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 16, backgroundColor: colors.card },
+  // Prayer notes are written in the same serif they're read in.
+  input: { minHeight: 120, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 18, lineHeight: 25, fontFamily: fonts.serif, backgroundColor: colors.card },
 });
