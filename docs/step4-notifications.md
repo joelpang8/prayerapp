@@ -46,7 +46,8 @@ admin script ──writes──▶ protoRuns/{id} {fireAt}        (clients denie
 
 - **Permission:** a "Turn on notifications" card on Today, and a Notifications section in Settings (with "Open phone Settings" if it was refused). The app never asks at launch.
 - **Showing and tapping:** prompts show as alerts even while the app is open; tapping one opens Today (`app/src/lib/notifications.ts`). Android gets a high-importance "prompt" channel.
-- **Development:** `npm run dev:prompt` (in `firebase/`) also drops a "Time to pray" notification into the booted Simulator with `xcrun simctl push`. Use `--no-notify` to skip it.
+- **Development:** `npm run dev:prompt` (in `firebase/`) also tries to drop a "Time to pray" notification into the booted Simulator with `xcrun simctl push`. Use `--no-notify` to skip it.
+- **Known limit, Xcode 27 / iOS 27 Simulator:** it refused every simulated push with `UNErrorDomain 2003 "Source is not authorized"`, even to our app with notifications allowed, and to Apple's Reminders. (On iOS 27 the same error also means the app hasn't asked for permission yet, so rule that out first.) So on this Xcode, seeing a real notification needs the Android emulator (the device test below) or a real iPhone with the paid account.
 - **Not yet:** receiving real pushes. That's integration step 2 below, after the device test. The push entitlement is left out of builds unless `REMOTE_PUSH=1` is set in `app/.env`, because it needs the paid Apple account (like Sign in with Apple).
 
 ## Running the prototype

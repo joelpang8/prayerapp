@@ -72,9 +72,13 @@ if (process.platform === "darwin" && !process.argv.includes("--no-notify")) {
   } catch (err) {
     const detail = String(err.stderr ?? err.message);
     if (/not authorized|code=2003/.test(detail)) {
-      // iOS 27+ refuses (UNErrorDomain 2003) until the app itself has asked.
-      console.log("No Simulator notification: the app hasn't asked for notification permission yet.");
-      console.log('In the app, tap "Turn on notifications" on Today, then Allow, and run this again.');
+      // UNErrorDomain 2003 "Source is not authorized". iOS 27 gives it when the
+      // app hasn't asked for permission yet, but Xcode 27's Simulator was also
+      // seen refusing every simulated push this way, even to apps that have
+      // permission. The prompt itself was still sent: Today shows it.
+      console.log("No Simulator notification: the Simulator refused it (\"Source is not authorized\").");
+      console.log('If the app hasn\'t asked yet, tap "Turn on notifications" on Today, Allow, and run this again.');
+      console.log("If it has (Settings tab says On), this Simulator doesn't accept simulated pushes; see docs/step4-notifications.md.");
     } else {
       console.log(`No Simulator notification: ${detail.trim().split("\n")[0]}`);
       console.log("Is the Simulator running with the app installed? (--no-notify skips this.)");
