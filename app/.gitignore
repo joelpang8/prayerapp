@@ -42,5 +42,6 @@ yarn-error.*
 
 # local env (Firebase config, client ids)
 .env
+.env.device
 firestore-debug.log
 storage-debug.log

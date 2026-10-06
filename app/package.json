@@ -48,7 +48,7 @@
     "test": "../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only firestore,storage --project demo-prayerapp \"vitest run\"",
     "test:unit": "vitest run tests/unit",
     "lint": "expo lint",
-    "ios:device": "expo run:ios --device",
+    "ios:device": "node scripts/ios-device.mjs",
     "verses": "tsx scripts/verses.ts",
     "generate:kjv": "tsx scripts/generate-kjv.ts"
   },

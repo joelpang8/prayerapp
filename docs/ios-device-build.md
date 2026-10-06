@@ -1,11 +1,11 @@
 # Running the app on your iPhone (Mac + Xcode)
 
-I wrote and checked this on Linux, with no Mac, so **none of these steps have been run yet**. If a step doesn't match what you see (Xcode and the Firebase console change often), tell me the exact screen or error and I'll adjust.
+I wrote this on Linux, with no Mac. **Part A has been run on your Mac; part B has not been run yet.** If a step doesn't match what you see (Xcode and the Firebase console change often), tell me the exact screen or error and I'll adjust.
 
 There are two ways to run the app:
 
 - **A. Simulator + local emulators.** No Firebase project and no Apple Developer account needed. Uses the "Development sign-in" button. This is the fastest way to try the friend flows.
-- **B. Your iPhone + a real Firebase project.** Needed for real Apple and Google sign-in.
+- **B. Your iPhone + your real Firebase project, with a free Apple account.** Google sign-in only; no Sign in with Apple or push until you have the paid program.
 
 ---
 
@@ -51,53 +51,97 @@ The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is
 - **No notification appears, or "code=2003" / "Source is not authorized":** on iOS 27 this means the app itself hasn't asked yet. Tap **Turn on notifications** on Today and **Allow** (the switch in the phone's Settings isn't enough). If the app's Settings tab already says notifications are On and it still fails, Xcode 27's Simulator is refusing simulated pushes altogether (see `step4-notifications.md`); the prompt still appears on Today. Also check that the bundle id matches: the script uses `IOS_BUNDLE_ID` from `app/.env`, or `com.example.prayerapp`. You can pass `--bundle-id <id>`.
 - **Photos don't appear on posts:** tell me. Photos load as raw bytes through the security rules, and that one piece hasn't been checked in a real iOS runtime yet.
 
-## B. Your own iPhone against a real Firebase project
+## B. Your iPhone with a free Apple account (Personal Team), against your real Firebase project
 
-### B1. Apple Developer account
+`npm run ios:device` builds a version for your own iPhone that a free Apple account can sign:
 
-**Sign in with Apple needs the paid Apple Developer Program ($99/year).** A free "Personal Team" can put an app on your phone, but it can't use the Sign in with Apple capability, and its builds expire after 7 days. Sign in with Apple is **off by default**. Its entitlement makes Xcode demand a signing certificate even for Simulator builds, so it stays off until you set `EXPO_PUBLIC_APPLE_SIGN_IN=1` in `app/.env` and run `npx expo prebuild --clean`. Until then, Google sign-in (with a free team on a device) and Development sign-in (Simulator) both work.
+- **Google sign-in only.** Sign in with Apple and push notifications are left out, because both need the paid Apple Developer Program. (Development sign-in only exists with the emulators.)
+- **Your real Firebase project**, `prayerapp-4ce99`. Emulator mode is forced off.
+- **A Release build:** the app runs on its own, without your Mac or Metro.
+- **Its settings live in `app/.env.device`**, separate from `app/.env`, which stays set up for the Simulator.
 
-1. Enrol at developer.apple.com and wait for approval.
-2. Choose a bundle id, such as `com.yourname.praynow`. It must be unique on the App Store, and you'll use it everywhere below.
+**Free-account limits:** the app stops opening after **7 days** (run `npm run ios:device` again to renew it). You can have at most 3 such apps on a phone. And you can register at most 10 new bundle ids a week, so pick one and keep it.
 
-### B2. Firebase project
+### B1. Xcode signing (once)
 
-1. At console.firebase.google.com, create a project. You can turn Analytics off.
-2. **Authentication → Sign-in method:**
-   - Enable **Apple**. For a native iOS app you don't need a Services ID or key. Those are only for web and Android sign-in.
-   - Enable **Google**. Open its **Web SDK configuration** and copy the **Web client ID**. That value goes in `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`.
-   - Make sure **Anonymous** is disabled. The rules reject it anyway.
-3. **Firestore Database:** create it in *production mode*, in a region near you. You can't change the region later.
-4. **Storage:** get started, in the same region.
-5. **Project settings → Your apps:**
-   - Add an **iOS app** with your bundle id. Download `GoogleService-Info.plist`, but *don't* add it to the project. Just open it and copy two values:
-     - `CLIENT_ID` goes in `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
-     - `REVERSED_CLIENT_ID` goes in `GOOGLE_IOS_URL_SCHEME`.
-   - Add a **Web app**. Its config object provides the six `EXPO_PUBLIC_FIREBASE_*` values. The app uses the Firebase JS SDK, which is configured with these.
-6. Deploy the rules from `firebase/`:
-   ```sh
-   npx firebase login
-   npx firebase use --add          # pick the project, alias "default"
-   npx firebase deploy --only firestore,storage,functions:default   # see production-checks.md
-   ```
-   On the first Storage deploy, Firebase asks to **let Storage read Firestore**. Say yes. The photo rules check your friendships through Firestore.
+1. Open Xcode, then **Xcode → Settings… (⌘,) → Accounts**.
+2. Click **+**, choose **Apple ID**, and sign in with your normal Apple ID.
+3. Select the team named **"Your Name (Personal Team)"**, click **Manage Certificates…**, then **+** → **Apple Development**, then **Done**.
 
-### B3. Configure and build
+This certificate is what was missing behind the earlier "No code signing certificates are available" error.
 
-1. In `app/.env`, fill in every value from B2, plus `IOS_BUNDLE_ID`. Leave `EXPO_PUBLIC_USE_EMULATORS` commented out.
-2. Generate the native project: `cd app && npx expo prebuild --platform ios --clean`. Re-run this whenever `app.config.ts` or `.env` changes the bundle id or URL scheme.
-3. Open `app/ios/*.xcworkspace` in Xcode. Open the `.xcworkspace`, not the `.xcodeproj`.
-4. Select the app target, then the **Signing & Capabilities** tab:
-   - Tick **Automatically manage signing**.
-   - **Team:** choose your developer team.
-   - Check the **Bundle Identifier** matches your bundle id.
-   - If you've turned Apple sign-in on (`EXPO_PUBLIC_APPLE_SIGN_IN=1`), check that **Sign in with Apple** is listed. If Xcode shows a red error, it usually means the App ID hasn't picked up the capability yet. Clicking "Try Again" normally fixes it.
-5. On the iPhone:
-   - Connect it by cable and tap **Trust This Computer**.
-   - Turn on **Settings → Privacy & Security → Developer Mode**. The phone restarts.
-6. In Xcode, choose your iPhone as the run destination (top bar) and press **Run** (⌘R).
-   - If the phone says "Untrusted Developer", go to **Settings → General → VPN & Device Management**, pick your developer profile and tap **Trust**.
-7. The app on the phone is a *development build*. It loads its JavaScript from Metro on your Mac, so run `npm start` in `app/`. The phone and Mac must be on the same Wi-Fi. After this first time, `npm run ios:device` builds and installs without opening Xcode.
+### B2. iPhone (once)
+
+1. Connect the iPhone by cable, unlock it, and tap **Trust This Computer**.
+2. On the iPhone: **Settings → Privacy & Security → Developer Mode**, turn it on, and let the phone restart. If Developer Mode isn't listed, open **Window → Devices and Simulators** in Xcode while the phone is connected, then look again.
+
+### B3. Your bundle id
+
+Choose a reverse-DNS id that's yours alone, for example `com.joelpang.praynow`. Apple rejects one another account has used, and `com.example.*` isn't allowed. You'll use it in B4 and B5.
+
+### B4. Firebase (once)
+
+1. **Deploy the backend.** From `firebase/`, run `npx firebase login`, then `npx firebase deploy --only firestore,storage,functions:default`. Run it again even if you've deployed before: the rules have changed since (profile photos, comments, location). If Firebase asks to let Storage read Firestore, say yes.
+2. **Turn on Google sign-in.** Go to **Authentication → Sign-in method → Add new provider → Google**, enable it, choose your support email, and **Save**. Open it again and expand **Web SDK configuration**. Copy the **Web client ID**.
+3. **Add the iOS app.** Go to **Project settings (gear) → Your apps → Add app → iOS**:
+   - Enter your bundle id from B3 exactly, then **Register app**.
+   - Download **GoogleService-Info.plist**, but don't add it to the project. Open it in TextEdit and copy two values: `CLIENT_ID` and `REVERSED_CLIENT_ID`.
+   - Click **Next** through the remaining steps; they don't apply to this app.
+4. **Web app config.** Still under **Your apps**:
+   - If there's no Web app yet, use **Add app → Web (</>)**, give it any nickname, and register it.
+   - In the Web app's **SDK setup and configuration**, choose **Config**. It shows `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId` and `appId`.
+
+### B5. Fill in `app/.env.device`
+
+```sh
+cd ~/prayerapp/app
+cp .env.device.example .env.device
+open -e .env.device
+```
+
+Fill in every value. The file says where each one comes from, and the project id, auth domain and bucket are already filled in. Save it, then check it:
+
+```sh
+npm run ios:device -- --check
+```
+
+This catches common mistakes: an empty value, `com.example.*`, a URL scheme that doesn't match the iOS client id, or the iOS and Web client ids swapped. It also confirms the build has no entitlements that need the paid account.
+
+### B6. Build and install
+
+1. Connect the iPhone and unlock it.
+2. Run `npm run ios:device`. When asked, **choose your iPhone** from the list. The first build takes 5–15 minutes.
+3. If macOS asks for your keychain password ("codesign wants to access key"), type your Mac login password and click **Always Allow**.
+4. **The first time only**, on the iPhone, go to **Settings → General → VPN & Device Management**, tap your Apple ID under **Developer App**, and tap **Trust**. Then open **Pray Now**.
+
+### B7. Using it
+
+- **Sign in with Google**, then choose your name and username.
+- **There's no automatic daily prompt yet** (the step 4 scheduler isn't built yet). Send one by hand from your Mac. The first time, sign in for scripts:
+  ```sh
+  brew install --cask google-cloud-sdk
+  gcloud auth application-default login
+  gcloud auth application-default set-quota-project prayerapp-4ce99
+  ```
+  Then, from `firebase/`:
+  ```sh
+  npm run prompt:real              # shows what it would send
+  npm run prompt:real -- --yes     # sends today's prompt
+  ```
+  It never overwrites a prompt that's already been sent. For another one the same day, use `npm run prompt:real -- --yes --day 1`. There's no push notification, since push needs the paid account; open the app to see the prompt.
+- **Friends:** to try friends on real devices, install on a second iPhone the same way (connect it, then `npm run ios:device`), and sign in there with a different Google account.
+
+### If something goes wrong
+
+- **"Failed to register bundle identifier" or "is not available":** another account already uses that id. Change `IOS_BUNDLE_ID` in `.env.device` (and in the Firebase iOS app), then run again.
+- **"No code signing certificates are available":** do B1.
+- **"Untrusted Developer" or the app won't open:** do the Trust step in B6. If it worked before but has now stopped, the 7 days are up: run `npm run ios:device` again.
+- **"Could not launch":** the phone was locked. Unlock it and open the app by hand.
+- **Google sign-in says "Error 400: invalid_request" or "custom scheme":** the bundle id in the Firebase iOS app doesn't match `IOS_BUNDLE_ID`, or the client ids don't belong to that iOS app. `--check` catches a mismatched scheme.
+- **"requests from referer … are blocked" or `auth/…` errors at sign-in:** the Web API key has website restrictions. In Google Cloud console, under **APIs & Services → Credentials**, allow it (or remove the website restriction).
+- **Signed in, but "Couldn't save" or nothing loads:** the rules or index aren't deployed. Do B4 step 1.
+- **"Maximum number of apps for free development profiles":** delete an older sideloaded app from the phone.
+- **Back to the Simulator afterwards:** in `app/`, run `npx expo prebuild --clean -p ios`, then `npm run ios -- --port 8082`. The phone build uses a different bundle id, so the iOS project is regenerated.
 
 ## Checking the friend flows by hand (step 1 acceptance)
 

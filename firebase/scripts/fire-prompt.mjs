@@ -1,4 +1,5 @@
-// Development only: sends today's prompt in the local emulators.
+// Sends today's prompt: in the local emulators (development), or by hand on
+// your real project until the step 4 scheduler exists.
 //
 //   npm run dev:prompt                        # prompt fires now, with the next curated verse
 //   npm run dev:prompt -- --minutes-ago 10    # fired 10 min ago (posts will be late)
@@ -13,8 +14,14 @@
 // notifications turned on. Bundle id: --bundle-id, else IOS_BUNDLE_ID from
 // app/.env, else com.example.prayerapp.
 //
-// In production, prompts are sent by the step 4 scheduler (not built yet).
-// This script refuses to run unless it's pointed at the Firestore emulator.
+// Real project (your iPhone build), with your own Google login, no key file:
+//   gcloud auth application-default login     # once
+//   npm run prompt:real                        # shows what it would send
+//   npm run prompt:real -- --yes               # sends it (and --day 1, etc.)
+// On the real project it never overwrites a prompt that was already sent,
+// and sends no notification (that's the scheduler's job, later).
+//
+// Prompt ids are the date in America/New_York, the decided prompt time zone.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,12 +29,22 @@ import { join } from "node:path";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
-const host = process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080";
-if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host)) {
-  console.error(`Refusing: FIRESTORE_EMULATOR_HOST=${host} is not a local emulator.`);
-  process.exit(1);
+const p = process.argv.indexOf("--project");
+const project = p > 0 ? process.argv[p + 1] : "demo-prayerapp";
+const real = !project.startsWith("demo-");
+if (real) {
+  if (process.env.FIRESTORE_EMULATOR_HOST) {
+    console.error(`Refusing: FIRESTORE_EMULATOR_HOST is set, but --project ${project} is a real project. Unset it first.`);
+    process.exit(1);
+  }
+} else {
+  const host = process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080";
+  if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host)) {
+    console.error(`Refusing: FIRESTORE_EMULATOR_HOST=${host} is not a local emulator.`);
+    process.exit(1);
+  }
+  process.env.FIRESTORE_EMULATOR_HOST = host;
 }
-process.env.FIRESTORE_EMULATOR_HOST = host;
 
 const i = process.argv.indexOf("--minutes-ago");
 const minutesAgo = i > 0 ? Number(process.argv[i + 1]) : 0;
@@ -42,7 +59,10 @@ if (!Number.isInteger(dayOffset) || dayOffset < 0 || dayOffset > 365) {
   process.exit(1);
 }
 const promptDate = new Date(firedAt.getTime() + dayOffset * 86_400_000);
-const id = promptDate.toISOString().slice(0, 10).replaceAll("-", "");
+// "en-CA" formats as YYYY-MM-DD.
+const id = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
+  .format(promptDate)
+  .replaceAll("-", "");
 
 // Verse: like the step 4 scheduler will, take the curated list in order
 // (one per day), unless overridden. The list is validated by `npm run verses`
@@ -56,8 +76,37 @@ if (verseRef && !/^[1-3]?[A-Z]{2,3}\.\d{1,3}(\.\d{1,3}(-\d{1,3}(\.\d{1,3})?)?)?$
   process.exit(1);
 }
 
-initializeApp({ projectId: "demo-prayerapp" });
-await getFirestore().doc(`prompts/${id}`).set({ firedAt: Timestamp.fromDate(firedAt), ...(verseRef ? { verseRef } : {}) });
+const prompt = { firedAt: Timestamp.fromDate(firedAt), ...(verseRef ? { verseRef } : {}) };
+const summary = `prompt ${id}, fired at ${firedAt.toLocaleTimeString()}${verseRef ? ` with ${verseRef}` : ""}`;
+
+if (real && !process.argv.includes("--yes")) {
+  console.log(`Would send ${summary} to the REAL project ${project}.`);
+  console.log("Everyone using the app sees it straight away. Add --yes to send it.");
+  process.exit(0);
+}
+
+initializeApp({ projectId: project });
+const ref = getFirestore().doc(`prompts/${id}`);
+if (real) {
+  // Never rewrite a sent prompt on the real project: people may already
+  // have posted to it, against its firedAt and verse.
+  try {
+    await ref.create(prompt);
+  } catch (err) {
+    if (err.code === 6 /* ALREADY_EXISTS */) {
+      console.error(`Prompt ${id} was already sent on ${project}. To send another, act as another day: --day 1`);
+      process.exit(1);
+    }
+    if (/Could not load the default credentials|invalid_grant|reauth/i.test(String(err.message))) {
+      console.error("Not signed in for scripts. Run: gcloud auth application-default login");
+      process.exit(1);
+    }
+    throw err;
+  }
+  console.log(`Sent ${summary} on ${project}.`);
+  process.exit(0);
+}
+await ref.set(prompt);
 console.log(`Prompt ${id} fired at ${firedAt.toLocaleTimeString()}${verseRef ? ` with ${verseRef}` : ""}`);
 
 // The Simulator notification. Same words as the real push (notify-proto's
