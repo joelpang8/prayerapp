@@ -35,7 +35,7 @@ There are two ways to run the app:
    ```
    The first run creates `app/ios/`, installs CocoaPods, builds with Xcode (roughly 5–15 minutes the first time) and opens the Simulator. Later runs are much faster. Keep this terminal open: it's Metro, which serves the app's code. Pressing `r` in it reloads the app.
 3. **Sign in:** tap **Development sign-in**, type a name such as "Alice", then choose a display name and username. The Google button explains that it isn't set up yet, and the Apple button only appears if the Simulator is signed into an Apple ID.
-4. **Send a prompt.** Terminal 3: `cd firebase && npm run dev:prompt`. Today switches to **Time to pray** with today's verse. To see the late label, use `npm run dev:prompt -- --minutes-ago 10` instead.
+4. **Send a prompt.** First tap **Turn on notifications** on Today and allow them. Then, in Terminal 3: `cd firebase && npm run dev:prompt`. A **Time to pray** notification appears in the Simulator, and Today switches to **Time to pray** with today's verse. Tapping the notification opens Today. To see the late label, use `npm run dev:prompt -- --minutes-ago 10` instead.
 5. **Post:** tap **Pray now**, then **Choose photo (development)** (the Simulator has no camera; its Photos app has sample pictures), write notes, then **Post**.
 6. **Friends:** Settings, then **Sign out**. Sign in as "Bob" and choose a username. On Friends, find Alice by her username and tap **Add friend**. Sign out, sign back in as Alice, and **Accept**. Each account's posts now appear in the other's feed. Remove the friendship and they disappear.
 
@@ -48,6 +48,7 @@ The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is
 - **"Development sign-in" is missing:** `EXPO_PUBLIC_USE_EMULATORS=1` isn't set. After changing `.env`, stop Terminal 2 and run `npm run ios` again.
 - **Sign-in or loading spins forever:** the emulators aren't running, or they were restarted. Restarting wipes the data, so sign up again.
 - **Build error mentioning pods:** run `cd app/ios && pod install`, then `npm run ios` again. If that fails, send me the last 30 lines of the error.
+- **No notification appears:** check that notifications are on (Settings tab in the app), and that the bundle id matches: the script uses `IOS_BUNDLE_ID` from `app/.env`, or `com.example.prayerapp`. You can pass `--bundle-id <id>`.
 - **Photos don't appear on posts:** tell me. Photos load as raw bytes through the security rules, and that one piece hasn't been checked in a real iOS runtime yet.
 
 ## B. Your own iPhone against a real Firebase project

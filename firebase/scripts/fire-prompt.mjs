@@ -4,10 +4,19 @@
 //   npm run dev:prompt -- --minutes-ago 10    # fired 10 min ago (posts will be late)
 //   npm run dev:prompt -- --verse JHN.3.16    # a specific canonical reference id
 //   npm run dev:prompt -- --no-verse          # no verse
+//   npm run dev:prompt -- --no-notify         # don't show a Simulator notification
+//
+// On a Mac it also drops a "Time to pray" notification into the booted iOS
+// Simulator (xcrun simctl push), as the real push will. The app must have
+// notifications turned on. Bundle id: --bundle-id, else IOS_BUNDLE_ID from
+// app/.env, else com.example.prayerapp.
 //
 // In production, prompts are sent by the step 4 scheduler (not built yet).
 // This script refuses to run unless it's pointed at the Firestore emulator.
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
@@ -38,3 +47,31 @@ if (verseRef && !/^[1-3]?[A-Z]{2,3}\.\d{1,3}(\.\d{1,3}(-\d{1,3}(\.\d{1,3})?)?)?$
 initializeApp({ projectId: "demo-prayerapp" });
 await getFirestore().doc(`prompts/${id}`).set({ firedAt: Timestamp.fromDate(firedAt), ...(verseRef ? { verseRef } : {}) });
 console.log(`Prompt ${id} fired at ${firedAt.toLocaleTimeString()}${verseRef ? ` with ${verseRef}` : ""}`);
+
+// The Simulator notification. Same words as the real push (notify-proto's
+// message.ts); a prompt sent "minutes ago" says so instead.
+if (process.platform === "darwin" && !process.argv.includes("--no-notify")) {
+  const b = process.argv.indexOf("--bundle-id");
+  const envFile = new URL("../../app/.env", import.meta.url);
+  const fromEnv = existsSync(envFile) ? /^IOS_BUNDLE_ID=(\S+)/m.exec(readFileSync(envFile, "utf8"))?.[1] : undefined;
+  const bundleId = b > 0 ? process.argv[b + 1] : fromEnv || "com.example.prayerapp";
+  const body = minutesAgo > 0
+    ? `The prompt went out ${minutesAgo} min ago. You can still pray and post.`
+    : "Pause and pray right now. You have 2 minutes.";
+  const payload = {
+    aps: { alert: { title: "Time to pray", body }, sound: "default", "thread-id": `prompt-${id}` },
+    kind: "prompt",
+    promptId: id,
+    firedAt: firedAt.toISOString(),
+  };
+  const file = join(mkdtempSync(join(tmpdir(), "prompt-")), "prompt.apns");
+  writeFileSync(file, JSON.stringify(payload));
+  try {
+    execFileSync("xcrun", ["simctl", "push", "booted", bundleId, file], { stdio: "pipe" });
+    console.log(`Notification sent to the Simulator (${bundleId}).`);
+  } catch (err) {
+    const why = String(err.stderr ?? err.message).trim().split("\n")[0];
+    console.log(`No Simulator notification: ${why}`);
+    console.log("Is the Simulator running with the app installed? (--no-notify skips this.)");
+  }
+}

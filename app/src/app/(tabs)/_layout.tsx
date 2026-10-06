@@ -1,8 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import type { ComponentProps } from "react";
+import { router } from "expo-router";
+import { useCallback, type ComponentProps } from "react";
 import type { ColorValue } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
 import { navigationFonts, useColors } from "../../components/ui";
+import { useNotificationTaps } from "../../lib/notifications";
 import { useFriendGraph } from "../../session/SessionProvider";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -17,6 +19,9 @@ function tabIcon(name: IconName, selectedName: IconName) {
 export default function TabsLayout() {
   const colors = useColors();
   const { graph } = useFriendGraph();
+  // Tapping a "Time to pray" notification opens Today. (These tabs only
+  // exist once signed in, so a tap while signed out just opens sign-in.)
+  useNotificationTaps(useCallback(() => router.navigate("/"), []));
   return (
     <Tabs
       screenOptions={{

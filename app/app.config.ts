@@ -10,12 +10,20 @@ const googleUrlScheme = process.env.GOOGLE_IOS_URL_SCHEME;
 // Apple button too). Changing it needs a rebuild: npx expo prebuild --clean.
 const appleSignIn = process.env.EXPO_PUBLIC_APPLE_SIGN_IN === "1";
 
-// Expo applies expo-apple-authentication's plugin automatically whenever the
-// package is installed, and that plugin always adds the entitlement. Remove it
-// again while Apple sign-in is off.
-const withoutAppleSignInEntitlement: ConfigPlugin = (c) =>
+// Real (remote) push to iPhones needs the paid Apple Developer Program and
+// an APNs key, and its entitlement (aps-environment) also makes Xcode require
+// a signing certificate for Simulator builds. Off until REMOTE_PUSH=1 is set
+// in app/.env. Showing notifications and asking permission work without it,
+// which is all the Simulator and `npm run dev:prompt` need.
+const remotePush = process.env.REMOTE_PUSH === "1";
+
+// Expo applies expo-apple-authentication's and expo-notifications' plugins
+// automatically whenever the packages are installed, and they always add their
+// entitlements. Remove them again while those features are off.
+const withoutPaidAccountEntitlements: ConfigPlugin = (c) =>
   withEntitlementsPlist(c, (mod) => {
-    delete mod.modResults["com.apple.developer.applesignin"];
+    if (!appleSignIn) delete mod.modResults["com.apple.developer.applesignin"];
+    if (!remotePush) delete mod.modResults["aps-environment"];
     return mod;
   });
 
@@ -79,6 +87,9 @@ const config: ExpoConfig = {
         motionUsagePermission: false,
       },
     ],
+    // Prompt notifications. No custom sounds or background modes: a prompt is
+    // a plain alert, and the app reads the prompt itself from Firestore.
+    ["expo-notifications", { enableBackgroundRemoteNotifications: false }],
     // Google Sign-In needs the reversed iOS client id as a URL scheme. It's
     // left out until configured, so emulator-only development still builds.
     ...(googleUrlScheme
@@ -87,4 +98,4 @@ const config: ExpoConfig = {
   ],
 };
 
-export default appleSignIn ? config : withoutAppleSignInEntitlement(config);
+export default appleSignIn && remotePush ? config : withoutPaidAccountEntitlements(config);

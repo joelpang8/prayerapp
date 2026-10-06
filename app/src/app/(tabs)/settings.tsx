@@ -4,6 +4,7 @@ import { signOut } from "../../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { db } from "../../firebase";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
+import { openPhoneSettings, useNotificationPermission } from "../../lib/notifications";
 import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
 import { setBibleVersion } from "../../lib/settings";
 import { useSettings } from "../../session/hooks";
@@ -14,6 +15,7 @@ export default function SettingsScreen() {
   const { profile } = useReadySession();
   const settings = useSettings();
   const appearance = useAppearance();
+  const notifications = useNotificationPermission();
   const [error, setError] = useState<string | null>(null);
 
   async function choose(id: TranslationId) {
@@ -27,6 +29,23 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      <SectionTitle>Notifications</SectionTitle>
+      <View style={styles.card}>
+        {notifications.status === "granted" && <Text style={styles.optionText}>On: you&apos;ll be notified when it&apos;s time to pray.</Text>}
+        {notifications.status === "undetermined" && (
+          <>
+            <Muted>Get a notification at the daily moment to pray.</Muted>
+            <Button title="Turn on notifications" onPress={notifications.request} />
+          </>
+        )}
+        {notifications.status === "denied" && (
+          <>
+            <Muted>Notifications are off for this app. You can turn them on in your phone&apos;s Settings.</Muted>
+            <Button title="Open phone Settings" kind="secondary" onPress={openPhoneSettings} />
+          </>
+        )}
+      </View>
+
       <SectionTitle>Appearance</SectionTitle>
       <View style={styles.card}>
         {APPEARANCE_OPTIONS.map((o) => (

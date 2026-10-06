@@ -40,7 +40,14 @@ admin script ──writes──▶ protoRuns/{id} {fireAt}        (clients denie
 
 ## Decided for integration
 
-- The daily window is **08:00–21:00, the same every day**. **Its time zone is still needed** (for example "America/Chicago").
+- The daily window is **08:00–21:00 America/New_York, the same every day**.
+
+## Already in the app (works in the Simulator, no Apple account)
+
+- **Permission:** a "Turn on notifications" card on Today, and a Notifications section in Settings (with "Open phone Settings" if it was refused). The app never asks at launch.
+- **Showing and tapping:** prompts show as alerts even while the app is open; tapping one opens Today (`app/src/lib/notifications.ts`). Android gets a high-importance "prompt" channel.
+- **Development:** `npm run dev:prompt` (in `firebase/`) also drops a "Time to pray" notification into the booted Simulator with `xcrun simctl push`. Use `--no-notify` to skip it.
+- **Not yet:** receiving real pushes. That's integration step 2 below, after the device test. The push entitlement is left out of builds unless `REMOTE_PUSH=1` is set in `app/.env`, because it needs the paid Apple account (like Sign in with Apple).
 
 ## Running the prototype
 
@@ -108,5 +115,5 @@ Latencies to watch: fired-to-sent should be under 1 s. Sent-to-shown on the phon
 
 These are separate steps, and each gets its own tests:
 1. **Scheduler:** a daily function (`onSchedule`) picks the day's moment and writes a *server-only* schedule doc, so the time can't be read in advance. It then schedules the Cloud Task. When the task fires, it writes `prompts/{date}` with `firedAt` and the day's `verseRef` from `verse-list.json`, then sends the push to the real topic.
-2. **App:** move `promptWindow.ts` into `app/src/lib/`, and add React Native Firebase messaging, permission onboarding and a topic subscription. The Today screen then shows the live countdown. It already reacts to a new prompt within seconds through Firestore, even if a push is late.
+2. **App:** move `promptWindow.ts` into `app/src/lib/`, and add React Native Firebase messaging and a topic subscription. (Permission and tap handling are already in the app.) The Today screen then shows the live countdown. It already reacts to a new prompt within seconds through Firestore, even if a push is late.
 3. **Remove** the prototype codebase and app.

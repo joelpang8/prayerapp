@@ -5,7 +5,11 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import { Centered, fontAssets, fonts, navigationFonts, palettes, useColors } from "../components/ui";
 import { loadAppearance } from "../lib/appearance";
+import { configureNotifications } from "../lib/notifications";
 import { SessionProvider, useSession } from "../session/SessionProvider";
+
+// Before any screen: prompts show as alerts even while the app is open.
+configureNotifications();
 
 function RootNavigator() {
   const colors = useColors();

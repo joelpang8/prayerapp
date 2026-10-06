@@ -4,6 +4,7 @@ import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
+import { useNotificationPermission } from "../../lib/notifications";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
@@ -19,6 +20,7 @@ export default function TodayScreen() {
   const { prompt, loaded } = useLatestPrompt();
   const { posts: mine } = useMyPosts();
   const feed = useFeed();
+  const notifications = useNotificationPermission();
   const names = useProfiles(new Set(feed.map((p) => p.authorId)));
 
   const myPost = prompt ? mine.find((p) => p.promptId === prompt.id) : undefined;
@@ -30,6 +32,13 @@ export default function TodayScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      {notifications.status === "undetermined" && (
+        <View style={styles.notice}>
+          <Text style={styles.noticeTitle}>Know when it&apos;s time to pray</Text>
+          <Muted>Once a day, at a random moment, you&apos;ll get a notification. You&apos;ll have 2 minutes to pause and pray.</Muted>
+          <Button title="Turn on notifications" onPress={notifications.request} />
+        </View>
+      )}
       {promptVerseShown && (
         <View style={styles.wordOfTheDay}>
           <WordOfTheDay refId={prompt!.verseRef!} />
@@ -76,6 +85,8 @@ const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
   wordOfTheDay: { marginBottom: 16 },
+  notice: { backgroundColor: colors.accentSoft, borderRadius: 16, padding: 16, gap: 10, marginBottom: 16 },
+  noticeTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.text },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
   promptTitle: { fontSize: 30, fontFamily: fonts.displayBold, color: colors.text },
 }));
