@@ -70,8 +70,14 @@ if (process.platform === "darwin" && !process.argv.includes("--no-notify")) {
     execFileSync("xcrun", ["simctl", "push", "booted", bundleId, file], { stdio: "pipe" });
     console.log(`Notification sent to the Simulator (${bundleId}).`);
   } catch (err) {
-    const why = String(err.stderr ?? err.message).trim().split("\n")[0];
-    console.log(`No Simulator notification: ${why}`);
-    console.log("Is the Simulator running with the app installed? (--no-notify skips this.)");
+    const detail = String(err.stderr ?? err.message);
+    if (/not authorized|code=2003/.test(detail)) {
+      // iOS 27+ refuses (UNErrorDomain 2003) until the app itself has asked.
+      console.log("No Simulator notification: the app hasn't asked for notification permission yet.");
+      console.log('In the app, tap "Turn on notifications" on Today, then Allow, and run this again.');
+    } else {
+      console.log(`No Simulator notification: ${detail.trim().split("\n")[0]}`);
+      console.log("Is the Simulator running with the app installed? (--no-notify skips this.)");
+    }
   }
 }

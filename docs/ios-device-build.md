@@ -48,7 +48,7 @@ The Simulator reaches the emulators at `127.0.0.1`, so no other network setup is
 - **"Development sign-in" is missing:** `EXPO_PUBLIC_USE_EMULATORS=1` isn't set. After changing `.env`, stop Terminal 2 and run `npm run ios` again.
 - **Sign-in or loading spins forever:** the emulators aren't running, or they were restarted. Restarting wipes the data, so sign up again.
 - **Build error mentioning pods:** run `cd app/ios && pod install`, then `npm run ios` again. If that fails, send me the last 30 lines of the error.
-- **No notification appears:** check that notifications are on (Settings tab in the app), and that the bundle id matches: the script uses `IOS_BUNDLE_ID` from `app/.env`, or `com.example.prayerapp`. You can pass `--bundle-id <id>`.
+- **No notification appears, or "code=2003" / "Source is not authorized":** on iOS 27 this means the app itself hasn't asked yet. Tap **Turn on notifications** on Today and **Allow** (the switch in the phone's Settings isn't enough). Also check, and that the bundle id matches: the script uses `IOS_BUNDLE_ID` from `app/.env`, or `com.example.prayerapp`. You can pass `--bundle-id <id>`.
 - **Photos don't appear on posts:** tell me. Photos load as raw bytes through the security rules, and that one piece hasn't been checked in a real iOS runtime yet.
 
 ## B. Your own iPhone against a real Firebase project
