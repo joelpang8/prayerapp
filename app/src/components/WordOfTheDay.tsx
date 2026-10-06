@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
-import { LayoutAnimation, Pressable, StyleSheet, Text, View } from "react-native";
+import { LayoutAnimation, Pressable, StyleSheet, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
-import { colors, fonts } from "./ui";
+import { colors, fonts, Text } from "./ui";
 import { VerseBlock } from "./VerseBlock";
 
 // A display preference only (no one's content), so it's fine to keep on disk.
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 },
   header: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerText: { flex: 1, gap: 2 },
-  label: { fontSize: 13, fontWeight: "600", color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
+  label: { fontSize: 14, fontFamily: fonts.serifSemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
   reference: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
   chevron: { fontSize: 26, color: colors.muted, width: 24, textAlign: "center" },
   body: { marginTop: 12 },

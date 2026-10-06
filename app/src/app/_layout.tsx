@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Centered, colors, fontAssets } from "../components/ui";
+import { Centered, colors, fontAssets, fonts, navigationFonts } from "../components/ui";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 
 function RootNavigator() {
@@ -20,7 +20,7 @@ function RootNavigator() {
         <Stack.Screen name="compose" options={{ presentation: "modal" }} />
         <Stack.Screen
           name="profile/[uid]"
-          options={{ headerShown: true, headerBackTitle: "Back", headerStyle: { backgroundColor: colors.bg }, headerShadowVisible: false }}
+          options={{ headerShown: true, headerBackTitle: "Back", headerStyle: { backgroundColor: colors.bg }, headerTitleStyle: navigationFonts.headerTitleStyle, headerBackTitleStyle: { fontFamily: fonts.serif }, headerShadowVisible: false }}
         />
       </Stack.Protected>
     </Stack>

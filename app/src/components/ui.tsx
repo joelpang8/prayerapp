@@ -5,8 +5,19 @@ import { CormorantGaramond_700Bold } from "@expo-google-fonts/cormorant-garamond
 import { EBGaramond_400Regular } from "@expo-google-fonts/eb-garamond/400Regular";
 import { EBGaramond_400Regular_Italic } from "@expo-google-fonts/eb-garamond/400Regular_Italic";
 import { EBGaramond_500Medium } from "@expo-google-fonts/eb-garamond/500Medium";
+import { EBGaramond_600SemiBold } from "@expo-google-fonts/eb-garamond/600SemiBold";
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  Text as RNText,
+  TextInput as RNTextInput,
+  StyleSheet,
+  View,
+  type TextInputProps,
+  type TextProps,
+  type ViewStyle,
+} from "react-native";
 
 export const colors = {
   bg: "#FAF8F5",
@@ -19,11 +30,11 @@ export const colors = {
 };
 
 /**
- * Typefaces (SIL Open Font License; see docs/credits.md):
+ * Typefaces (SIL Open Font License; see docs/credits.md), used for all text:
  *  - display: Cormorant Garamond, for titles, names and verse references
- *  - serif:   EB Garamond, for scripture and prayer notes; its true italic
- *             renders the KJV's supplied words, as printed Bibles do
- * Buttons, labels and inputs stay in the system font for legibility.
+ *  - serif:   EB Garamond, for everything else: scripture, notes, buttons,
+ *             labels and inputs. Its true italic renders the KJV's supplied
+ *             words, as printed Bibles do.
  * Custom fonts don't synthesize weights, so each weight is its own family:
  * use these names instead of fontWeight/fontStyle.
  */
@@ -33,6 +44,7 @@ export const fonts = {
   serif: "EBGaramond_400Regular",
   serifItalic: "EBGaramond_400Regular_Italic",
   serifMedium: "EBGaramond_500Medium",
+  serifSemiBold: "EBGaramond_600SemiBold",
 } as const;
 
 /** Passed to useFonts() in the root layout. Keys must match `fonts`. */
@@ -42,6 +54,31 @@ export const fontAssets = {
   EBGaramond_400Regular,
   EBGaramond_400Regular_Italic,
   EBGaramond_500Medium,
+  EBGaramond_600SemiBold,
+};
+
+/**
+ * Use these instead of React Native's Text and TextInput (lint enforces it),
+ * so every piece of text is in the app's font unless a style says otherwise.
+ */
+export function Text({ style, ...props }: TextProps) {
+  return <RNText {...props} style={[styles.text, style]} />;
+}
+
+/**
+ * Text nested inside a Text: inherits the parent's font, size and color
+ * instead of resetting them, so only pass the styles that differ.
+ */
+export const Span = RNText;
+
+export function TextInput({ style, ...props }: TextInputProps) {
+  return <RNTextInput placeholderTextColor={colors.muted} {...props} style={[styles.input, style]} />;
+}
+
+/** For navigation headers and the tab bar, which draw their own text. */
+export const navigationFonts = {
+  headerTitleStyle: { fontFamily: fonts.display, fontSize: 22, color: colors.text },
+  tabBarLabelStyle: { fontFamily: fonts.serifMedium, fontSize: 12 },
 };
 
 export function Screen({ children, style }: { children: ReactNode; style?: ViewStyle }) {
@@ -118,9 +155,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  section: { fontSize: 13, fontWeight: "600", color: colors.muted, textTransform: "uppercase", marginTop: 24, marginBottom: 8 },
-  muted: { color: colors.muted, fontSize: 15, lineHeight: 21 },
-  error: { color: colors.danger, fontSize: 15, marginTop: 8 },
+  text: { fontFamily: fonts.serif, color: colors.text },
+  input: { fontFamily: fonts.serif, fontSize: 17, color: colors.text },
+  buttonText: { color: "#fff", fontSize: 17, fontFamily: fonts.serifSemiBold },
+  section: { fontSize: 14, fontFamily: fonts.serifSemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 24, marginBottom: 8 },
+  muted: { color: colors.muted, fontSize: 16, lineHeight: 22 },
+  error: { color: colors.danger, fontSize: 16, marginTop: 8 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },
 });

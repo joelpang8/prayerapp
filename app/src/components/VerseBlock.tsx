@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
 import { usePassage } from "../session/hooks";
-import { colors, fonts } from "./ui";
+import { colors, fonts, Span, Text } from "./ui";
 
 const PREVIEW_VERSES = 4;
 
@@ -21,14 +21,14 @@ function Verses({ passage, limit }: { passage: Passage; limit: number }) {
   return (
     <Text style={styles.text} accessibilityLabel={shown.map((v) => plainText(v.segments)).join(" ")}>
       {shown.map((v, i) => (
-        <Text key={`${v.chapter}:${v.verse}`}>
+        <Span key={`${v.chapter}:${v.verse}`}>
           {i > 0 ? " " : ""}
-          {showNumbers && <Text style={styles.num}>{v.verse} </Text>}
+          {showNumbers && <Span style={styles.num}>{v.verse} </Span>}
           {v.segments.map((s, j) =>
             // KJV prints the translators' supplied words in italics.
-            s.supplied ? <Text key={j} style={styles.supplied}>{s.text}</Text> : <Text key={j}>{s.text}</Text>,
+            s.supplied ? <Span key={j} style={styles.supplied}>{s.text}</Span> : <Span key={j}>{s.text}</Span>,
           )}
-        </Text>
+        </Span>
       ))}
     </Text>
   );
@@ -71,11 +71,11 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
 const styles = StyleSheet.create({
   block: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 12, gap: 6 },
   text: { fontSize: 19, lineHeight: 28, color: colors.text, fontFamily: fonts.serif },
-  num: { fontSize: 12, color: colors.muted, fontFamily: fonts.serifMedium },
+  num: { fontSize: 13, color: colors.muted, fontFamily: fonts.serifMedium },
   // EB Garamond's true italic, as the KJV prints the translators' supplied words.
   supplied: { fontFamily: fonts.serifItalic },
   ref: { fontSize: 16, color: colors.muted, fontFamily: fonts.display },
   refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
-  more: { fontSize: 14, color: colors.accent },
-  muted: { fontSize: 14, color: colors.muted },
+  more: { fontSize: 15, color: colors.accent },
+  muted: { fontSize: 15, color: colors.muted },
 });

@@ -1,8 +1,8 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
-import { colors, fonts, Muted } from "../../components/ui";
+import { colors, fonts, Muted, Text } from "../../components/ui";
 import { db } from "../../firebase";
 import { watchBio } from "../../lib/profile";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";

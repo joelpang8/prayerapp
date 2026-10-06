@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { signOut } from "../../auth/signIn";
 import { Avatar } from "../../components/Avatar";
-import { Button, colors, ErrorText, fonts, Muted, SectionTitle } from "../../components/ui";
+import { Button, colors, ErrorText, fonts, Muted, SectionTitle, Text, TextInput } from "../../components/ui";
 import { db, storage } from "../../firebase";
 import { photoBlob, pickAvatar } from "../../lib/capture";
 import { BIO_MAX, removeAvatar, saveBio, setAvatar, watchBio } from "../../lib/profile";
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   identity: { flexDirection: "row", alignItems: "center", gap: 14 },
   names: { flex: 1, gap: 2 },
   photoActions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  label: { fontSize: 15, fontWeight: "600", color: colors.text, marginTop: 8 },
+  label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
   bioInput: {
     minHeight: 80,
     borderWidth: 1,
@@ -173,11 +173,11 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   bioFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  counter: { fontSize: 13, color: colors.muted },
+  counter: { fontSize: 14, color: colors.muted },
   card: { backgroundColor: colors.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 8 },
   name: { fontSize: 24, fontFamily: fonts.display, color: colors.text },
   option: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 44 },
-  optionText: { fontSize: 16, color: colors.text },
-  check: { fontSize: 18, color: colors.accent, fontWeight: "700" },
+  optionText: { fontSize: 17, color: colors.text },
+  check: { fontSize: 18, color: colors.accent, fontFamily: fonts.serifSemiBold },
   spacer: { height: 16 },
 });

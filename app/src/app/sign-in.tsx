@@ -1,9 +1,9 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useEffect, useState } from "react";
-import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signInForDevelopment, signInWithApple, signInWithGoogle, type SignInResult } from "../auth/signIn";
-import { Button, colors, ErrorText, fonts, Muted } from "../components/ui";
+import { Button, colors, ErrorText, fonts, Muted, Text, TextInput } from "../components/ui";
 import { usingEmulators } from "../firebase";
 import { setSuggestedDisplayName } from "../session/SessionProvider";
 
@@ -75,5 +75,5 @@ const styles = StyleSheet.create({
   actions: { gap: 12, marginBottom: 24 },
   appleButton: { height: 48 },
   dev: { gap: 8, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 16, backgroundColor: colors.card },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.card },
 });

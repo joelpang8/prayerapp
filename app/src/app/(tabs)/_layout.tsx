@@ -1,11 +1,18 @@
 import { Tabs } from "expo-router/js-tabs";
-import { colors } from "../../components/ui";
+import { colors, navigationFonts } from "../../components/ui";
 import { useFriendGraph } from "../../session/SessionProvider";
 
 export default function TabsLayout() {
   const { graph } = useFriendGraph();
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: colors.accent, headerStyle: { backgroundColor: colors.bg } }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: colors.accent,
+        headerStyle: { backgroundColor: colors.bg },
+        headerTitleStyle: navigationFonts.headerTitleStyle,
+        tabBarLabelStyle: navigationFonts.tabBarLabelStyle,
+      }}
+    >
       <Tabs.Screen name="index" options={{ title: "Today" }} />
       <Tabs.Screen name="history" options={{ title: "History" }} />
       <Tabs.Screen

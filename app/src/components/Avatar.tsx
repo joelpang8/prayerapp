@@ -1,8 +1,8 @@
 import { Image } from "expo-image";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { initials } from "../lib/profile";
 import { useAvatar } from "../session/hooks";
-import { colors, fonts } from "./ui";
+import { colors, fonts, Text } from "./ui";
 
 /**
  * A round profile photo, or the person's initials while it loads or if they

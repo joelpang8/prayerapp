@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "../auth/signIn";
-import { Button, colors, ErrorText, fonts, Muted } from "../components/ui";
+import { Button, colors, ErrorText, fonts, Muted, Text, TextInput } from "../components/ui";
 import { db } from "../firebase";
 import {
   createProfile, displayNameProblem, normalizeUsername, usernameProblem, UsernameTakenError,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, padding: 24, gap: 12 },
   title: { fontSize: 34, fontFamily: fonts.displayBold, color: colors.text, marginTop: 24 },
   field: { gap: 6, marginTop: 8 },
-  label: { fontWeight: "600", color: colors.text },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 16, backgroundColor: colors.card },
+  label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.card },
   actions: { gap: 12, marginTop: 16 },
 });

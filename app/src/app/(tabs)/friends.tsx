@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
-import { Button, colors, ErrorText, fonts, Muted, SectionTitle } from "../../components/ui";
+import { Button, colors, ErrorText, fonts, Muted, SectionTitle, Text, TextInput } from "../../components/ui";
 import { db } from "../../firebase";
 import {
   acceptRequest, cancelRequest, declineRequest, follow, relationshipTo, removeFriend,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 48 },
   find: { gap: 8 },
   searchRow: { flexDirection: "row", gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, fontSize: 16, backgroundColor: colors.card, minHeight: 48 },
+  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.card, minHeight: 48 },
   row: {
     flexDirection: "row",
     alignItems: "center",
