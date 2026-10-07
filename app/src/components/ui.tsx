@@ -7,6 +7,7 @@ import { EBGaramond_400Regular_Italic } from "@expo-google-fonts/eb-garamond/400
 import { EBGaramond_500Medium } from "@expo-google-fonts/eb-garamond/500Medium";
 import { EBGaramond_600SemiBold } from "@expo-google-fonts/eb-garamond/600SemiBold";
 import type { ReactNode } from "react";
+import { useTextScale } from "../lib/textSize";
 import {
   ActivityIndicator,
   Pressable,
@@ -17,6 +18,7 @@ import {
   View,
   type TextInputProps,
   type TextProps,
+  type TextStyle,
   type ViewStyle,
 } from "react-native";
 
@@ -108,9 +110,27 @@ export const fontAssets = {
  * Use these instead of React Native's Text and TextInput (lint enforces it),
  * so every piece of text is in the app's font unless a style says otherwise.
  */
+/**
+ * Applies the in-app Text size setting to a style: font size and line height
+ * grow together. The phone's own larger-text setting applies on top, capped
+ * (maxFontSizeMultiplier) so layouts stay usable.
+ */
+function scaled(base: TextStyle, style: TextProps["style"], scale: number) {
+  if (scale === 1) return [base, style];
+  const flat: TextStyle = StyleSheet.flatten([base, style]) ?? {};
+  return [
+    flat,
+    {
+      ...(typeof flat.fontSize === "number" ? { fontSize: flat.fontSize * scale } : { fontSize: 14 * scale }),
+      ...(typeof flat.lineHeight === "number" ? { lineHeight: flat.lineHeight * scale } : {}),
+    },
+  ];
+}
+
 export function Text({ style, ...props }: TextProps) {
   const styles = useStyles();
-  return <RNText {...props} style={[styles.text, style]} />;
+  const scale = useTextScale();
+  return <RNText maxFontSizeMultiplier={1.8} {...props} style={scaled(styles.text, style, scale)} />;
 }
 
 /**
@@ -122,12 +142,14 @@ export const Span = RNText;
 export function TextInput({ style, ...props }: TextInputProps) {
   const styles = useStyles();
   const colors = useColors();
+  const scale = useTextScale();
   return (
     <RNTextInput
       placeholderTextColor={colors.muted}
       keyboardAppearance={colors === dark ? "dark" : "light"}
+      maxFontSizeMultiplier={1.8}
       {...props}
-      style={[styles.input, style]}
+      style={scaled(styles.input, style, scale) as TextInputProps["style"]}
     />
   );
 }

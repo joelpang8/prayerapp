@@ -4,7 +4,10 @@ import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, type Theme } fro
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Centered, fontAssets, fonts, navigationFonts, palettes, useColors } from "../components/ui";
+import * as Linking from "expo-linking";
 import { loadAppearance } from "../lib/appearance";
+import { loadTextSize } from "../lib/textSize";
+import { usernameFromLink } from "../lib/invite";
 import { configureNotifications } from "../lib/notifications";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 
@@ -18,9 +21,22 @@ function RootNavigator() {
   // tab, rather than whichever tab is first or was open at sign-out.
   const wasReady = useRef<boolean | null>(null);
   const ready = session.status === "ready";
+  // An invite link opened while signed out is remembered and opened once
+  // they've signed in (when signed in, the router opens it by itself).
+  const url = Linking.useLinkingURL();
+  const pendingInvite = useRef<string | null>(null);
+  useEffect(() => {
+    const name = usernameFromLink(url);
+    if (name && !ready) pendingInvite.current = name;
+  }, [url, ready]);
   useEffect(() => {
     if (session.status === "loading") return;
-    if (ready && wasReady.current === false) router.replace("/");
+    if (ready && wasReady.current === false) {
+      router.replace("/");
+      const name = pendingInvite.current;
+      pendingInvite.current = null;
+      if (name) router.push(`/u/${name}`);
+    }
     wasReady.current = ready;
   }, [ready, session.status]);
   if (session.status === "loading") return <Centered />;
@@ -48,6 +64,7 @@ function RootNavigator() {
         <Stack.Screen name="profile/[uid]" options={pushed} />
         <Stack.Screen name="post/[id]" options={{ ...pushed, title: "Prayer" }} />
         <Stack.Screen name="activity" options={{ ...pushed, title: "Activity" }} />
+        <Stack.Screen name="u/[username]" options={{ ...pushed, title: "Invite" }} />
       </Stack.Protected>
     </Stack>
   );
@@ -79,7 +96,7 @@ export default function RootLayout() {
   // The icon font loads with the text fonts, so tab icons don't pop in late.
   const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
-  useEffect(() => { loadAppearance().finally(() => setAppearanceLoaded(true)); }, []);
+  useEffect(() => { Promise.all([loadAppearance(), loadTextSize()]).finally(() => setAppearanceLoaded(true)); }, []);
   const theme = useNavigationTheme();
   if ((!fontsLoaded && !fontError) || !appearanceLoaded) return <Centered />;
   return (

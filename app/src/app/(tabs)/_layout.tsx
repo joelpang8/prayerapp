@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useCallback, type ComponentProps } from "react";
-import type { ColorValue } from "react-native";
+import { View, type ColorValue } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
 import { ActivityBell } from "../../components/ActivityBell";
 import { navigationFonts, useColors } from "../../components/ui";
@@ -16,6 +16,31 @@ function tabIcon(name: IconName, selectedName: IconName) {
   return function TabIcon({ focused, color, size }: { focused: boolean; color: ColorValue; size: number }) {
     return <Ionicons name={focused ? selectedName : name} color={color} size={size} />;
   };
+}
+
+/**
+ * Today, the app's main place, sits in a raised circle in the middle of the
+ * tab bar: filled when it's open, a soft ring otherwise.
+ */
+function TodayIcon({ focused }: { focused: boolean }) {
+  const colors = useColors();
+  return (
+    <View
+      style={{
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        marginTop: -18,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: focused ? colors.accent : colors.accentSoft,
+        borderWidth: 3,
+        borderColor: colors.bg,
+      }}
+    >
+      <Ionicons name={focused ? "sunny" : "sunny-outline"} size={28} color={focused ? colors.onAccent : colors.accent} />
+    </View>
+  );
 }
 
 export default function TabsLayout() {
@@ -43,7 +68,12 @@ export default function TabsLayout() {
       <Tabs.Screen name="prayers" options={{ title: "Prayers", tabBarIcon: tabIcon("journal-outline", "journal") }} />
       <Tabs.Screen
         name="index"
-        options={{ title: "Today", tabBarIcon: tabIcon("sunny-outline", "sunny"), headerRight: () => <ActivityBell /> }}
+        options={{
+          title: "Today",
+          tabBarIcon: ({ focused }) => <TodayIcon focused={focused} />,
+          tabBarAccessibilityLabel: "Today",
+          headerRight: () => <ActivityBell />,
+        }}
       />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: tabIcon("person-circle-outline", "person-circle") }} />
       <Tabs.Screen name="settings" options={{ title: "Settings", tabBarIcon: tabIcon("settings-outline", "settings") }} />

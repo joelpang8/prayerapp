@@ -38,6 +38,12 @@
 | Prayers tab | History renamed **Prayers**, with a month calendar to jump to any day. Tabs: Friends, Prayers, **Today** (middle), Profile, Settings; the app opens on Today. | Requested. |
 | Activity | A bell on Today opens **Activity**: friends praying and having prayers answered, and friends' comments and reactions on my prayers, from the last 7 days. The bell shows how many are new. | Requested. Built from data already on the phone (feed, plus comment and reaction threads on my last week's posts), filtered to current friends, memory only; only "last opened" is stored on the device. |
 | Landing screen | Signing in or finishing onboarding always opens Today. | Requested. |
+| Moderation | **Report** users, prayers and comments (reason + optional note + "also block"); reports go to a write-only `reports` collection reviewed by the project owner in the Firebase console, and a reported prayer or comment is hidden for the reporter. **Block** ends the friendship and is secret: their requests never show and can't be accepted; you can't request them until you unblock (Settings). | Confirmed. Covers App Store Guideline 1.2's report and block. See `docs/moderation.md` for reviewing reports. |
+| Private posts | A "Private" switch when posting: that day's prayer is visible only to its author, never in the feed, no comments or reactions. Its photo is stored where only the author can read it. Can't be changed after posting. | Confirmed (not separate journal entries). |
+| Offline posting | New posts go through an outbox on the phone and send when the connection is back. The server still decides on time vs late when it arrives; the post shows when the photo was taken. | Confirmed: keeps "late" unfakeable. |
+| Invites | "Invite friends" shares a link (`prayerapp://u/username`) and the @username. The link opens their profile with Add friend; opened while signed out, it opens after sign-in. | A web link that works without the app installed needs a website plus Universal Links (paid Apple account): later. |
+| Text size | Settings → Text size (Standard / Large / Larger), on top of the phone's own text size, which the app also follows (capped at 1.8× so layouts hold). | Accessibility. |
+| Profile tags | 📖 Bible version and ⛪ denomination as tags under the name, from the friends-only details. | Requested. |
 | Photo download links | Revoked for both people whenever a friendship ends | Storage creates new tokens on read, so they can't be prevented. Revoking them at unfriend is the real guarantee. See `step2-posts-feed.md`. |
 
 ## Pending (ask before building)
@@ -45,4 +51,12 @@
 | Decision | Needed by | Notes |
 |---|---|---|
 | Bible API provider | Step 3 (licensed translations only) | You're asking providers the seven questions. KJV text can ship without a provider. See `step3-scripture.md`. |
-| Moderation approach | Before a public launch | See the trigger points in `step1-auth-friends.md`. Comments add text written to other people, so report and block matter more now. |
+
+## Later (needs step 4 and the paid Apple account)
+
+| Idea | Why it waits |
+|---|---|
+| **Lock-screen countdown** (iOS Live Activity showing the 2-minute window) | Starting one when the prompt arrives, with the app closed, needs push-to-start, so it needs step 4's push and the paid account. The countdown itself runs on the phone (no push per second). |
+| **Home-screen widget** with the day's verse | Needs a native widget extension target and an App Group to share data with the app; App Groups aren't available to a free Personal Team. |
+| **Web invite links** that work without the app installed | Needs a small website plus Universal Links (Associated Domains), which also needs the paid account. |
+

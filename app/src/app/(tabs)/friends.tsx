@@ -7,6 +7,7 @@ import { db } from "../../firebase";
 import {
   acceptRequest, cancelRequest, declineRequest, follow, relationshipTo, removeFriend,
 } from "../../lib/friends";
+import { shareInvite } from "../../lib/invite";
 import { findByUsername, type Profile } from "../../lib/profile";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
@@ -59,6 +60,9 @@ export default function FriendsScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Button title="Invite friends" onPress={() => shareInvite(me.username).catch(() => {})} />
+      <Muted>Send a link with your username. Friends who have the app can open it to add you.</Muted>
+      <View style={styles.spacer} />
       <FindFriend me={me.uid} graph={graph} />
       {error && <ErrorText>{error}</ErrorText>}
 
@@ -175,6 +179,7 @@ const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: 48 },
   find: { gap: 8 },
+  spacer: { height: 16 },
   searchRow: { flexDirection: "row", gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.card, minHeight: 48 },
   row: {

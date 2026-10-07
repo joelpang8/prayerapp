@@ -93,9 +93,9 @@ The step 2 feed (`app/src/lib/feed.ts`) is registered with FriendScope. `evictAu
 
 Moderation is deferred, but these are the points where it stops being optional:
 
-- **Follow-request spam or harassment.** Anyone who knows a username can send requests without limit, and there is no **block** yet. Declining just deletes the edge, and the sender can send again. A block list and rate limit (probably a Cloud Function) are needed before strangers can find each other.
+- **Follow-request spam or harassment.** Anyone who knows a username can send requests without limit. **Block** now exists (their requests never show), but there's still no **rate limit** on requests, which would need a Cloud Function. Worth adding before strangers can find each other at scale.
 - **Profile photos are visible to strangers.** Anyone signed in who knows a username can see that person's photo. That widens the reporting need below beyond friends.
-- **Photo content.** Once photos exist (step 2), there is no reporting path. Friends-only visibility lowers the risk but doesn't remove it. App Store Guideline 1.2 requires a way to report and block for user-generated content, so this is a **launch blocker for the App Store**, not just nice to have.
+- **Photo content.** ~~No reporting path~~ **Done:** report and block for users, prayers and comments (see `docs/moderation.md`), as App Store Guideline 1.2 requires.
 
 ## Step 1 app (built)
 

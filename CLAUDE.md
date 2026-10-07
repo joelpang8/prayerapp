@@ -4,6 +4,8 @@
 - **Security rules are core code.** Any change to `firebase/firestore.rules` or `firebase/storage.rules` comes with emulator tests in `firebase/tests/`, in the same change. Never stub a rule "to fill in later". Deny until the real rule is written and tested.
 - **Post visibility:** only the author and their *current* mutual friends. The check reads the live `follows` docs. Never replace it with a copied friend list.
 - **Comment and reaction visibility:** a comment or reaction is readable only by its author and by people who are *current* mutual friends of its author and can see the post. Same live `follows` check; never widen it.
+- **Private posts** (`visibility: "private"`) are readable only by their author; their photos live in `privatePhotos/`, author-only. Friends' post queries must filter `visibility == "friends"`, and the read rule must stay an exact equality: a lenient `.get('visibility', 'friends')` let an unfiltered query return private posts in the emulator.
+- **Blocks are secret:** never show the blocked person anything that reveals the block. Reports are write-only for clients.
 - **Location:** posts store only an opt-in town-level place name, never coordinates.
 - **Never call `getDownloadURL()`** on post photos. Load them with `getBytes` through `app/src/lib/photoCache.ts`. A unit test fails if app code calls it.
 - **Anything holding other people's content on the device** must register with `FriendScope` (`app/src/lib/friendScope.ts`) and implement `evictAuthor`/`clear`. It stays memory-only, never written to disk.

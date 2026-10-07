@@ -4,6 +4,7 @@ import { signOut } from "../../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { db } from "../../firebase";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
+import { setTextSize, TEXT_SIZES, useTextSize } from "../../lib/textSize";
 import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
 import { setBibleVersion } from "../../lib/settings";
@@ -17,6 +18,7 @@ export default function SettingsScreen() {
   const { profile } = useReadySession();
   const settings = useSettings();
   const appearance = useAppearance();
+  const textSize = useTextSize();
   const notifications = useNotificationPermission();
   const notificationsOn = useNotificationsEnabled();
   const colors = useColors();
@@ -69,6 +71,14 @@ export default function SettingsScreen() {
           <Option key={o.id} label={o.label} selected={appearance === o.id} onPress={() => setAppearance(o.id)} />
         ))}
         <Muted>Dark is easier on the eyes for evening prayer. &quot;Match phone&quot; follows your phone&apos;s setting.</Muted>
+      </View>
+
+      <SectionTitle>Text size</SectionTitle>
+      <View style={styles.card}>
+        {TEXT_SIZES.map((t) => (
+          <Option key={t.id} label={t.label} selected={textSize === t.id} onPress={() => setTextSize(t.id)} />
+        ))}
+        <Muted>Makes all text in the app bigger. The app also follows your phone&apos;s own text size (Settings &gt; Display &amp; Brightness &gt; Text Size).</Muted>
       </View>
 
       <SectionTitle>Bible translation</SectionTitle>
