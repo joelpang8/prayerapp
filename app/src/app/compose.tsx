@@ -3,6 +3,7 @@ import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { CountdownPill } from "../components/PromptCountdown";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db, storage } from "../firebase";
 import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
@@ -142,6 +143,7 @@ function Composer({
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{editing ? "Edit post" : "Pray now"}</Text>
+        {!editing && prompt && <CountdownPill firedAt={prompt.firedAt} />}
         <View style={styles.photo}>
           {previewUri ? (
             <Image source={{ uri: previewUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="none" />

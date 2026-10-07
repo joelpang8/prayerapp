@@ -48,6 +48,7 @@ admin script ──writes──▶ protoRuns/{id} {fireAt}        (clients denie
 - **Showing and tapping:** prompts show as alerts even while the app is open; tapping one opens Today (`app/src/lib/notifications.ts`). Android gets a high-importance "prompt" channel.
 - **Development:** `npm run dev:prompt` (in `firebase/`) also tries to drop a "Time to pray" notification into the booted Simulator with `xcrun simctl push`. Use `--no-notify` to skip it.
 - **Known limit, Xcode 27 / iOS 27 Simulator:** it refused every simulated push with `UNErrorDomain 2003 "Source is not authorized"`, even to our app with notifications allowed, and to Apple's Reminders. (On iOS 27 the same error also means the app hasn't asked for permission yet, so rule that out first.) So on this Xcode, seeing a real notification needs the Android emulator (the device test below) or a real iPhone with the paid account.
+- **Countdown on Today (built):** while a prompt is open, Today shows a big BeReal-style countdown: 2:00 to pray, then the 5-minute grace period (still on time), then "it will be marked late". It's measured from the server's `firedAt`, and the posting screen shows a small version. The logic is `app/src/lib/promptWindow.ts`, written separately from the prototype's copy (the app doesn't import the prototype).
 - **Not yet:** receiving real pushes. That's integration step 2 below, after the device test. The push entitlement is left out of builds unless `REMOTE_PUSH=1` is set in `app/.env`, because it needs the paid Apple account (like Sign in with Apple).
 
 ## Running the prototype
@@ -116,5 +117,5 @@ Latencies to watch: fired-to-sent should be under 1 s. Sent-to-shown on the phon
 
 These are separate steps, and each gets its own tests:
 1. **Scheduler:** a daily function (`onSchedule`) picks the day's moment and writes a *server-only* schedule doc, so the time can't be read in advance. It then schedules the Cloud Task. When the task fires, it writes `prompts/{date}` with `firedAt` and the day's `verseRef` from `verse-list.json`, then sends the push to the real topic.
-2. **App:** move `promptWindow.ts` into `app/src/lib/`, and add React Native Firebase messaging and a topic subscription. (Permission and tap handling are already in the app.) The Today screen then shows the live countdown. It already reacts to a new prompt within seconds through Firestore, even if a push is late.
+2. **App:** add React Native Firebase messaging and a topic subscription. (Permission, tap handling and the countdown are already in the app.) The Today screen then shows the live countdown. It already reacts to a new prompt within seconds through Firestore, even if a push is late.
 3. **Remove** the prototype codebase and app.

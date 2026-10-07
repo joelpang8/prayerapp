@@ -20,7 +20,9 @@ import { deleteObject, ref, uploadBytes, type FirebaseStorage } from "firebase/s
 import type { Prompt } from "./prompts";
 
 /** 2-minute response window + 5-minute grace period. Must match firestore.rules. */
-export const ON_TIME_WINDOW_MS = 7 * 60 * 1000;
+export const RESPOND_WINDOW_MS = 2 * 60 * 1000; // "pray right now"
+export const GRACE_MS = 5 * 60 * 1000; // still counts as on time
+export const ON_TIME_WINDOW_MS = RESPOND_WINDOW_MS + GRACE_MS; // 7 minutes
 export const MAX_NOTES = 2000;
 export const MAX_PLACE = 80; // must match firestore.rules
 export const MAX_ANSWER_NOTE = 1000; // must match firestore.rules

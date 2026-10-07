@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
+import { PromptCountdown } from "../../components/PromptCountdown";
 import { QueuedPostCard } from "../../components/QueuedPostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
@@ -60,7 +61,7 @@ export default function TodayScreen() {
         </>
       ) : queuedForPrompt ? null : open && onTimeUntil ? (
         <View style={styles.prompt}>
-          <Text style={styles.promptTitle}>Time to pray</Text>
+          <PromptCountdown firedAt={prompt!.firedAt} whenLate={<Text style={styles.promptTitle}>Time to pray</Text>} />
           <Muted>
             {now <= onTimeUntil.getTime()
               ? `The prompt went out at ${time(prompt!.firedAt)}. Post by ${time(onTimeUntil)} to be on time.`
