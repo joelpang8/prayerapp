@@ -7,7 +7,7 @@ import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors
 import { db, storage } from "../firebase";
 import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
 import { currentPlaceName, LocationUnavailableError } from "../lib/location";
-import { createPost, editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, setAnswered } from "../lib/posts";
+import { editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, postIdFor, setAnswered } from "../lib/posts";
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
 
@@ -39,6 +39,7 @@ function Composer({
   prompt: ReturnType<typeof useLatestPrompt>["prompt"];
   editing: ReturnType<typeof useMyPosts>["posts"][number] | undefined;
 }) {
+  const { outbox } = useReadySession();
   const styles = useStyles();
   const colors = useColors();
   const [photo, setPhoto] = useState<CapturedPhoto | null>(null);
@@ -108,10 +109,18 @@ function Composer({
       } else {
         if (!prompt) throw new Error("no prompt");
         if (!photo) return setError("Take a photo first.");
-        const jpeg = await photoBlob(photo.previewUri);
-        await createPost(db, storage, {
-          uid, prompt, notes, jpeg, photoId: photo.photoId, place: showPlace ? place : null,
+        // Through the outbox: it sends now if it can, and otherwise keeps the
+        // post on the phone and sends it when the connection is back.
+        await outbox.enqueue({
+          postId: postIdFor(prompt.id, uid),
+          uid,
+          prompt: { id: prompt.id, firedAt: prompt.firedAt.getTime(), verseRef: prompt.verseRef },
+          notes: notes.trim(),
+          photoUri: photo.previewUri,
+          photoId: photo.photoId,
+          place: showPlace ? place : null,
           visibility: isPrivate ? "private" : "friends",
+          takenAt: photo.takenAt,
         });
       }
       router.back();

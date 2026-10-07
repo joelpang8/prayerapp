@@ -3,6 +3,7 @@ import { db } from "../firebase";
 import { loadLastSeen, saveLastSeen, type Activity } from "../lib/activity";
 import { CommentThread, type Comment } from "../lib/comments";
 import { hiddenKey, watchBlocked, watchHidden } from "../lib/moderation";
+import type { QueuedPost } from "../lib/outbox";
 import { ReactionThread, type Reaction } from "../lib/reactions";
 import { watchMyPosts, type Post } from "../lib/posts";
 import { PhotoEvictedError } from "../lib/photoCache";
@@ -216,6 +217,14 @@ export function useHidden(): { isHidden: (t: { postId: string; commentId?: strin
 export function useBlocked(): ReadonlySet<string> {
   const { profile } = useReadySession();
   return useBlockedFor(profile.uid);
+}
+
+/** Posts waiting to send, with Retry and Discard. */
+export function useOutbox() {
+  const { outbox } = useReadySession();
+  const [items, setItems] = useState<QueuedPost[]>(outbox.all);
+  useEffect(() => outbox.subscribe(setItems), [outbox]);
+  return { items, retry: (id: string) => outbox.retry(id), discard: (id: string) => outbox.discard(id) };
 }
 
 /** The current time, refreshed every `intervalMs`. */

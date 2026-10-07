@@ -6,7 +6,7 @@ import * as ImagePicker from "expo-image-picker";
  * uri: the resized JPEG in the app's cache folder (the user's own photo).
  * Upload it with photoBlob(uri).
  */
-export type CapturedPhoto = { previewUri: string; photoId: string };
+export type CapturedPhoto = { previewUri: string; photoId: string; takenAt: number };
 
 /**
  * The JPEG as a native React Native Blob, which is what Firebase Storage's
@@ -15,7 +15,14 @@ export type CapturedPhoto = { previewUri: string; photoId: string };
  * Blob can't be created from an ArrayBuffer/ArrayBufferView.
  */
 export async function photoBlob(uri: string): Promise<Blob> {
-  const response = await fetch(uri);
+  let response: Response;
+  try {
+    response = await fetch(uri);
+  } catch {
+    // A local file that can't be read is gone (e.g. iOS cleared the cache).
+    throw Object.assign(new Error("The photo is no longer on this phone."), { code: "photo-missing" });
+  }
+  if (!response.ok) throw Object.assign(new Error("The photo is no longer on this phone."), { code: "photo-missing" });
   return response.blob();
 }
 
@@ -33,6 +40,7 @@ async function toJpeg(asset: ImagePicker.ImagePickerAsset): Promise<CapturedPhot
   const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.7 });
   return {
     previewUri: result.uri,
+    takenAt: Date.now(),
     photoId: Crypto.randomUUID().replace(/-/g, ""),
   };
 }
@@ -86,5 +94,5 @@ export async function pickAvatar(source: "camera" | "library"): Promise<Captured
   if (side > AVATAR_EDGE) ctx.resize({ width: AVATAR_EDGE, height: AVATAR_EDGE });
   const image = await ctx.renderAsync();
   const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
-  return { previewUri: saved.uri, photoId: Crypto.randomUUID().replace(/-/g, "") };
+  return { previewUri: saved.uri, photoId: Crypto.randomUUID().replace(/-/g, ""), takenAt: Date.now() };
 }

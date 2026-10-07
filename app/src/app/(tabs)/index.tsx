@@ -3,11 +3,12 @@ import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
+import { QueuedPostCard } from "../../components/QueuedPostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
 import { setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
-import { useFeed, useHidden, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
+import { useFeed, useHidden, useLatestPrompt, useMyPosts, useNow, useOutbox } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
 
@@ -38,6 +39,9 @@ export default function TodayScreen() {
   const names = useProfiles(new Set(feed.map((p) => p.authorId)));
 
   const myPost = prompt ? mine.find((p) => p.promptId === prompt.id) : undefined;
+  // My posts still waiting to send (no connection, or refused).
+  const { items: queued } = useOutbox();
+  const queuedForPrompt = prompt ? queued.find((q) => q.prompt.id === prompt.id) : undefined;
   const now = useNow();
   const open = prompt && now - prompt.firedAt.getTime() < OPEN_FOR_MS;
   const onTimeUntil = prompt ? new Date(prompt.firedAt.getTime() + ON_TIME_WINDOW_MS) : null;
@@ -46,12 +50,15 @@ export default function TodayScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      {queued.filter((q) => q !== queuedForPrompt || !myPost).map((q) => (
+        <View key={q.postId} style={styles.queued}><QueuedPostCard item={q} /></View>
+      ))}
       {!loaded ? null : myPost ? (
         <>
           <SectionTitle>Your prayer today</SectionTitle>
           <PostCard post={myPost} author={profile} footer={<OwnPostActions post={myPost} />} showVerse={false} />
         </>
-      ) : open && onTimeUntil ? (
+      ) : queuedForPrompt ? null : open && onTimeUntil ? (
         <View style={styles.prompt}>
           <Text style={styles.promptTitle}>Time to pray</Text>
           <Muted>
@@ -113,6 +120,7 @@ const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
   wordOfTheDay: { marginTop: 16 },
+  queued: { marginBottom: 16 },
   friendsHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   collapseAll: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent, marginTop: 24 },
   notice: { backgroundColor: colors.accentSoft, borderRadius: 16, padding: 16, gap: 10, marginTop: 16 },

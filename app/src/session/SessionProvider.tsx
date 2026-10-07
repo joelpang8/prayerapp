@@ -2,7 +2,10 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { auth, db, storage } from "../firebase";
+import { AppState } from "react-native";
 import { ActivityStore } from "../lib/activity";
+import type { Outbox } from "../lib/outbox";
+import { createOutbox } from "../lib/outboxApp";
 import { FeedStore } from "../lib/feed";
 import { EMPTY_GRAPH, type FriendGraph } from "../lib/friends";
 import { FriendScope } from "../lib/friendScope";
@@ -13,7 +16,7 @@ type Session =
   | { status: "loading" }
   | { status: "signedOut" }
   | { status: "needsProfile"; user: User }
-  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache; avatars: PhotoCache; feed: FeedStore; activity: ActivityStore };
+  | { status: "ready"; user: User; profile: Profile; scope: FriendScope; photos: PhotoCache; avatars: PhotoCache; feed: FeedStore; activity: ActivityStore; outbox: Outbox };
 
 const SessionContext = createContext<Session>({ status: "loading" });
 
@@ -63,15 +66,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     scope.register({ evictAuthor: () => {}, clear: () => avatars.clear() });
     // Friends' posts, and comments/reactions on my posts, for the Activity list.
     const activity = new ActivityStore(db, scope, feed, (err) => console.warn("activity listener failed", err));
-    return { scope, photos, avatars, feed, activity };
+    // My own posts waiting to send (saved on the phone; see outbox.ts).
+    const outbox = createOutbox(db, storage, uid);
+    return { scope, photos, avatars, feed, activity, outbox };
   }, [uid]);
 
   useEffect(() => {
     if (!scoped || !hasProfile) return;
     scoped.feed.start();
     scoped.activity.start();
+    // Send anything waiting now, every 20 seconds while something is, and
+    // whenever the app comes back to the foreground.
+    void scoped.outbox.flush();
+    const retry = setInterval(() => { if (scoped.outbox.hasWaiting) void scoped.outbox.flush(); }, 20_000);
+    const foreground = AppState.addEventListener("change", (s) => { if (s === "active") void scoped.outbox.flush(); });
     scoped.scope.start((err) => console.warn("friend graph listener failed", err));
     return () => {
+      clearInterval(retry);
+      foreground.remove();
       scoped.activity.stop();
       scoped.feed.stop();
       scoped.scope.stop();

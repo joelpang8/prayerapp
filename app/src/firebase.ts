@@ -36,6 +36,9 @@ function init(): Services {
   const auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
   const db = initializeFirestore(app, firestoreSettings);
   const storage = getStorage(app);
+  // Give up on an upload after a minute rather than the default ten, so a
+  // post made with no connection falls back to the outbox's retries quickly.
+  storage.maxUploadRetryTime = 60_000;
   if (usingEmulators) {
     connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
     connectFirestoreEmulator(db, emulatorHost, 8080);
