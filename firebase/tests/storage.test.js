@@ -137,3 +137,22 @@ describe("deleting post photos", () => {
     await assertFails(storageAs(env, "bob").ref(photoPath("alice")).delete());
   });
 });
+
+describe("private post photos (privatePhotos/)", () => {
+  test("only the author can upload, read or delete; a friend can't read", async () => {
+    await seedFriends(env, "alice", "bob");
+    await assertSucceeds(upload(storageAs(env, "alice"), "privatePhotos/alice/j1.jpg"));
+    await assertSucceeds(storageAs(env, "alice").ref("privatePhotos/alice/j1.jpg").getMetadata());
+    await assertFails(storageAs(env, "bob").ref("privatePhotos/alice/j1.jpg").getMetadata());
+    await assertFails(upload(storageAs(env, "bob"), "privatePhotos/alice/j2.jpg"));
+    await assertFails(storageAs(env, "bob").ref("privatePhotos/alice/j1.jpg").delete());
+    await assertSucceeds(storageAs(env, "alice").ref("privatePhotos/alice/j1.jpg").delete());
+  });
+
+  test("the same JPEG, size and name checks as post photos", async () => {
+    const alice = storageAs(env, "alice");
+    await assertFails(upload(alice, "privatePhotos/alice/x.png", JPEG, { contentType: "image/png" }));
+    await assertFails(upload(alice, "privatePhotos/alice/a b.jpg"));
+    await assertFails(upload(alice, "privatePhotos/alice/big.jpg", new Uint8Array(5 * 1024 * 1024)));
+  });
+});

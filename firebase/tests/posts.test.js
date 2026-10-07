@@ -18,7 +18,10 @@ beforeEach(async () => {
   await seedPost(env, "carolPost", "carol");
 });
 
-const postsBy = (db, authorId) => query(collection(db, "posts"), where("authorId", "==", authorId));
+// Friends' queries must ask only for shared posts, or the rules refuse them
+// (a private post could otherwise match). The author's own needn't.
+const postsBy = (db, authorId) =>
+  query(collection(db, "posts"), where("authorId", "==", authorId), where("visibility", "==", "friends"));
 
 describe("who can read a post", () => {
   test("author can read own posts (history view)", async () => {
@@ -79,14 +82,14 @@ describe("feed query over several friends", () => {
     await seedFriends(env, "dave", "bob");
     const db = signedInAs(env, "dave");
     const snap = await assertSucceeds(
-      getDocs(query(collection(db, "posts"), where("authorId", "in", ["alice", "bob"]))));
+      getDocs(query(collection(db, "posts"), where("authorId", "in", ["alice", "bob"]), where("visibility", "==", "friends"))));
     expect(snap.docs.map((d) => d.id).sort()).toEqual(["alicePost", "bobPost"]);
   });
 
   test("'in' query is rejected outright if it includes a single non-friend", async () => {
     await seedFriends(env, "dave", "alice");
     const db = signedInAs(env, "dave");
-    await assertFails(getDocs(query(collection(db, "posts"), where("authorId", "in", ["alice", "carol"]))));
+    await assertFails(getDocs(query(collection(db, "posts"), where("authorId", "in", ["alice", "carol"]), where("visibility", "==", "friends"))));
   });
 });
 
@@ -141,5 +144,29 @@ describe("removing a friend revokes access immediately", () => {
     } finally {
       unsub();
     }
+  });
+});
+
+describe("private posts (a journal only the author sees)", () => {
+  beforeEach(async () => {
+    await seedPost(env, "alicePrivate", "alice", { visibility: "private", photoPath: "privatePhotos/alice/p1.jpg" });
+    await seedFriends(env, "alice", "bob");
+  });
+
+  test("the author can read it; a current friend can't, by id or by any query", async () => {
+    await assertSucceeds(getDoc(doc(signedInAs(env, "alice"), "posts", "alicePrivate")));
+    await assertSucceeds(getDocs(query(collection(signedInAs(env, "alice"), "posts"), where("authorId", "==", "alice"))));
+    const bob = signedInAs(env, "bob");
+    await assertFails(getDoc(doc(bob, "posts", "alicePrivate")));
+    // A friend's query that doesn't ask for shared posts only is refused outright.
+    await assertFails(getDocs(query(collection(bob, "posts"), where("authorId", "==", "alice"))));
+    const shared = await getDocs(postsBy(bob, "alice"));
+    expect(shared.docs.map((d) => d.id)).toEqual(["alicePost"]);
+  });
+
+  test("nobody can comment on or react to it, not even a friend", async () => {
+    const bob = signedInAs(env, "bob");
+    await assertFails(setDoc(doc(bob, "posts", "alicePrivate", "comments", "c1"), { authorId: "bob", text: "hi", createdAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(bob, "posts", "alicePrivate", "reactions", "bob"), { authorId: "bob", kind: "love", createdAt: serverTimestamp() }));
   });
 });

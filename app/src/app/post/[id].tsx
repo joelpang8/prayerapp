@@ -96,44 +96,50 @@ export default function PostScreen() {
           </>
         )}
 
-        <SectionTitle>Comments</SectionTitle>
-        {comments.length === 0 && <Muted>No comments yet.</Muted>}
-        {comments.map((c) => {
-          const who = profileOf(c.authorId);
-          return (
-            <View key={c.id} style={styles.comment}>
-              <Pressable onPress={() => router.push(`/profile/${c.authorId}`)} accessibilityRole="link" accessibilityLabel={`${who?.displayName ?? ""}'s profile`}>
-                <Avatar path={who?.avatarPath ?? null} name={who?.displayName ?? ""} size={32} />
-              </Pressable>
-              <View style={styles.commentBody}>
-                <View style={styles.commentHeader}>
-                  <Text style={styles.commentName} numberOfLines={1}>{who?.displayName ?? "…"}</Text>
-                  <Text style={styles.commentTime}>{when(c.createdAt)}</Text>
+        {post.visibility === "private" ? (
+          <Muted>This prayer is private: only you can see it.</Muted>
+        ) : (
+          <>
+          <SectionTitle>Comments</SectionTitle>
+          {comments.length === 0 && <Muted>No comments yet.</Muted>}
+          {comments.map((c) => {
+            const who = profileOf(c.authorId);
+            return (
+              <View key={c.id} style={styles.comment}>
+                <Pressable onPress={() => router.push(`/profile/${c.authorId}`)} accessibilityRole="link" accessibilityLabel={`${who?.displayName ?? ""}'s profile`}>
+                  <Avatar path={who?.avatarPath ?? null} name={who?.displayName ?? ""} size={32} />
+                </Pressable>
+                <View style={styles.commentBody}>
+                  <View style={styles.commentHeader}>
+                    <Text style={styles.commentName} numberOfLines={1}>{who?.displayName ?? "…"}</Text>
+                    <Text style={styles.commentTime}>{when(c.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.commentText}>{c.text}</Text>
+                  {canDeleteComment(me.uid, post.authorId, c) && (
+                    <Pressable onPress={() => confirmDelete(c)} accessibilityRole="button" style={styles.deleteLink}>
+                      <Text style={styles.deleteText}>Delete</Text>
+                    </Pressable>
+                  )}
                 </View>
-                <Text style={styles.commentText}>{c.text}</Text>
-                {canDeleteComment(me.uid, post.authorId, c) && (
-                  <Pressable onPress={() => confirmDelete(c)} accessibilityRole="button" style={styles.deleteLink}>
-                    <Text style={styles.deleteText}>Delete</Text>
-                  </Pressable>
-                )}
               </View>
-            </View>
-          );
-        })}
-        <Muted>Each comment and reaction is shown only to people who are friends with the person who wrote it.</Muted>
-
-        <View style={styles.composer}>
-          <TextInput
-            value={text}
-            onChangeText={setText}
-            placeholder="Write a comment"
-            multiline
-            maxLength={MAX_COMMENT}
-            style={styles.input}
-          />
-          <Button title="Send" onPress={send} busy={busy} disabled={!text.trim()} />
-        </View>
-        {error && <ErrorText>{error}</ErrorText>}
+            );
+          })}
+          <Muted>Each comment and reaction is shown only to people who are friends with the person who wrote it.</Muted>
+  
+          <View style={styles.composer}>
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder="Write a comment"
+              multiline
+              maxLength={MAX_COMMENT}
+              style={styles.input}
+            />
+            <Button title="Send" onPress={send} busy={busy} disabled={!text.trim()} />
+          </View>
+          {error && <ErrorText>{error}</ErrorText>}
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

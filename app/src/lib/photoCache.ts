@@ -4,9 +4,9 @@ import type { FriendScopedCache } from "./friendScope";
 
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
-/** postPhotos/{authorId}/{photoId}.jpg -> authorId */
+/** postPhotos/ or privatePhotos/{authorId}/{photoId}.jpg -> authorId */
 export function authorOfPhotoPath(path: string): string {
-  const m = /^postPhotos\/([A-Za-z0-9]+)\/[A-Za-z0-9]+\.jpg$/.exec(path);
+  const m = /^(?:postPhotos|privatePhotos)\/([A-Za-z0-9]+)\/[A-Za-z0-9]+\.jpg$/.exec(path);
   if (!m) throw new Error(`Not a post photo path: ${path}`);
   return m[1];
 }

@@ -33,7 +33,7 @@ describe("the app's Firestore cache settings", () => {
     connectFirestoreEmulator(db, "127.0.0.1", 8080, {
       mockUserToken: { sub: "bob", firebase: { sign_in_provider: "apple.com" } } as never,
     });
-    const alicePosts = query(collection(db, "posts"), where("authorId", "==", "alice"));
+    const alicePosts = query(collection(db, "posts"), where("authorId", "==", "alice"), where("visibility", "==", "friends"));
 
     let seen = 0;
     const unsub = onSnapshot(alicePosts, (s) => { if (!s.metadata.fromCache) seen = s.size; });

@@ -46,6 +46,20 @@ service firebase.storage {
       allow delete: if signedIn() && request.auth.uid == authorId;
     }
 
+    // Private posts' photos: privatePhotos/{authorId}/{photoId}.jpg
+    // Only the author can ever read them (no friends, no exceptions).
+    match /privatePhotos/{authorId}/{photoId} {
+      allow get: if signedIn() && request.auth.uid == authorId;
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.auth.uid == authorId
+        && photoId.matches('^[A-Za-z0-9]{1,64}\\.jpg$')
+        && request.resource.size > 0
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg';
+      allow delete: if signedIn() && request.auth.uid == authorId;
+    }
+
     // Profile photos: avatars/{uid}/{avatarId}.jpg
     // Visible to any signed-in user (decided: people should recognise who a
     // friend request is from). Like post photos, they're read through the

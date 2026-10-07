@@ -94,6 +94,18 @@ service cloud.firestore {
       // users/{uid}/friendsOnly/about: { bio } (up to 160 characters).
       // Same boundary as posts: only the owner and CURRENT mutual friends,
       // checked against the live follow docs on every read.
+      // Posts and comments I've reported, hidden from my own view. Only I
+      // can read or change this list. Key: "post_{postId}" or
+      // "comment_{postId}_{commentId}".
+      match /hidden/{key} {
+        allow get, list, delete: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && key.matches('^(post_[A-Za-z0-9_]{1,200}|comment_[A-Za-z0-9_]{1,200})$')
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+      }
+
       match /friendsOnly/{docId} {
         allow get: if docId == 'about' && signedIn() && (
           request.auth.uid == uid || areFriends(request.auth.uid, uid));
@@ -190,7 +202,11 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && exists(userDoc(request.resource.data.followeeId))
         // Follower must have a profile too, so requests always render.
-        && exists(userDoc(request.auth.uid));
+        && exists(userDoc(request.auth.uid))
+        // You can't send a request to someone you've blocked (unblock first).
+        // Someone you've blocked CAN still send you one, so the block stays
+        // secret, but your app never shows it and you can't accept it.
+        && !exists(/databases/$(database)/documents/blocks/$(request.auth.uid + '_' + request.resource.data.followeeId));
 
       // Edges are immutable; changing followerId/followeeId would forge
       // friendships.
@@ -212,6 +228,44 @@ service cloud.firestore {
     match /prompts/{promptId} {
       allow read: if signedIn();
       allow write: if false;
+    }
+
+    // ---------- blocks ----------
+    // blocks/{blocker}_{blocked}. Only the blocker can see their blocks;
+    // the blocked person is never told. Blocking also ends the friendship
+    // (the app deletes both follow edges in the same batch), and the follow
+    // rule above stops the blocker sending a request until they unblock.
+    match /blocks/{blockId} {
+      allow get, list, delete: if signedIn() && resource.data.blocker == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['blocker', 'blocked', 'createdAt'])
+        && request.resource.data.blocker == request.auth.uid
+        && isValidUid(request.resource.data.blocked)
+        && request.resource.data.blocked != request.auth.uid
+        && blockId == request.auth.uid + '_' + request.resource.data.blocked
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+    }
+
+    // ---------- reports ----------
+    // Write-only for users; the project owner reviews them in the Firebase
+    // console (the Admin SDK and console bypass these rules). A short text
+    // excerpt is kept with the report so it survives the content's deletion.
+    match /reports/{reportId} {
+      allow read, update, delete: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['reporter', 'kind', 'targetUid', 'postId', 'commentId', 'reason', 'note', 'excerpt', 'createdAt'])
+        && request.resource.data.keys().hasAll(['reporter', 'kind', 'targetUid', 'reason', 'createdAt'])
+        && request.resource.data.reporter == request.auth.uid
+        && request.resource.data.kind in ['user', 'post', 'comment']
+        && isValidUid(request.resource.data.targetUid)
+        && request.resource.data.targetUid != request.auth.uid
+        && request.resource.data.reason in ['spam', 'harassment', 'inappropriate', 'harm', 'other']
+        && (request.resource.data.kind == 'user' || request.resource.data.postId is string)
+        && (request.resource.data.kind != 'comment' || request.resource.data.commentId is string)
+        && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 500))
+        && (!('excerpt' in request.resource.data) || (request.resource.data.excerpt is string && request.resource.data.excerpt.size() <= 2000))
+        && request.resource.data.createdAt == request.time;
     }
 
     // ---------- posts ----------
@@ -241,23 +295,31 @@ service cloud.firestore {
       }
 
       // The photo lives in the author's own folder; storage.rules only lets
-      // the author write there.
-      function validPhotoPath(p) {
+      // the author write there. A private post's photo lives in a separate
+      // folder that only its author can ever read.
+      function validPhotoPath(p, visibility) {
         return p is string
-          && p.matches('^postPhotos/' + request.auth.uid + '/[A-Za-z0-9]{1,64}[.]jpg$');
+          && p.matches('^' + (visibility == 'private' ? 'privatePhotos/' : 'postPhotos/')
+                       + request.auth.uid + '/[A-Za-z0-9]{1,64}[.]jpg$');
       }
 
       // Read access is the core privacy guarantee of the app: only the
-      // author and the author's CURRENT mutual friends.
+      // author, and the author's CURRENT mutual friends unless the post is
+      // private (a journal entry for the author alone). Feed queries must
+      // say visibility == 'friends' for the rules to allow them. Keep this an
+      // exact equality: a lenient form (e.g. .get('visibility', 'friends'))
+      // let an unfiltered friend query return private posts in the emulator.
+      // Posts from before visibility existed are therefore author-only.
       allow get, list: if signedIn() && (
         resource.data.authorId == request.auth.uid ||
-        areFriends(request.auth.uid, resource.data.authorId));
+        (resource.data.visibility == 'friends' && areFriends(request.auth.uid, resource.data.authorId)));
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(
-             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef', 'place'])
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef', 'place', 'visibility', 'takenAt'])
         && request.resource.data.keys().hasAll(
-             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath'])
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'visibility'])
+        && request.resource.data.visibility in ['friends', 'private']
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.promptId is string
         && request.resource.data.promptId.matches('^[0-9]{8}$')
@@ -273,19 +335,28 @@ service cloud.firestore {
         && request.time >= prompt().firedAt
         && request.time < prompt().firedAt + duration.value(24, 'h')
         && request.resource.data.createdAt == request.time
+        // takenAt: when the photo was taken, by the phone's clock. Only shown
+        // ("taken 3:02") for a post that was queued offline; on time vs late
+        // is always decided by createdAt, the server's time. Loosely bounded
+        // because phone clocks drift.
+        && (!('takenAt' in request.resource.data) || (request.resource.data.takenAt is timestamp
+            && request.resource.data.takenAt >= prompt().firedAt - duration.value(10, 'm')
+            && request.resource.data.takenAt <= request.time + duration.value(5, 'm')))
         && validNotes(request.resource.data.notes)
-        && validPhotoPath(request.resource.data.photoPath)
+        && validPhotoPath(request.resource.data.photoPath, request.resource.data.visibility)
         && (!('place' in request.resource.data) || validPlace(request.resource.data.place));
 
       // Editable by the author: notes and/or photo. editedAt marks the post
       // as edited and must be the server time. Timing fields never change,
-      // so editing can't turn a late post into an on-time one.
+      // so editing can't turn a late post into an on-time one. Visibility
+      // can't change either (a private photo stays in the private folder).
       allow update: if signedIn()
         && resource.data.authorId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes', 'photoPath', 'editedAt', 'place'])
         && request.resource.data.editedAt == request.time
         && validNotes(request.resource.data.notes)
-        && validPhotoPath(request.resource.data.photoPath)
+        // (One document by its own author, never a query, so a default is safe here.)
+        && validPhotoPath(request.resource.data.photoPath, resource.data.get('visibility', 'friends'))
         // The place can be removed, but not added or changed after posting:
         // it records where the post was made.
         && (!('place' in request.resource.data) || request.resource.data.place == resource.data.get('place', null));
@@ -312,22 +383,28 @@ service cloud.firestore {
       // Cloud Functions.
       allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
 
+      // For comments and reactions: the post's author, and whether I may see
+      // the post (its author, or their current mutual friend if it isn't
+      // private). get() of a deleted post fails, so its comments and
+      // reactions become unreadable. Private posts get none from anyone else.
+      function postData() {
+        return get(/databases/$(database)/documents/posts/$(postId)).data;
+      }
+
+      function postAuthor() {
+        return postData().authorId;
+      }
+
+      function canSeePost() {
+        return postAuthor() == request.auth.uid
+          || (postData().visibility == 'friends' && areFriends(request.auth.uid, postAuthor()));
+      }
+
       // Comments. A comment is shown only to people who are CURRENT mutual
       // friends of its author and can see the post: the post's author, or
       // a friend of theirs. So nobody's words reach someone who isn't their
       // friend, and unfriending hides comments both ways. A comment's author
-      // can always read their own. Orphans (post deleted) are unreadable,
-      // because get() of a missing post fails.
-      // For comments and reactions: the post's author, and whether I may see
-      // the post (its author, or their current mutual friend). get() of a
-      // deleted post fails, so its comments and reactions become unreadable.
-      function postAuthor() {
-        return get(/databases/$(database)/documents/posts/$(postId)).data.authorId;
-      }
-
-      function canSeePost() {
-        return postAuthor() == request.auth.uid || areFriends(request.auth.uid, postAuthor());
-      }
+      // can always read their own.
 
       match /comments/{commentId} {
         allow get, list: if signedIn() && (

@@ -40,6 +40,9 @@ describe("photo path ownership (unit)", () => {
   test("only a photo in the author's own folder is eligible for cleanup", () => {
     expect(ownedPhotoPath({ authorId: "alice", photoPath: "postPhotos/alice/a.jpg" })).toBe("postPhotos/alice/a.jpg");
     expect(ownedPhotoPath({ authorId: "alice", photoPath: "postPhotos/bob/a.jpg" })).toBeNull();
+    // Private posts' photos are cleaned up the same way.
+    expect(ownedPhotoPath({ authorId: "alice", photoPath: "privatePhotos/alice/a.jpg" })).toBe("privatePhotos/alice/a.jpg");
+    expect(ownedPhotoPath({ authorId: "alice", photoPath: "privatePhotos/bob/a.jpg" })).toBeNull();
     expect(ownedPhotoPath({ authorId: "alice" })).toBeNull();
     expect(ownedPhotoPath(undefined)).toBeNull();
   });

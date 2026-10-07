@@ -9,6 +9,7 @@ const H = 3600_000;
 const post = (id: string, authorId: string, createdAt: Date, answeredAt: Date | null = null) => ({
   id, authorId, createdAt, answeredAt, answerNote: answeredAt ? "Yes!" : null,
   promptId: "p", promptFiredAt: createdAt, editedAt: null, notes: "n", photoPath: "x", verseRef: null, place: null,
+  visibility: "friends" as const, takenAt: null,
 });
 
 describe("buildActivity", () => {

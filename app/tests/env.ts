@@ -69,6 +69,7 @@ export async function seedPost(env: RulesTestEnvironment, id: string, authorId: 
       notes: `private notes by ${authorId}`,
       photoPath: `postPhotos/${authorId}/p1.jpg`,
       createdAt: Timestamp.fromDate(createdAt),
+      visibility: "friends",
     });
   });
 }

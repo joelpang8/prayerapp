@@ -115,6 +115,9 @@ export class FeedStore implements FriendScopedCache {
       query(
         collection(this.db, "posts"),
         where("authorId", "in", authors),
+        // Only shared posts: the rules refuse a query that could match a
+        // friend's private post.
+        where("visibility", "==", "friends"),
         orderBy("createdAt", "desc"),
         limit(this.options.perChunkLimit ?? 30),
       ),

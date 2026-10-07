@@ -29,6 +29,7 @@ function newPost(uid, overrides = {}) {
     createdAt: serverTimestamp(),
     notes: "Praying for my sister's surgery",
     photoPath: `postPhotos/${uid}/abc123.jpg`,
+    visibility: "friends",
     ...overrides,
   };
 }
@@ -291,5 +292,53 @@ describe("answered prayers", () => {
     await assertSucceeds(answer(db, { answeredAt: serverTimestamp(), answerNote: "Yes" }));
     await assertSucceeds(updateDoc(postRef(db, "alice"), { notes: "Updated", editedAt: serverTimestamp() }));
     expect((await getDoc(postRef(db, "alice"))).data().answerNote).toBe("Yes");
+  });
+});
+
+describe("private posts and visibility", () => {
+  test("visibility is required and must be friends or private", async () => {
+    await assertFails(setDoc(postRef(signedInAs(env, "alice"), "alice"), (({ visibility, ...rest }) => rest)(newPost("alice"))));
+    await assertFails(create("alice", { visibility: "public" }));
+  });
+
+  test("a private post's photo must be in the private folder, and a shared one's must not", async () => {
+    await assertFails(create("alice", { visibility: "private" }));
+    await assertFails(create("alice", { photoPath: "privatePhotos/alice/abc123.jpg" }));
+    await assertSucceeds(create("alice", { visibility: "private", photoPath: "privatePhotos/alice/abc123.jpg" }));
+  });
+
+  test("visibility can't change after posting, and edits keep the photo in its folder", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(create("alice", { visibility: "private", photoPath: "privatePhotos/alice/abc123.jpg" }));
+    await assertFails(updateDoc(postRef(db, "alice"), { visibility: "friends", editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(postRef(db, "alice"), { photoPath: "postPhotos/alice/new1.jpg", editedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(postRef(db, "alice"), { photoPath: "privatePhotos/alice/new1.jpg", editedAt: serverTimestamp() }));
+  });
+});
+
+describe("takenAt (when the photo was taken, for posts queued offline)", () => {
+  test("optional; must be a timestamp near the prompt and not in the future", async () => {
+    await assertSucceeds(create("alice", { takenAt: Timestamp.now() }));
+  });
+
+  test("can't be long before the prompt, far in the future, or not a time", async () => {
+    await assertFails(create("alice", { takenAt: Timestamp.fromMillis(firedAt.toMillis() - 60 * 60_000) }));
+    await assertFails(create("alice", { takenAt: Timestamp.fromMillis(Date.now() + 60 * 60_000) }));
+    await assertFails(create("alice", { takenAt: "3:02pm" }));
+  });
+
+  test("it doesn't change on time vs late: createdAt is still the server's time", async () => {
+    await assertFails(create("alice", { takenAt: Timestamp.now(), createdAt: Timestamp.fromMillis(firedAt.toMillis()) }));
+  });
+});
+
+describe("posts from before visibility existed", () => {
+  test("still editable by their author, but no longer shown to friends (the safe default)", async () => {
+    const legacy = { ...newPost("alice"), createdAt: Timestamp.now() };
+    delete legacy.visibility;
+    await seed(env, (db) => setDoc(postRef(db, "alice"), legacy));
+    await assertSucceeds(updateDoc(postRef(signedInAs(env, "alice"), "alice"), { notes: "edited", editedAt: serverTimestamp() }));
+    await seedFriends(env, "alice", "bob");
+    await assertFails(getDoc(postRef(signedInAs(env, "bob"), "alice")));
   });
 });

@@ -85,8 +85,13 @@ export function PostCard({
       <>
       {post.place && <Text style={styles.place}>📍 {post.place}</Text>}
       <View style={styles.labels}>
+        {post.visibility === "private" && <Text style={[styles.label, styles.answered]}>🔒 Private</Text>}
         {post.answeredAt && <Text style={[styles.label, styles.answered]}>Answered</Text>}
         {late && <Text style={[styles.label, styles.late]}>Late</Text>}
+        {/* Sent later from the offline queue: show when it was really taken. */}
+        {post.takenAt && post.createdAt.getTime() - post.takenAt.getTime() > 60_000 && (
+          <Text style={styles.label}>Taken {post.takenAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</Text>
+        )}
         {post.editedAt && <Text style={styles.label}>Edited</Text>}
       </View>
       <View style={styles.photo}>
@@ -106,8 +111,9 @@ export function PostCard({
         </View>
       )}
       {showVerse && post.verseRef && <VerseBlock refId={post.verseRef} collapsed />}
-      <ReactionBar post={post} />
-      {commentsLink && (
+      {/* Private posts are for the author alone: no reactions or comments. */}
+      {post.visibility === "friends" && <ReactionBar post={post} />}
+      {commentsLink && post.visibility === "friends" && (
         <Pressable accessibilityRole="link" onPress={() => router.push(`/post/${post.id}`)} style={styles.commentsLink}>
           <Text style={styles.commentsText}>Comments</Text>
         </Pressable>

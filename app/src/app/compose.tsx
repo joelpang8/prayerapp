@@ -52,6 +52,8 @@ function Composer({
   const [place, setPlace] = useState<string | null>(editing?.place ?? null);
   const [placeNote, setPlaceNote] = useState<string | null>(null);
   const [placeBusy, setPlaceBusy] = useState(false);
+  // New posts only: keep this prayer private (a journal entry), never in the feed.
+  const [isPrivate, setIsPrivate] = useState(false);
   // Editing only: "this prayer was answered" and how.
   const [answered, setAnsweredBox] = useState(!!editing?.answeredAt);
   const [answerNote, setAnswerNote] = useState(editing?.answerNote ?? "");
@@ -107,7 +109,10 @@ function Composer({
         if (!prompt) throw new Error("no prompt");
         if (!photo) return setError("Take a photo first.");
         const jpeg = await photoBlob(photo.previewUri);
-        await createPost(db, storage, { uid, prompt, notes, jpeg, photoId: photo.photoId, place: showPlace ? place : null });
+        await createPost(db, storage, {
+          uid, prompt, notes, jpeg, photoId: photo.photoId, place: showPlace ? place : null,
+          visibility: isPrivate ? "private" : "friends",
+        });
       }
       router.back();
     } catch (err) {
@@ -171,6 +176,25 @@ function Composer({
           </View>
         )}
         {placeNote && <Muted>{placeNote}</Muted>}
+        {!editing && (
+          <View style={styles.placeRow}>
+            <View style={styles.placeText}>
+              <Text style={styles.label}>Private</Text>
+              <Muted>
+                {isPrivate
+                  ? "Only you will see this prayer. It won't appear in your friends' feed."
+                  : "Off: your friends will see this prayer."}
+              </Muted>
+            </View>
+            <Switch
+              value={isPrivate}
+              onValueChange={setIsPrivate}
+              disabled={busy}
+              trackColor={{ true: colors.accent, false: colors.border }}
+              accessibilityLabel="Keep this prayer private"
+            />
+          </View>
+        )}
         {editing && (
           <View style={styles.answerBox}>
             <Pressable

@@ -91,6 +91,7 @@ export async function seedPost(env, postId, authorId, extra = {}) {
       authorId,
       notes: `private prayer notes by ${authorId}`,
       createdAt: Timestamp.now(),
+      visibility: "friends",
       ...extra,
     }),
   );

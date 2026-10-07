@@ -42,6 +42,9 @@ export type Post = {
   answeredAt: Date | null;
   /** The author's optional note on how it was answered. */
   answerNote: string | null;
+  visibility: Visibility;
+  /** When the photo was taken by the phone's clock, if the post was queued offline. */
+  takenAt: Date | null;
 };
 
 /**
@@ -63,10 +66,17 @@ export function notesProblem(notes: string): string | null {
 
 export const postIdFor = (promptId: string, uid: string) => `${promptId}_${uid}`;
 
+/**
+ * "friends": shared with current mutual friends (the feed). "private": a
+ * journal entry only the author ever sees; its photo lives in a folder only
+ * the author can read. Can't be changed after posting. Must match the rules.
+ */
+export type Visibility = "friends" | "private";
+
 /** Photo ids must match storage.rules: [A-Za-z0-9]{1,64}.jpg */
-export function photoPathFor(uid: string, photoId: string): string {
+export function photoPathFor(uid: string, photoId: string, visibility: Visibility = "friends"): string {
   if (!/^[A-Za-z0-9]{1,64}$/.test(photoId)) throw new Error(`bad photo id: ${photoId}`);
-  return `postPhotos/${uid}/${photoId}.jpg`;
+  return `${visibility === "private" ? "privatePhotos" : "postPhotos"}/${uid}/${photoId}.jpg`;
 }
 
 export function postFromSnapshot(snap: DocumentSnapshot): Post | null {
@@ -88,6 +98,8 @@ export function postFromSnapshot(snap: DocumentSnapshot): Post | null {
     place: typeof d.place === "string" ? d.place : null,
     answeredAt: date(d.answeredAt),
     answerNote: typeof d.answerNote === "string" ? d.answerNote : null,
+    visibility: d.visibility === "private" ? "private" : "friends",
+    takenAt: date(d.takenAt),
   };
 }
 
@@ -110,6 +122,9 @@ export type NewPost = {
   photoId: string;
   /** Opt-in place name from location.ts; omit for none. */
   place?: string | null;
+  visibility?: Visibility;
+  /** For a post sent from the offline queue: when the photo was taken. */
+  takenAt?: Date | null;
 };
 
 /**
@@ -120,7 +135,8 @@ export type NewPost = {
 export async function createPost(db: Firestore, storage: FirebaseStorage, p: NewPost): Promise<string> {
   const problem = notesProblem(p.notes);
   if (problem) throw new Error(problem);
-  const photoPath = photoPathFor(p.uid, p.photoId);
+  const visibility = p.visibility ?? "friends";
+  const photoPath = photoPathFor(p.uid, p.photoId, visibility);
   await uploadPhoto(storage, photoPath, p.jpeg);
   const id = postIdFor(p.prompt.id, p.uid);
   try {
@@ -131,6 +147,8 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
       createdAt: serverTimestamp(),
       notes: p.notes.trim(),
       photoPath,
+      visibility,
+      ...(p.takenAt ? { takenAt: Timestamp.fromDate(p.takenAt) } : {}),
       // Carried from the prompt; the rules require it to match exactly.
       ...(p.prompt.verseRef ? { verseRef: p.prompt.verseRef } : {}),
       ...(p.place ? { place: p.place.slice(0, MAX_PLACE) } : {}),
@@ -159,7 +177,7 @@ export async function editPost(db: Firestore, storage: FirebaseStorage, post: Po
   if (problem) throw new Error(problem);
   let photoPath = post.photoPath;
   if (edit.newPhoto) {
-    photoPath = photoPathFor(post.authorId, edit.newPhoto.photoId);
+    photoPath = photoPathFor(post.authorId, edit.newPhoto.photoId, post.visibility);
     await uploadPhoto(storage, photoPath, edit.newPhoto.jpeg);
   }
   try {

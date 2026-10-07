@@ -1,10 +1,11 @@
-// Must match storage.rules: postPhotos/{authorId}/{photoId}.jpg
-const POST_PHOTO = /^postPhotos\/([A-Za-z0-9]+)\/[A-Za-z0-9]{1,64}\.jpg$/;
+// Must match storage.rules: postPhotos/{authorId}/{photoId}.jpg, and
+// privatePhotos/ for private posts (journal entries only the author reads).
+const POST_PHOTO = /^(?:postPhotos|privatePhotos)\/([A-Za-z0-9]+)\/[A-Za-z0-9]{1,64}\.jpg$/;
 // Must match storage.rules: avatars/{uid}/{avatarId}.jpg
 const AVATAR = /^avatars\/([A-Za-z0-9]+)\/[A-Za-z0-9]{1,64}\.jpg$/;
 const UID = /^[A-Za-z0-9]{1,128}$/;
 
-/** The author uid if `path` is a post photo, else null. */
+/** The author uid if `path` is a post photo (shared or private), else null. */
 export function postPhotoAuthor(path: string | undefined | null): string | null {
   if (!path) return null;
   const m = POST_PHOTO.exec(path);

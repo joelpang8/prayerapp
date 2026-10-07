@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { getMetadata, ref } from "firebase/storage";
+import { FeedStore } from "../src/lib/feed";
 import { follow } from "../src/lib/friends";
+import { FriendScope } from "../src/lib/friendScope";
 import { createPost, deletePost, editPost, isLate, setAnswered, watchMyPosts, watchMyPostsBetween, type Post } from "../src/lib/posts";
 import { watchLatestPrompt, type Prompt } from "../src/lib/prompts";
 import { clearBucket, dbAs, seedPrompt, seedUser, setupEnv, storageAs, until } from "./env";
@@ -120,6 +122,35 @@ describe("posting against the real rules", () => {
     } finally {
       stop1();
       stop2();
+    }
+  });
+
+  test("a private post: photo in the private folder, in my list, never in a friend's feed", async () => {
+    await follow(dbAs(env, "alice"), "alice", "bob");
+    await follow(dbAs(env, "bob"), "bob", "alice");
+    const mine = watchMine("alice");
+    const scope = new FriendScope(dbAs(env, "bob"), "bob");
+    const feed = new FeedStore(dbAs(env, "bob"), scope);
+    let bobSees: Post[] = [];
+    const errors: Error[] = [];
+    feed.start();
+    feed.subscribe((p) => { bobSees = p; });
+    scope.start();
+    try {
+      await until(() => scope.isFriend("alice"));
+      await createPost(dbAs(env, "alice"), storageAs(env, "alice"), {
+        uid: "alice", prompt, notes: "Just between me and God", jpeg: JPEG, photoId: "priv1", visibility: "private",
+      });
+      await until(() => mine.state.posts?.length === 1);
+      expect(mine.state.posts![0]).toMatchObject({ visibility: "private", photoPath: "privatePhotos/alice/priv1.jpg" });
+      // Give the feed a moment: nothing arrives, and no listener errors.
+      await new Promise((r) => setTimeout(r, 500));
+      expect(bobSees).toEqual([]);
+      expect(errors).toEqual([]);
+    } finally {
+      feed.stop();
+      scope.stop();
+      mine.stop();
     }
   });
 
