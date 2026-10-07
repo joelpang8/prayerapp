@@ -7,7 +7,9 @@ import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appe
 import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
 import { setBibleVersion } from "../../lib/settings";
-import { useSettings } from "../../session/hooks";
+import { unblockUser } from "../../lib/moderation";
+import { useBlocked, useSettings } from "../../session/hooks";
+import { useProfiles } from "../../session/useProfiles";
 import { useReadySession } from "../../session/SessionProvider";
 
 export default function SettingsScreen() {
@@ -78,9 +80,34 @@ export default function SettingsScreen() {
       </View>
       {error && <ErrorText>{error}</ErrorText>}
 
+      <BlockedPeople />
+
       <View style={styles.spacer} />
       <Button title="Sign out" kind="secondary" onPress={() => signOut()} />
     </ScrollView>
+  );
+}
+
+/** People I've blocked, with Unblock. Unblocking doesn't restore the friendship. */
+function BlockedPeople() {
+  const styles = useStyles();
+  const { profile } = useReadySession();
+  const blocked = useBlocked();
+  const names = useProfiles([...blocked]);
+  if (blocked.size === 0) return null;
+  return (
+    <>
+      <SectionTitle>Blocked people</SectionTitle>
+      <View style={styles.card}>
+        {[...blocked].map((uid) => (
+          <View key={uid} style={styles.option}>
+            <Text style={styles.optionText}>{names.get(uid)?.displayName ?? "…"}</Text>
+            <Button title="Unblock" kind="secondary" onPress={() => unblockUser(db, profile.uid, uid).catch(() => {})} />
+          </View>
+        ))}
+        <Muted>They don&apos;t know they&apos;re blocked. Unblocking doesn&apos;t make you friends again; either of you can send a new request.</Muted>
+      </View>
+    </>
   );
 }
 

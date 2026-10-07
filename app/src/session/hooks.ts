@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { db } from "../firebase";
 import { loadLastSeen, saveLastSeen, type Activity } from "../lib/activity";
 import { CommentThread, type Comment } from "../lib/comments";
+import { hiddenKey, watchBlocked, watchHidden } from "../lib/moderation";
 import { ReactionThread, type Reaction } from "../lib/reactions";
 import { watchMyPosts, type Post } from "../lib/posts";
 import { PhotoEvictedError } from "../lib/photoCache";
@@ -158,7 +159,63 @@ export function useActivity(): { items: Activity[]; unseen: number; markSeen: ()
     saveLastSeen(profile.uid, now);
     for (const l of lastSeenStore.listeners) l(now);
   }, [profile.uid]);
-  return { items, unseen: items.filter((a) => a.at.getTime() > lastSeen).length, markSeen };
+  // Leave out prayers and comments I've reported.
+  const { isHidden } = useHidden();
+  const shown = items.filter((a) =>
+    !isHidden({ postId: a.postId }) && !(a.kind === "commented" && isHidden({ postId: a.postId, commentId: a.id.split(":")[2] })));
+  return { items: shown, unseen: shown.filter((a) => a.at.getTime() > lastSeen).length, markSeen };
+}
+
+/**
+ * One live Firestore listener per signed-in user, shared by every component
+ * that asks (like settings below).
+ */
+function sharedListener<T>(initial: T, start: (uid: string, onValue: (v: T) => void) => () => void) {
+  const store = { uid: null as string | null, value: initial, listeners: new Set<(v: T) => void>(), stop: null as null | (() => void) };
+  return function use(uid: string): T {
+    const [value, setValue] = useState<T>(store.uid === uid ? store.value : initial);
+    useEffect(() => {
+      if (store.uid !== uid) {
+        store.stop?.();
+        store.uid = uid;
+        store.value = initial;
+        store.stop = start(uid, (v) => {
+          store.value = v;
+          for (const l of store.listeners) l(v);
+        });
+      }
+      store.listeners.add(setValue);
+      setValue(store.value);
+      return () => {
+        store.listeners.delete(setValue);
+        if (store.listeners.size === 0) {
+          store.stop?.();
+          store.stop = null;
+          store.uid = null;
+        }
+      };
+    }, [uid]);
+    return value;
+  };
+}
+
+const EMPTY_SET: ReadonlySet<string> = new Set();
+const useHiddenFor = sharedListener<ReadonlySet<string>>(EMPTY_SET, (uid, on) =>
+  watchHidden(db, uid, on, (err) => console.warn("hidden list failed", err)));
+const useBlockedFor = sharedListener<ReadonlySet<string>>(EMPTY_SET, (uid, on) =>
+  watchBlocked(db, uid, on, (err) => console.warn("blocked list failed", err)));
+
+/** Posts and comments I've reported, which stay hidden from me. */
+export function useHidden(): { isHidden: (t: { postId: string; commentId?: string }) => boolean } {
+  const { profile } = useReadySession();
+  const keys = useHiddenFor(profile.uid);
+  return { isHidden: (t) => keys.has(hiddenKey(t)) };
+}
+
+/** The people I've blocked. */
+export function useBlocked(): ReadonlySet<string> {
+  const { profile } = useReadySession();
+  return useBlockedFor(profile.uid);
 }
 
 /** The current time, refreshed every `intervalMs`. */

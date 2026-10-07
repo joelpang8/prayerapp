@@ -8,6 +8,7 @@ import {
   acceptRequest, cancelRequest, declineRequest, follow, relationshipTo, removeFriend,
 } from "../../lib/friends";
 import { findByUsername, type Profile } from "../../lib/profile";
+import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
 
@@ -15,7 +16,10 @@ export default function FriendsScreen() {
   const styles = useStyles();
   const { profile: me } = useReadySession();
   const { graph, loaded } = useFriendGraph();
-  const profiles = useProfiles([...graph.friends, ...graph.incoming, ...graph.outgoing]);
+  const blocked = useBlocked();
+  // A blocked person can still send a request (so they aren't told), but it never shows here.
+  const incoming = [...graph.incoming].filter((uid) => !blocked.has(uid));
+  const profiles = useProfiles([...graph.friends, ...incoming, ...graph.outgoing]);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,8 +62,8 @@ export default function FriendsScreen() {
       <FindFriend me={me.uid} graph={graph} />
       {error && <ErrorText>{error}</ErrorText>}
 
-      {graph.incoming.size > 0 && <SectionTitle>Requests</SectionTitle>}
-      {[...graph.incoming].map((uid) =>
+      {incoming.length > 0 && <SectionTitle>Requests</SectionTitle>}
+      {incoming.map((uid) =>
         row(uid, (
           <>
             <Button title="Accept" onPress={() => act(uid, () => acceptRequest(db, me.uid, uid))} busy={pending === uid} />

@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
+import { MoreMenu } from "../../components/MoreMenu";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, TextInput } from "../../components/ui";
@@ -9,7 +10,7 @@ import { db } from "../../firebase";
 import { addComment, canDeleteComment, deleteComment, MAX_COMMENT, type Comment } from "../../lib/comments";
 import type { Profile } from "../../lib/profile";
 import { reactionInfo } from "../../lib/reactions";
-import { useComments, useFeed, useMyPosts, useReactions } from "../../session/hooks";
+import { useComments, useFeed, useHidden, useMyPosts, useReactions } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
 
@@ -30,6 +31,9 @@ export default function PostScreen() {
   const { posts: mine, loaded } = useMyPosts();
   const post = mine.find((p) => p.id === id) ?? feed.find((p) => p.id === id);
   const comments = useComments(post?.id ?? null, post?.authorId ?? null);
+  const { isHidden } = useHidden();
+  // Comments I've reported stay hidden from me.
+  const shownComments = post ? comments.filter((c) => !isHidden({ postId: post.id, commentId: c.id })) : [];
   const reactions = useReactions(post?.id ?? null, post?.authorId ?? null);
   const people = useProfiles(
     new Set([post?.authorId, ...comments.map((c) => c.authorId), ...reactions.map((r) => r.authorId)].filter((u): u is string => !!u && u !== me.uid)),
@@ -101,8 +105,8 @@ export default function PostScreen() {
         ) : (
           <>
           <SectionTitle>Comments</SectionTitle>
-          {comments.length === 0 && <Muted>No comments yet.</Muted>}
-          {comments.map((c) => {
+          {shownComments.length === 0 && <Muted>No comments yet.</Muted>}
+          {shownComments.map((c) => {
             const who = profileOf(c.authorId);
             return (
               <View key={c.id} style={styles.comment}>
@@ -113,6 +117,10 @@ export default function PostScreen() {
                   <View style={styles.commentHeader}>
                     <Text style={styles.commentName} numberOfLines={1}>{who?.displayName ?? "…"}</Text>
                     <Text style={styles.commentTime}>{when(c.createdAt)}</Text>
+                    <MoreMenu
+                      target={{ kind: "comment", targetUid: c.authorId, postId: post.id, commentId: c.id, excerpt: c.text }}
+                      name={who?.displayName ?? "this person"}
+                    />
                   </View>
                   <Text style={styles.commentText}>{c.text}</Text>
                   {canDeleteComment(me.uid, post.authorId, c) && (

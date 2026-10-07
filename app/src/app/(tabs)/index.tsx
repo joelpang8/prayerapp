@@ -7,7 +7,7 @@ import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../comp
 import { WordOfTheDay } from "../../components/WordOfTheDay";
 import { setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
-import { useFeed, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
+import { useFeed, useHidden, useLatestPrompt, useMyPosts, useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
 
@@ -20,7 +20,9 @@ export default function TodayScreen() {
   const { profile } = useReadySession();
   const { prompt, loaded } = useLatestPrompt();
   const { posts: mine } = useMyPosts();
-  const feed = useFeed();
+  const { isHidden } = useHidden();
+  // Prayers I've reported stay hidden from me.
+  const feed = useFeed().filter((p) => !isHidden({ postId: p.id }));
   const notifications = useNotificationPermission();
   const notificationsOn = useNotificationsEnabled();
   // Friends' posts I've minimized. Memory only: forgotten when the app

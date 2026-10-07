@@ -6,6 +6,7 @@ import { isLate, type Post } from "../lib/posts";
 import type { Profile } from "../lib/profile";
 import { usePhoto } from "../session/hooks";
 import { Avatar } from "./Avatar";
+import { MoreMenu } from "./MoreMenu";
 import { ReactionBar } from "./ReactionBar";
 import { fonts, makeStyles, Text, useColors } from "./ui";
 import { VerseBlock } from "./VerseBlock";
@@ -56,6 +57,12 @@ export function PostCard({
           <Text style={styles.author} numberOfLines={1}>{author?.displayName ?? "…"}</Text>
         </Pressable>
         <Text style={styles.meta}>{when(post.createdAt)}</Text>
+        {post.visibility === "friends" && (
+          <MoreMenu
+            target={{ kind: "post", targetUid: post.authorId, postId: post.id, excerpt: post.notes }}
+            name={author?.displayName ?? "this person"}
+          />
+        )}
         {onToggleCollapsed && (
           <Pressable
             onPress={onToggleCollapsed}
