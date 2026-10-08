@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
-import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
 import { avatarOwner, isNotFound, ownedAvatarPath, ownedPhotoPath, postPhotoAuthor, revokeFileToken, revokeUserPhotoTokens } from "../functions/lib/photos.js";
-import { clearBucket, seed, seedUser, setupEnv, signedInAs, storageAs } from "./helpers.js";
+import { bookOf, buildVerseIndex, staleTaps } from "../functions/lib/prayers.js";
+import { clearBucket, seed, seedFriends, seedUser, setupEnv, signedInAs, storageAs } from "./helpers.js";
 
 // These run against the Functions emulator (triggers fire for real).
 // Same proxy caveat as the cross-service storage tests.
@@ -118,6 +119,28 @@ describe("download-token revocation logic (unit)", () => {
   });
 });
 
+describe("prayer taps and verse index (unit)", () => {
+  test("taps on requests no longer listed are stale", () => {
+    const taps = [{ id: "a_bob", itemId: "a" }, { id: "b_bob", itemId: "b" }, { id: "x", itemId: 7 }];
+    expect(staleTaps(taps, ["a"])).toEqual(["b_bob", "x"]);
+    expect(staleTaps(taps, undefined)).toEqual(["a_bob", "b_bob", "x"]);
+    expect(staleTaps(taps, ["a", "b"])).toEqual(["x"]);
+  });
+
+  test("the book is the reference up to the first dot", () => {
+    expect(bookOf("PHP.4.6-7")).toBe("PHP");
+    expect(bookOf("1JN.1.9")).toBe("1JN");
+  });
+
+  test("the index counts books and exact references, skipping posts without a verse", () => {
+    expect(buildVerseIndex(["PHP.4.6-7", "PHP.4.13", "PHP.4.6-7", null, undefined, "JHN.3.16"])).toEqual({
+      books: { PHP: 3, JHN: 1 },
+      refs: { "PHP.4.6-7": 2, "PHP.4.13": 1, "JHN.3.16": 1 },
+    });
+    expect(buildVerseIndex([])).toEqual({ books: {}, refs: {} });
+  });
+});
+
 describe("Cloud Functions against the emulators", () => {
   beforeEach(async () => {
     await env.clearFirestore();
@@ -184,5 +207,66 @@ describe("Cloud Functions against the emulators", () => {
     await updateDoc(doc(signedInAs(env, "alice"), "users", "alice"), { avatarPath: "avatars/alice/new1.jpg" });
     await eventually(async () => (await errorCode(oldRef.getMetadata())) === "storage/object-not-found");
     await expect(newRef.getMetadata()).resolves.toBeTruthy();
+  });
+
+  // Unique ids per test: a trigger from one test can still be running in the next.
+  const tapsOf = async (owner) => {
+    let ids = [];
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      ids = (await getDocs(collection(ctx.firestore(), "users", owner, "prayingFor"))).docs.map((d) => d.id).sort();
+    });
+    return ids;
+  };
+  const seedTap = (owner, itemId, friend) =>
+    seed(env, (db) => setDoc(doc(db, "users", owner, "prayingFor", `${itemId}_${friend}`), { friendUid: friend, itemId, createdAt: Timestamp.now() }));
+
+  e2e("ending a friendship deletes prayer taps both ways, and only theirs", async () => {
+    for (const u of ["uf1a", "uf1b", "uf1c"]) await seedUser(env, u);
+    await seedFriends(env, "uf1a", "uf1b");
+    await seedTap("uf1a", "reqaaaaaaaa", "uf1b");
+    await seedTap("uf1b", "reqbbbbbbbb", "uf1a");
+    await seedTap("uf1a", "reqaaaaaaaa", "uf1c");
+    await deleteDoc(doc(signedInAs(env, "uf1a"), "follows", "uf1a_uf1b"));
+    await eventually(async () => (await tapsOf("uf1a")).length === 1 && (await tapsOf("uf1b")).length === 0);
+    expect(await tapsOf("uf1a")).toEqual(["reqaaaaaaaa_uf1c"]);
+  });
+
+  e2e("removing or rewording a request deletes its taps; unchanged ones stay", async () => {
+    await seedUser(env, "rq1a");
+    await seedTap("rq1a", "reqkeepkeep", "friend1");
+    await seedTap("rq1a", "reqgonegone", "friend1");
+    await seedTap("rq1a", "reqgonegone", "friend2");
+    await setDoc(doc(signedInAs(env, "rq1a"), "users", "rq1a", "friendsOnly", "about"), {
+      bio: "", prayerRequests: "Kept\nReworded", requestIds: ["reqkeepkeep", "reqnewnewnew"],
+    });
+    await eventually(async () => (await tapsOf("rq1a")).length === 1);
+    expect(await tapsOf("rq1a")).toEqual(["reqkeepkeep_friend1"]);
+  });
+
+  e2e("posting and deleting keeps the owner's verse index up to date", async () => {
+    await seedUser(env, "vi1a");
+    const post = (id, verseRef) => ({
+      authorId: "vi1a", promptId: id, promptFiredAt: Timestamp.now(), createdAt: Timestamp.now(), visibility: "friends",
+      notes: "x", photoPath: "postPhotos/vi1a/none.jpg", ...(verseRef ? { verseRef, verseBook: verseRef.split(".")[0] } : {}),
+    });
+    const index = async () => {
+      let data;
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        data = (await getDoc(doc(ctx.firestore(), "users", "vi1a", "private", "verseIndex"))).data();
+      });
+      return data;
+    };
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "posts", "20250101_vi1a"), post("20250101", "PHP.4.6-7"));
+      await setDoc(doc(db, "posts", "20250102_vi1a"), post("20250102", "PHP.4.13"));
+      await setDoc(doc(db, "posts", "20250103_vi1a"), post("20250103", null));
+    });
+    await eventually(async () => (await index())?.books?.PHP === 2);
+    expect(await index()).toEqual({ books: { PHP: 2 }, refs: { "PHP.4.6-7": 1, "PHP.4.13": 1 } });
+    // The owner reads it through the rules.
+    expect((await getDoc(doc(signedInAs(env, "vi1a"), "users", "vi1a", "private", "verseIndex"))).exists()).toBe(true);
+    await deleteDoc(doc(signedInAs(env, "vi1a"), "posts", "20250102_vi1a"));
+    await eventually(async () => (await index())?.books?.PHP === 1);
+    expect(await index()).toEqual({ books: { PHP: 1 }, refs: { "PHP.4.6-7": 1 } });
   });
 });

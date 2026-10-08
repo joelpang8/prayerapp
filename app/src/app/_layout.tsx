@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Centered, fontAssets, fonts, navigationFonts, palettes, useColors } from "../components/ui";
 import * as Linking from "expo-linking";
 import { loadAppearance } from "../lib/appearance";
+import { loadPrayingPrefs } from "../lib/prayingPrefs";
 import { loadTextSize } from "../lib/textSize";
 import { usernameFromLink } from "../lib/invite";
 import { configureNotifications } from "../lib/notifications";
@@ -96,7 +97,7 @@ export default function RootLayout() {
   // The icon font loads with the text fonts, so tab icons don't pop in late.
   const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
-  useEffect(() => { Promise.all([loadAppearance(), loadTextSize()]).finally(() => setAppearanceLoaded(true)); }, []);
+  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs()]).finally(() => setAppearanceLoaded(true)); }, []);
   const theme = useNavigationTheme();
   if ((!fontsLoaded && !fontError) || !appearanceLoaded) return <Centered />;
   return (

@@ -4,6 +4,7 @@ import { signOut } from "../../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { db } from "../../firebase";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
+import { setShowPrayingNames, useShowPrayingNames } from "../../lib/prayingPrefs";
 import { setTextSize, TEXT_SIZES, useTextSize } from "../../lib/textSize";
 import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
@@ -19,6 +20,7 @@ export default function SettingsScreen() {
   const settings = useSettings();
   const appearance = useAppearance();
   const textSize = useTextSize();
+  const showPrayingNames = useShowPrayingNames();
   const notifications = useNotificationPermission();
   const notificationsOn = useNotificationsEnabled();
   const colors = useColors();
@@ -63,6 +65,25 @@ export default function SettingsScreen() {
         {notifications.status === "denied" && notificationsOn && (
           <Button title="Open phone Settings" kind="secondary" onPress={openPhoneSettings} />
         )}
+      </View>
+
+      <SectionTitle>Prayer requests</SectionTitle>
+      <View style={styles.card}>
+        <View style={styles.option}>
+          <Text style={styles.optionText}>Show who&apos;s praying</Text>
+          <Switch
+            value={showPrayingNames}
+            onValueChange={setShowPrayingNames}
+            trackColor={{ true: colors.accent, false: colors.border }}
+            accessibilityLabel="Show who's praying for my requests"
+          />
+        </View>
+        <Muted>
+          {showPrayingNames
+            ? "On: your profile shows the names of friends praying for each request."
+            : "Off: your profile shows how many friends are praying for each request, not who."}{" "}
+          You&apos;re never sent a notification about it.
+        </Muted>
       </View>
 
       <SectionTitle>Appearance</SectionTitle>

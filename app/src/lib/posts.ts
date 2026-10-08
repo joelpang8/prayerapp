@@ -66,6 +66,9 @@ export function notesProblem(notes: string): string | null {
   return null;
 }
 
+/** "PHP.4.6-7" -> "PHP": the book, stored as verseBook for filtering. Must match firestore.rules. */
+export const bookOfRef = (verseRef: string) => verseRef.split(".")[0];
+
 export const postIdFor = (promptId: string, uid: string) => `${promptId}_${uid}`;
 
 /**
@@ -152,7 +155,7 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
       visibility,
       ...(p.takenAt ? { takenAt: Timestamp.fromDate(p.takenAt) } : {}),
       // Carried from the prompt; the rules require it to match exactly.
-      ...(p.prompt.verseRef ? { verseRef: p.prompt.verseRef } : {}),
+      ...(p.prompt.verseRef ? { verseRef: p.prompt.verseRef, verseBook: bookOfRef(p.prompt.verseRef) } : {}),
       ...(p.place ? { place: p.place.slice(0, MAX_PLACE) } : {}),
     });
   } catch (err) {
@@ -222,6 +225,24 @@ export async function setAnswered(
 /** Deletes the post; its photo is deleted by a Cloud Function. */
 export function deletePost(db: Firestore, post: Pick<Post, "id">): Promise<void> {
   return deleteDoc(doc(db, "posts", post.id));
+}
+
+/**
+ * One of my own posts by id, live (e.g. an old one opened from the Prayers
+ * tab). Only for my own: the id must end with my uid.
+ */
+export function watchMyPost(
+  db: Firestore,
+  uid: string,
+  postId: string,
+  onPost: (post: Post | null) => void,
+  onError: (err: Error) => void = () => {},
+): Unsubscribe {
+  if (!postId.endsWith(`_${uid}`)) {
+    onPost(null);
+    return () => {};
+  }
+  return onSnapshot(doc(db, "posts", postId), (snap) => onPost(postFromSnapshot(snap)), onError);
 }
 
 /** My own posts, newest first (the Prayers tab). */

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { getBytes, ref } from "firebase/storage";
 import { follow, removeFriend } from "../src/lib/friends";
-import { EMPTY_ABOUT, getProfile, removeAvatar, saveAbout, setAvatar, watchAbout, type About } from "../src/lib/profile";
+import { aboutFields, EMPTY_ABOUT, getProfile, removeAvatar, saveAbout, setAvatar, watchAbout, type About, type AboutDoc } from "../src/lib/profile";
 import type { Firestore } from "firebase/firestore";
 
 const saveBio = (db: Firestore, uid: string, bio: string) => saveAbout(db, uid, { ...EMPTY_ABOUT, bio });
@@ -26,7 +26,7 @@ async function befriend(a: string, b: string) {
 }
 
 function watch(viewer: string, owner: string) {
-  const state: { bio: string | null; about: About | null; error: Error | null } = { bio: null, about: null, error: null };
+  const state: { bio: string | null; about: AboutDoc | null; error: Error | null } = { bio: null, about: null, error: null };
   const stop = watchAbout(dbAs(env, viewer), owner, (a) => { state.bio = a.bio; state.about = a; }, (err) => { state.error = err; });
   return { state, stop };
 }
@@ -112,7 +112,8 @@ describe("about details (friends only)", () => {
     const stranger = watch("carol", "alice");
     try {
       await until(() => friend.state.about?.church === "Grace Church, Austin");
-      expect(friend.state.about).toEqual({ ...details, prayerRequests: "Wisdom for a big decision." });
+      expect(aboutFields(friend.state.about!)).toEqual({ ...details, prayerRequests: "Wisdom for a big decision." });
+      expect(friend.state.about!.requests).toEqual([{ id: expect.stringMatching(/^[A-Za-z0-9]{20}$/), text: "Wisdom for a big decision." }]);
       await until(() => stranger.state.error !== null);
       expect(stranger.state.about).toBeNull();
     } finally {

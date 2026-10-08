@@ -120,9 +120,32 @@ service cloud.firestore {
           return !('birthday' in d) || (d.birthday is string
             && d.birthday.matches('^([0-9]{4}-)?(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'));
         }
+        // Prayer requests are one per line, up to 10. requestIds gives each
+        // line a random id (same order) that friends' "I'll pray for this"
+        // taps point at; a line whose text changes gets a new id, so its
+        // count starts again. Present exactly when prayerRequests is.
+        // Rules have no loops: check each of the (at most 10) ids is a string.
+        function allStrings(ids) {
+          return (ids.size() <= 0 || ids[0] is string) && (ids.size() <= 1 || ids[1] is string)
+            && (ids.size() <= 2 || ids[2] is string) && (ids.size() <= 3 || ids[3] is string)
+            && (ids.size() <= 4 || ids[4] is string) && (ids.size() <= 5 || ids[5] is string)
+            && (ids.size() <= 6 || ids[6] is string) && (ids.size() <= 7 || ids[7] is string)
+            && (ids.size() <= 8 || ids[8] is string) && (ids.size() <= 9 || ids[9] is string);
+        }
+        function validRequests(d) {
+          return ('prayerRequests' in d)
+            ? (d.requestIds is list
+               && d.requestIds.size() == d.prayerRequests.split('\n').size()
+               && d.requestIds.size() <= 10
+               && allStrings(d.requestIds)
+               && d.requestIds.toSet().size() == d.requestIds.size()
+               && d.requestIds.join(',').matches('^[A-Za-z0-9]{8,32}(,[A-Za-z0-9]{8,32})*$'))
+            : !('requestIds' in d);
+        }
         allow create, update: if isSelf(uid)
           && docId == 'about'
-          && request.resource.data.keys().hasOnly(['bio', 'birthday', 'hometown', 'prayerRequests', 'bibleVersion', 'denomination', 'church'])
+          && request.resource.data.keys().hasOnly(['bio', 'birthday', 'hometown', 'prayerRequests', 'requestIds', 'bibleVersion', 'denomination', 'church'])
+          && validRequests(request.resource.data)
           && (!('bio' in request.resource.data) || (request.resource.data.bio is string && request.resource.data.bio.size() <= 160))
           && validBirthday(request.resource.data)
           && optionalText(request.resource.data, 'prayerRequests', 500)
@@ -132,6 +155,42 @@ service cloud.firestore {
           && optionalText(request.resource.data, 'hometown', 80);
         // Clear the bio by saving an empty one; the doc goes with the account (step 5).
         allow delete: if false;
+      }
+
+      // ---------- "I'll pray for this" ----------
+      // users/{uid}/prayingFor/{itemId}_{friendUid}: a CURRENT mutual friend
+      // of {uid} is praying for one of {uid}'s prayer requests (an id in
+      // their about.requestIds). One per friend per request (the doc id).
+      // Nothing is sent to {uid}; they see a count when they look.
+      //  * Only the owner can list them all. Their app counts only taps from
+      //    current friends on current requests, and Cloud Functions delete
+      //    taps when a friendship ends or a request is removed or changed.
+      //  * A friend can read only their own taps, and only while friends.
+      //    Nobody else can read any, so other friends never see who tapped
+      //    or how many.
+      //  * Not on your own requests. Undo = the tapper deletes their own.
+      match /prayingFor/{tapId} {
+        function aboutData() {
+          return get(/databases/$(database)/documents/users/$(uid)/friendsOnly/about).data;
+        }
+
+        allow get, list: if signedIn() && (
+          request.auth.uid == uid ||
+          (resource.data.friendUid == request.auth.uid && areFriends(request.auth.uid, uid)));
+
+        allow create: if signedIn()
+          && request.auth.uid != uid
+          && request.resource.data.keys().hasOnly(['friendUid', 'itemId', 'createdAt'])
+          && request.resource.data.keys().hasAll(['friendUid', 'itemId', 'createdAt'])
+          && request.resource.data.friendUid == request.auth.uid
+          && request.resource.data.itemId is string
+          && tapId == request.resource.data.itemId + '_' + request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && areFriends(request.auth.uid, uid)
+          && request.resource.data.itemId in aboutData().get('requestIds', []);
+
+        allow update: if false;
+        allow delete: if signedIn() && resource.data.friendUid == request.auth.uid;
       }
 
       // ---------- private settings ----------
@@ -146,7 +205,10 @@ service cloud.firestore {
           return ['KJV'];
         }
 
-        allow get: if isSelf(uid) && docId == 'settings';
+        // verseIndex: { books: {PHP: 3}, refs: {"PHP.4.6-7": 2} }, the verses
+        // of my own posts, for the Prayers tab's verse filter. Written only
+        // by a Cloud Function.
+        allow get: if isSelf(uid) && docId in ['settings', 'verseIndex'];
         allow list: if false;
         allow create, update: if isSelf(uid)
           && docId == 'settings'
@@ -270,7 +332,8 @@ service cloud.firestore {
 
     // ---------- posts ----------
     // posts/{promptId}_{authorId}: at most one post per user per prompt.
-    // verseRef (optional) is copied from the prompt and can't be changed.
+    // verseRef (optional) is copied from the prompt and can't be changed;
+    // verseBook is its book.
     //
     // On-time vs late is not stored as a flag the client could fake. It is
     // derived from two values the rules pin down:
@@ -316,7 +379,7 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(
-             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef', 'place', 'visibility', 'takenAt'])
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef', 'verseBook', 'place', 'visibility', 'takenAt'])
         && request.resource.data.keys().hasAll(
              ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'visibility'])
         && request.resource.data.visibility in ['friends', 'private']
@@ -330,6 +393,11 @@ service cloud.firestore {
         // The verse is the prompt's, carried onto the post: present exactly
         // when the prompt has one, and identical to it. A reference only.
         && request.resource.data.get('verseRef', null) == prompt().get('verseRef', null)
+        // verseBook ("PHP") is the reference's book, for filtering my own
+        // prayers by book: present exactly when verseRef is.
+        && (('verseRef' in request.resource.data)
+            ? request.resource.data.get('verseBook', null) == request.resource.data.verseRef.split('[.]')[0]
+            : !('verseBook' in request.resource.data))
         // Can't answer a prompt before it fires, and a prompt stays open
         // for (late) posts for 24 hours.
         && request.time >= prompt().firedAt

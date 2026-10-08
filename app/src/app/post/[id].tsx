@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
 import { MoreMenu } from "../../components/MoreMenu";
@@ -9,6 +9,7 @@ import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, TextIn
 import { db } from "../../firebase";
 import { addComment, canDeleteComment, deleteComment, MAX_COMMENT, type Comment } from "../../lib/comments";
 import type { Profile } from "../../lib/profile";
+import { watchMyPost, type Post } from "../../lib/posts";
 import { reactionInfo } from "../../lib/reactions";
 import { useComments, useFeed, useHidden, useMyPosts, useReactions } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
@@ -28,8 +29,12 @@ export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile: me } = useReadySession();
   const feed = useFeed();
-  const { posts: mine, loaded } = useMyPosts();
-  const post = mine.find((p) => p.id === id) ?? feed.find((p) => p.id === id);
+  const { posts: mine, loaded: recentLoaded } = useMyPosts();
+  const recent = mine.find((p) => p.id === id) ?? feed.find((p) => p.id === id);
+  // An older post of mine (from the Prayers tab) isn't among the recent ones.
+  const older = useOlderPostOfMine(recentLoaded && !recent ? id : null, me.uid);
+  const post = recent ?? older.post;
+  const loaded = recentLoaded && (!!recent || older.loaded);
   const comments = useComments(post?.id ?? null, post?.authorId ?? null);
   const { isHidden } = useHidden();
   // Comments I've reported stay hidden from me.
@@ -151,6 +156,15 @@ export default function PostScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   );
+}
+
+function useOlderPostOfMine(id: string | null, uid: string): { post: Post | null; loaded: boolean } {
+  const [state, setState] = useState<{ id: string; post: Post | null } | null>(null);
+  useEffect(() => {
+    if (!id) return;
+    return watchMyPost(db, uid, id, (post) => setState({ id, post }), () => setState({ id, post: null }));
+  }, [id, uid]);
+  return id && state?.id === id ? { post: state.post, loaded: true } : { post: null, loaded: false };
 }
 
 const useStyles = makeStyles((colors) => ({

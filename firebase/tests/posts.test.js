@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where,
+  collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where,
 } from "firebase/firestore";
 import {
   anonymousUser, seedFollow, seedFriends, seedPost, seedUser, setupEnv, signedInAs, signedOut,
@@ -168,5 +168,37 @@ describe("private posts (a journal only the author sees)", () => {
     const bob = signedInAs(env, "bob");
     await assertFails(setDoc(doc(bob, "posts", "alicePrivate", "comments", "c1"), { authorId: "bob", text: "hi", createdAt: serverTimestamp() }));
     await assertFails(setDoc(doc(bob, "posts", "alicePrivate", "reactions", "bob"), { authorId: "bob", kind: "love", createdAt: serverTimestamp() }));
+  });
+});
+
+// The Prayers tab: my own posts only, including private ones, filtered by
+// answered, verse book, exact verse, or "on this day" (prompt ids).
+describe("Prayers tab queries", () => {
+  beforeEach(async () => {
+    await seedPost(env, "20251008_alice", "alice", { promptId: "20251008", verseRef: "PHP.4.6-7", verseBook: "PHP", answeredAt: Timestamp.now() });
+    await seedPost(env, "20241008_alice", "alice", { promptId: "20241008", visibility: "private", photoPath: "privatePhotos/alice/p.jpg", verseRef: "PHP.4.13", verseBook: "PHP" });
+    await seedFriends(env, "alice", "bob");
+  });
+
+  const mine = (db, uid, ...filters) => getDocs(query(collection(db, "posts"), where("authorId", "==", uid), ...filters));
+
+  test("I can run every filter on my own posts, private ones included", async () => {
+    const alice = signedInAs(env, "alice");
+    const ids = async (...f) => (await assertSucceeds(mine(alice, "alice", ...f))).docs.map((d) => d.id).sort();
+    expect(await ids(where("answeredAt", ">=", Timestamp.fromMillis(0)), orderBy("answeredAt", "desc"))).toEqual(["20251008_alice"]);
+    expect(await ids(where("verseBook", "==", "PHP"))).toEqual(["20241008_alice", "20251008_alice"]);
+    expect(await ids(where("verseRef", "==", "PHP.4.13"))).toEqual(["20241008_alice"]);
+    expect(await ids(where("promptId", "in", ["20251008", "20241008", "20231008"]))).toEqual(["20241008_alice", "20251008_alice"]);
+  });
+
+  test("a friend running the same queries on my posts is refused (they could include private ones)", async () => {
+    const bob = signedInAs(env, "bob");
+    await assertFails(mine(bob, "alice", where("verseBook", "==", "PHP")));
+    await assertFails(mine(bob, "alice", where("promptId", "in", ["20251008", "20241008"])));
+    await assertFails(mine(bob, "alice", where("answeredAt", ">=", Timestamp.fromMillis(0)), orderBy("answeredAt", "desc")));
+  });
+
+  test("a stranger is refused even when asking for shared posts only", async () => {
+    await assertFails(mine(signedInAs(env, "carol"), "alice", where("visibility", "==", "friends"), where("verseBook", "==", "PHP")));
   });
 });

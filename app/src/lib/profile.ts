@@ -1,4 +1,5 @@
 import {
+  collection,
   deleteField,
   doc,
   getDoc,
@@ -12,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, type FirebaseStorage } from "firebase/storage";
 import type { PhotoData } from "./posts";
+import { assignRequestIds, joinRequests, MAX_REQUESTS, requestItems, splitRequests, type PrayerRequest } from "./prayerRequests";
 
 /**
  * Public profile: visible to any signed-in user who knows the uid.
@@ -145,6 +147,9 @@ export type About = {
   church: string;
 };
 
+/** As stored: the details plus the prayer requests paired with their ids. */
+export type AboutDoc = About & { requests: PrayerRequest[] };
+
 export const EMPTY_ABOUT: About = { bio: "", birthday: "", hometown: "", prayerRequests: "", bibleVersion: "", denomination: "", church: "" };
 
 // Must match firestore.rules.
@@ -192,16 +197,25 @@ export function aboutProblem(a: About): string | null {
   for (const [key, max] of Object.entries(ABOUT_LIMITS) as [keyof typeof ABOUT_LIMITS, number][]) {
     if (a[key].trim().length > max) return `At most ${max} characters.`;
   }
+  if (splitRequests(a.prayerRequests).length > MAX_REQUESTS) return `At most ${MAX_REQUESTS} prayer requests, one per line.`;
   const b = a.birthday && parseBirthday(a.birthday);
   if (a.birthday && (!b || !birthdayValue(b.month, b.day, b.year))) return "That birthday isn't a real date.";
   return null;
 }
 
-function aboutFromData(data: Record<string, unknown> | undefined): About {
+function aboutFromData(data: Record<string, unknown> | undefined): AboutDoc {
   const out = { ...EMPTY_ABOUT };
   for (const key of Object.keys(out) as (keyof About)[]) {
     if (typeof data?.[key] === "string") out[key] = data[key] as string;
   }
+  const ids = Array.isArray(data?.requestIds) ? data.requestIds.filter((x): x is string => typeof x === "string") : [];
+  return { ...out, requests: requestItems(out.prayerRequests, ids) };
+}
+
+/** Just the editable text fields of a stored about doc. */
+export function aboutFields(doc: AboutDoc): About {
+  const out = { ...EMPTY_ABOUT };
+  for (const key of Object.keys(out) as (keyof About)[]) out[key] = doc[key];
   return out;
 }
 
@@ -212,20 +226,30 @@ function aboutFromData(data: Record<string, unknown> | undefined): About {
 export function watchAbout(
   db: Firestore,
   uid: string,
-  onAbout: (about: About) => void,
+  onAbout: (about: AboutDoc) => void,
   onError: (err: Error) => void = () => {},
 ): Unsubscribe {
   return onSnapshot(aboutDoc(db, uid), (snap) => onAbout(aboutFromData(snap.data())), onError);
 }
 
-/** Saves all the about details at once; empty ones are left out. */
-export async function saveAbout(db: Firestore, uid: string, about: About): Promise<void> {
+/**
+ * Saves all the about details at once; empty ones are left out. Prayer
+ * requests are saved one per line; `before` (what's stored now) lets an
+ * unchanged line keep its id and so its "praying" count.
+ */
+export async function saveAbout(db: Firestore, uid: string, about: About, before: AboutDoc | null = null): Promise<void> {
   const problem = aboutProblem(about);
   if (problem) throw new Error(problem);
-  const data: Record<string, string> = { bio: about.bio.trim() };
-  for (const key of ["birthday", "hometown", "prayerRequests", "bibleVersion", "denomination", "church"] as const) {
+  const data: Record<string, string | string[]> = { bio: about.bio.trim() };
+  for (const key of ["birthday", "hometown", "bibleVersion", "denomination", "church"] as const) {
     const v = about[key].trim();
     if (v) data[key] = v;
+  }
+  const lines = splitRequests(about.prayerRequests);
+  if (lines.length) {
+    data.prayerRequests = joinRequests(lines);
+    // Firestore's auto-ids: 20 random letters and digits.
+    data.requestIds = assignRequestIds(before?.requests ?? [], lines, () => doc(collection(db, "_")).id);
   }
   await setDoc(aboutDoc(db, uid), data);
 }

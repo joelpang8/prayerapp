@@ -181,7 +181,7 @@ describe("verse reference carried from the prompt", () => {
   });
 
   const withVerse = (overrides = {}) =>
-    create("alice", { promptId: VERSE_PROMPT, promptFiredAt: verseFiredAt, verseRef: "PHP.4.6-7", ...overrides });
+    create("alice", { promptId: VERSE_PROMPT, promptFiredAt: verseFiredAt, verseRef: "PHP.4.6-7", verseBook: "PHP", ...overrides });
 
   test("post carries the prompt's verse reference", async () => {
     await assertSucceeds(withVerse());
@@ -189,6 +189,20 @@ describe("verse reference carried from the prompt", () => {
 
   test("a different verse is rejected", async () => {
     await assertFails(withVerse({ verseRef: "JHN.3.16" }));
+    await assertFails(withVerse({ verseRef: "JHN.3.16", verseBook: "JHN" }));
+  });
+
+  test("verseBook must be the reference's book, and is required with it", async () => {
+    await assertFails(withVerse({ verseBook: "JHN" }));
+    await assertFails(withVerse({ verseBook: "PH" }));
+    await assertFails(withVerse({ verseBook: "PHP.4" }));
+    const { verseBook, ...noBook } = newPost("alice", { promptId: VERSE_PROMPT, promptFiredAt: verseFiredAt, verseRef: "PHP.4.6-7" });
+    expect(verseBook).toBeUndefined();
+    await assertFails(setDoc(postRef(signedInAs(env, "alice"), "alice", VERSE_PROMPT), noBook));
+  });
+
+  test("verseBook without a verse is rejected", async () => {
+    await assertFails(create("alice", { verseBook: "PHP" }));
   });
 
   test("leaving it off when the prompt has one is rejected", async () => {
@@ -210,6 +224,7 @@ describe("verse reference carried from the prompt", () => {
     const ref = postRef(signedInAs(env, "alice"), "alice", VERSE_PROMPT);
     await assertFails(updateDoc(ref, { verseRef: "JHN.3.16", editedAt: serverTimestamp() }));
     await assertFails(updateDoc(ref, { verseRef: deleteField(), editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { verseBook: "JHN", editedAt: serverTimestamp() }));
     await assertSucceeds(updateDoc(ref, { notes: "edited notes", editedAt: serverTimestamp() }));
   });
 });

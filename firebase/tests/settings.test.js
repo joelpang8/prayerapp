@@ -65,3 +65,27 @@ describe("preferred translation setting", () => {
     await assertFails(getDocs(collection(signedInAs(env, "alice"), "users", "alice", "private")));
   });
 });
+
+describe("verse index (the books and verses of my own prayers)", () => {
+  const verseIndex = (db, uid = "alice") => doc(db, "users", uid, "private", "verseIndex");
+  beforeEach(async () => {
+    await seed(env, (db) => setDoc(verseIndex(db), { books: { PHP: 1 }, refs: { "PHP.4.6-7": 1 } }));
+  });
+
+  test("the owner can read it", async () => {
+    await assertSucceeds(getDoc(verseIndex(signedInAs(env, "alice"))));
+  });
+
+  test("only the Cloud Function writes it, not even the owner", async () => {
+    const db = signedInAs(env, "alice");
+    await assertFails(setDoc(verseIndex(db), { books: { JHN: 99 } }));
+    await assertFails(updateDoc(verseIndex(db), { books: { JHN: 99 } }));
+    await assertFails(deleteDoc(verseIndex(db)));
+  });
+
+  test("friends, strangers and signed-out users can't read it", async () => {
+    await seedFriends(env, "alice", "bob");
+    await assertFails(getDoc(verseIndex(signedInAs(env, "bob"))));
+    await assertFails(getDoc(verseIndex(signedOut(env))));
+  });
+});

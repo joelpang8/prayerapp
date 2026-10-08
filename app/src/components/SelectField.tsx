@@ -18,6 +18,7 @@ export function SelectField({
   placeholder,
   otherMaxLength,
   otherPlaceholder,
+  noneLabel = "None",
 }: {
   value: string;
   options: SelectOption[];
@@ -28,6 +29,8 @@ export function SelectField({
   /** Set to allow "Other…" with this many characters at most. */
   otherMaxLength?: number;
   otherPlaceholder?: string;
+  /** The first row, which clears the choice. */
+  noneLabel?: string;
 }) {
   const styles = useStyles();
   const colors = useColors();
@@ -82,7 +85,7 @@ export function SelectField({
           ) : (
             <FlatList
               data={[
-                { value: "", label: "None" },
+                { value: "", label: noneLabel },
                 ...options,
                 ...(otherMaxLength ? [{ value: "\u0000other", label: isOther ? `Other: ${value}` : "Other…" }] : []),
               ]}

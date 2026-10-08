@@ -5,11 +5,12 @@ import { follow, relationshipTo } from "../lib/friends";
 import { unblockUser } from "../lib/moderation";
 import { useBlocked } from "../session/hooks";
 import { bibleVersionLabel } from "../lib/faith";
-import { formatBirthday, watchAbout, type About } from "../lib/profile";
+import { formatBirthday, watchAbout, type AboutDoc } from "../lib/profile";
 import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
 import { Avatar } from "./Avatar";
 import { MoreMenu } from "./MoreMenu";
+import { PrayerRequests } from "./PrayerRequests";
 import { Button, fonts, makeStyles, Muted, Text } from "./ui";
 
 /**
@@ -50,7 +51,6 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
     ? ([
         ["From", about.hometown],
         ["Birthday", about.birthday ? formatBirthday(about.birthday) : ""],
-        ["Prayer requests", about.prayerRequests],
         ["Bible version", about.bibleVersion ? bibleVersionLabel(about.bibleVersion) : ""],
         ["Denomination", about.denomination],
         ["Church", about.church],
@@ -106,6 +106,7 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
           ))}
         </View>
       )}
+      {about && profile && <PrayerRequests uid={uid} name={profile.displayName} requests={about.requests} />}
       {actions}
     </View>
   );
@@ -117,8 +118,8 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
  * stops the listener and drops the details from memory on the spot, before
  * the server would refuse them.
  */
-function useAbout(uid: string | null): About | null {
-  const [state, setState] = useState<{ uid: string; about: About } | null>(null);
+function useAbout(uid: string | null): AboutDoc | null {
+  const [state, setState] = useState<{ uid: string; about: AboutDoc } | null>(null);
   useEffect(() => {
     if (!uid) return;
     const stop = watchAbout(db, uid, (about) => setState({ uid, about }), () => setState(null));

@@ -89,7 +89,8 @@ describe("about details: birthday, hometown, prayer requests, Bible version, den
     bio: "Hi",
     birthday: "1990-03-14",
     hometown: "Lagos, Nigeria",
-    prayerRequests: "My mum's health; wisdom at work.",
+    prayerRequests: "My mum's health\nWisdom at work",
+    requestIds: ["req1aaaaaa", "req2bbbbbb"],
     bibleVersion: "ESV",
     denomination: "Anglican",
     church: "St Mark's, Austin",
@@ -120,8 +121,8 @@ describe("about details: birthday, hometown, prayer requests, Bible version, den
 
   test("length limits, and no empty strings (left out instead)", async () => {
     const db = signedInAs(env, "alice");
-    await assertSucceeds(setDoc(about(db), { prayerRequests: "x".repeat(500), bibleVersion: "x".repeat(40), denomination: "x".repeat(60), church: "x".repeat(80) }));
-    await assertFails(setDoc(about(db), { prayerRequests: "x".repeat(501) }));
+    await assertSucceeds(setDoc(about(db), { prayerRequests: "x".repeat(500), requestIds: ["req1aaaaaa"], bibleVersion: "x".repeat(40), denomination: "x".repeat(60), church: "x".repeat(80) }));
+    await assertFails(setDoc(about(db), { prayerRequests: "x".repeat(501), requestIds: ["req1aaaaaa"] }));
     await assertFails(setDoc(about(db), { bibleVersion: "x".repeat(41) }));
     await assertFails(setDoc(about(db), { denomination: "x".repeat(61) }));
     await assertFails(setDoc(about(db), { church: "x".repeat(81) }));
@@ -134,7 +135,40 @@ describe("about details: birthday, hometown, prayer requests, Bible version, den
 
   test("a friend can't write them", async () => {
     await seedFriends(env, "alice", "bob");
-    await assertFails(setDoc(about(signedInAs(env, "bob")), { prayerRequests: "spam" }));
+    await assertFails(setDoc(about(signedInAs(env, "bob")), { prayerRequests: "spam", requestIds: ["req1aaaaaa"] }));
+  });
+});
+
+describe("prayer requests: one id per line", () => {
+  const save = (data) => setDoc(about(signedInAs(env, "alice")), data);
+
+  test("each line has an id, in the same order", async () => {
+    await assertSucceeds(save({ prayerRequests: "One", requestIds: ["req1aaaaaa"] }));
+    await assertSucceeds(save({ prayerRequests: "One\nTwo\nThree", requestIds: ["req1aaaaaa", "req2bbbbbb", "req3cccccc"] }));
+  });
+
+  test("ids are required with requests, and not allowed without", async () => {
+    await assertFails(save({ prayerRequests: "One" }));
+    await assertFails(save({ requestIds: ["req1aaaaaa"] }));
+    await assertFails(save({ prayerRequests: "One", requestIds: [] }));
+  });
+
+  test("the number of ids must match the number of lines", async () => {
+    await assertFails(save({ prayerRequests: "One\nTwo", requestIds: ["req1aaaaaa"] }));
+    await assertFails(save({ prayerRequests: "One", requestIds: ["req1aaaaaa", "req2bbbbbb"] }));
+  });
+
+  test("at most 10, no repeats, and ids are short random tokens", async () => {
+    const ids = (n) => Array.from({ length: n }, (_, i) => `request${String(i).padStart(3, "0")}`);
+    const lines = (n) => Array.from({ length: n }, (_, i) => `Line ${i}`).join("\n");
+    await assertSucceeds(save({ prayerRequests: lines(10), requestIds: ids(10) }));
+    await assertFails(save({ prayerRequests: lines(11), requestIds: ids(11) }));
+    await assertFails(save({ prayerRequests: "One\nTwo", requestIds: ["req1aaaaaa", "req1aaaaaa"] }));
+    await assertFails(save({ prayerRequests: "One", requestIds: ["short"] }));
+    await assertFails(save({ prayerRequests: "One", requestIds: ["has_underscore1"] }));
+    await assertFails(save({ prayerRequests: "One\nTwo", requestIds: ["req1aaaaaa,req2bbbbbb", "x"] }));
+    await assertFails(save({ prayerRequests: "One", requestIds: [12345678] }));
+    await assertFails(save({ prayerRequests: "One", requestIds: "req1aaaaaa" }));
   });
 });
 

@@ -8,7 +8,7 @@ import { photoBlob, pickAvatar } from "../lib/capture";
 import { BirthdayField } from "../components/BirthdayField";
 import { SelectField } from "../components/SelectField";
 import { BIBLE_VERSIONS, DENOMINATIONS } from "../lib/faith";
-import { ABOUT_LIMITS, aboutProblem, removeAvatar, saveAbout, setAvatar, watchAbout, type About } from "../lib/profile";
+import { ABOUT_LIMITS, aboutFields, aboutProblem, removeAvatar, saveAbout, setAvatar, watchAbout, type About, type AboutDoc } from "../lib/profile";
 import { useReadySession } from "../session/SessionProvider";
 
 /** Profile photo (camera or library) and the friends-only details. Opened from the Profile tab. */
@@ -18,7 +18,7 @@ export default function EditProfileScreen() {
   const { profile } = useReadySession();
   const [preview, setPreview] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [saved, setSaved] = useState<About | null>(null);
+  const [saved, setSaved] = useState<AboutDoc | null>(null);
   // The form, filled from the stored details once they've loaded.
   const [form, setForm] = useState<About | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,7 @@ export default function EditProfileScreen() {
       // Fill the form once; later updates (e.g. my own save) don't overwrite typing.
       if (!filled.current) {
         filled.current = true;
-        setForm(about);
+        setForm(aboutFields(about));
       }
     }, () => setError("Couldn't load your profile.")),
     [profile.uid],
@@ -76,7 +76,7 @@ export default function EditProfileScreen() {
     setError(null);
     setBusy(true);
     try {
-      await saveAbout(db, profile.uid, next);
+      await saveAbout(db, profile.uid, next, saved);
       setSavedNote(true);
     } catch {
       setError("Couldn't save. Please try again.");
@@ -140,7 +140,11 @@ export default function EditProfileScreen() {
         </View>
         {field("hometown", "Where I'm from", "e.g. Lagos, Nigeria")}
 
-        {field("prayerRequests", "Prayer requests", "What would you like your friends to pray for?", true)}
+        {field("prayerRequests", "Prayer requests", "What would you like your friends to pray for? One per line.", true)}
+        <Muted>
+          One request per line, up to 10. Friends can tap &ldquo;I&apos;ll pray for this&rdquo; on each one, and only you see how many
+          are praying. Rewording a request starts its count again.
+        </Muted>
         <View style={styles.field}>
           <Text style={styles.label}>Bible version I read</Text>
           <SelectField

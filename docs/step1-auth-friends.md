@@ -13,7 +13,8 @@ users/{uid}/friendsOnly/about       get: the owner and their current mutual frie
   bio: string                       0–160 chars, owner writes
   birthday?: string                 "MM-DD" or "YYYY-MM-DD" (the year is optional); picked from a calendar
   hometown?: string                 1–80 chars, "where I'm from"
-  prayerRequests?: string           1–500 chars
+  prayerRequests?: string           1–500 chars, one request per line (up to 10)
+  requestIds?: string[]             one random id per line, same order; present exactly with prayerRequests
   bibleVersion?: string             1–40 chars, chosen from a list (stored as the abbreviation) or "Other"; separate from the app's display setting
   denomination?: string             1–60 chars, chosen from a list or "Other" (app/src/lib/faith.ts)
   church?: string                   1–80 chars
@@ -23,6 +24,14 @@ Storage avatars/{uid}/{id}.jpg      profile photo. get: any signed-in user.
 
 usernames/{username}                exact-match lookup for "add friend by username"
   uid: string                       get: any signed-in user. list: no one
+
+users/{owner}/prayingFor/{itemId}_{friendUid}   "I'll pray for this" (see decisions.md)
+  friendUid, itemId: string         create: a current mutual friend of owner, as themselves, for an id in
+  createdAt: timestamp              owner's requestIds, never the owner. delete: the friend who tapped.
+                                    read: the owner (all); the friend (their own, while friends). No updates.
+
+users/{uid}/private/verseIndex      get: the owner only. Written by a Cloud Function only.
+  books: {PHP: 3}, refs: {"PHP.4.6-7": 2}   counts from my own posts, for the Prayers verse picker
 
 follows/{followerId}_{followeeId}   one-way follow edge. Can't be edited.
   followerId, followeeId: string    only these two users can read or delete it

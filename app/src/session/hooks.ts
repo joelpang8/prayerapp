@@ -6,6 +6,7 @@ import { hiddenKey, watchBlocked, watchHidden } from "../lib/moderation";
 import type { QueuedPost } from "../lib/outbox";
 import { ReactionThread, type Reaction } from "../lib/reactions";
 import { watchMyPosts, type Post } from "../lib/posts";
+import { MyPrayersFor, PrayingForMe, type PrayerTap } from "../lib/praying";
 import { PhotoEvictedError } from "../lib/photoCache";
 import { watchLatestPrompt, type Prompt } from "../lib/prompts";
 import { getPassage, type Passage } from "../lib/scripture/text";
@@ -124,6 +125,48 @@ export function useReactions(postId: string | null, postAuthorId: string | null)
     };
   }, [scope, postId, postAuthorId]);
   return reactions;
+}
+
+/**
+ * Taps on my own prayer requests, live, while my profile is on screen.
+ * Registered with FriendScope; memory only.
+ */
+export function usePrayingForMe(active: boolean): PrayerTap[] {
+  const { scope } = useReadySession();
+  const [taps, setTaps] = useState<PrayerTap[]>([]);
+  useEffect(() => {
+    if (!active) return;
+    const store = new PrayingForMe(db, scope, (err) => console.warn("praying listener failed", err));
+    store.start();
+    const unsubscribe = store.subscribe(setTaps);
+    return () => {
+      unsubscribe();
+      store.stop();
+      setTaps([]);
+    };
+  }, [scope, active]);
+  return taps;
+}
+
+/**
+ * Which of a friend's prayer requests I'm praying for (by request id),
+ * while their profile is on screen and we're friends. Pass null otherwise.
+ */
+export function useMyPrayersFor(owner: string | null): ReadonlySet<string> {
+  const { scope } = useReadySession();
+  const [ids, setIds] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    if (!owner) return;
+    const store = new MyPrayersFor(db, scope, owner, (err) => console.warn("my prayers listener failed", err));
+    store.start();
+    const unsubscribe = store.subscribe((taps) => setIds(new Set(taps.map((t) => t.itemId))));
+    return () => {
+      unsubscribe();
+      store.stop();
+      setIds(new Set());
+    };
+  }, [scope, owner]);
+  return ids;
 }
 
 // When Activity was last opened, shared by the bell's count and the screen.

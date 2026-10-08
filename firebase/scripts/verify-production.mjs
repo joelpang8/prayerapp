@@ -10,8 +10,8 @@
 //
 // See docs/production-checks.md for setup (login, one IAM role, deploy).
 //
-// It creates throwaway users (uids starting "zzv"), follows, posts and one
-// photo, runs the checks, and deletes everything it created, even on failure.
+// It creates throwaway users (uids starting "zzv"), follows, posts, a prayer
+// request and tap, and one photo, runs the checks, and deletes everything it created, even on failure.
 // The report contains no secrets; paste it back as-is.
 
 import { randomBytes } from "node:crypto";
@@ -23,7 +23,7 @@ import { deleteApp, initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, signInWithCustomToken } from "firebase/auth";
 import {
   collection, connectFirestoreEmulator, deleteDoc, doc, getDoc, getDocs, initializeFirestore,
-  limit, memoryLocalCache, onSnapshot, orderBy, query, where,
+  limit, memoryLocalCache, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where,
 } from "firebase/firestore";
 import {
   connectStorageEmulator, getBytes, getDownloadURL, getStorage, ref, uploadBytes,
@@ -69,7 +69,8 @@ const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x
 
 const created = { users: new Set(), docs: new Set(), apps: [] };
 const report = { run: RUN, mode: emulator ? "emulator (dry run: B and D results are not meaningful)" : "production", checks: {} };
-// E must pass in both modes; anything else is reported for the owner to read.
+// E, F and G must pass in production (F's indexes aren't checked by the
+// emulator); anything else is reported for the owner to read.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log("•", ...a);
 
@@ -147,6 +148,69 @@ async function checkPrivatePosts(viewer, author) {
     && !out.friendDirectGet.ok && out.authorDirectGet.ok && out.authorDirectGet.exists;
   report.checks.E_privatePosts = out;
   log(`E private posts hidden from friends = ${out.pass}`);
+}
+
+// ---------- F: Prayers tab queries (my own posts) and their indexes ----------
+async function checkPrayersTab(author, viewer) {
+  const t = AdminTimestamp.fromMillis(Date.now() - 400 * 24 * 60 * 60_000);
+  const base = { authorId: MAIN, promptFiredAt: t, createdAt: t, notes: "verification post", visibility: "private", photoPath: `privatePhotos/${MAIN}/none.jpg` };
+  await setDocAdmin(`posts/20240101_${MAIN}`, { ...base, promptId: "20240101", verseRef: "PHP.4.6-7", verseBook: "PHP", answeredAt: t });
+  const mine = (...f) => getDocs(query(collection(author.fs, "posts"), where("authorId", "==", MAIN), ...f, limit(21)));
+  const answered = [where("answeredAt", ">=", Timestamp.fromMillis(0)), orderBy("answeredAt", "desc")];
+  const queries = {
+    answered: () => mine(...answered),
+    byBook: () => mine(where("verseBook", "==", "PHP"), orderBy("createdAt", "desc")),
+    byVerse: () => mine(where("verseRef", "==", "PHP.4.6-7"), orderBy("createdAt", "desc")),
+    answeredByBook: () => mine(where("verseBook", "==", "PHP"), ...answered),
+    answeredByVerse: () => mine(where("verseRef", "==", "PHP.4.6-7"), ...answered),
+    onThisDay: () => mine(where("promptId", "in", ["20240101", "20230101"])),
+  };
+  const out = {};
+  for (const [name, run] of Object.entries(queries)) {
+    out[name] = await run().then((s) => ({ ok: true, found: s.size }), (e) => ({ ok: false, code: e.code, message: String(e.message).slice(0, 300) }));
+  }
+  // The same query from a friend must be refused (it could include private posts).
+  out.friendRefused = await getDocs(query(collection(viewer.fs, "posts"), where("authorId", "==", MAIN), where("verseBook", "==", "PHP")))
+    .then(() => false, (e) => e.code === "permission-denied");
+  out.pass = Object.keys(queries).every((k) => out[k].ok && out[k].found === 1) && out.friendRefused;
+  report.checks.F_prayersTab = out;
+  log(`F Prayers tab queries (indexes built) = ${out.pass}`);
+}
+
+// ---------- G: "I'll pray for this" ----------
+const REQUEST_ID = `zzv${RUN}req`;
+async function checkPraying(author, viewer, other) {
+  await setDocAdmin(`users/${MAIN}/friendsOnly/about`, { bio: "", prayerRequests: "Verification request", requestIds: [REQUEST_ID] });
+  const tapPath = `users/${MAIN}/prayingFor/${REQUEST_ID}_${VIEWER}`;
+  created.docs.add(tapPath);
+  const outcome = (p) => p.then(() => true, (e) => e.code ?? false);
+  const out = {
+    friendCanTap: await outcome(setDoc(doc(viewer.fs, tapPath), { friendUid: VIEWER, itemId: REQUEST_ID, createdAt: serverTimestamp() })),
+    ownerCanList: await getDocs(collection(author.fs, "users", MAIN, "prayingFor")).then((s) => s.size === 1, (e) => e.code),
+    friendSeesOwnOnly: await getDocs(query(collection(viewer.fs, "users", MAIN, "prayingFor"), where("friendUid", "==", VIEWER))).then((s) => s.size === 1, (e) => e.code),
+    // Someone who isn't MAIN's friend can't tap or read.
+    strangerTapRefused: (await outcome(setDoc(doc(other.fs, `users/${MAIN}/prayingFor/${REQUEST_ID}_${AUTHORS[1]}`), { friendUid: AUTHORS[1], itemId: REQUEST_ID, createdAt: serverTimestamp() }))) === "permission-denied",
+    strangerReadRefused: (await outcome(getDoc(doc(other.fs, tapPath)))) === "permission-denied",
+    ownerCantTapOwn: (await outcome(setDoc(doc(author.fs, `users/${MAIN}/prayingFor/${REQUEST_ID}_${MAIN}`), { friendUid: MAIN, itemId: REQUEST_ID, createdAt: serverTimestamp() }))) === "permission-denied",
+  };
+  out.pass = Object.values(out).every((v) => v === true);
+  report.checks.G_praying = out;
+  log(`G prayer taps = ${out.pass}`);
+}
+
+// After C unfriends MAIN and VIEWER, the Cloud Function should delete VIEWER's tap.
+async function checkPrayingCleanup() {
+  const tapPath = `users/${MAIN}/prayingFor/${REQUEST_ID}_${VIEWER}`;
+  const t0 = Date.now();
+  let gone = false;
+  while (!gone && Date.now() - t0 < 60_000) {
+    gone = !(await db.doc(tapPath).get()).exists;
+    if (!gone) await sleep(2000);
+  }
+  report.checks.G_praying.tapDeletedAfterUnfriend = gone;
+  report.checks.G_praying.secondsUntilDeleted = gone ? Math.round((Date.now() - t0) / 1000) : null;
+  report.checks.G_praying.pass &&= gone;
+  log(`G tap deleted after unfriend = ${gone}`);
 }
 
 // ---------- C: open listener after unfriend ----------
@@ -227,6 +291,7 @@ async function checkPhotoLinks(author, viewer) {
 // ---------- run ----------
 async function cleanup() {
   for (const app of created.apps) await deleteApp(app).catch(() => {});
+  created.docs.add(`users/${MAIN}/private/verseIndex`);
   for (const path of created.docs) await db.doc(path).delete().catch(() => {});
   await files.deleteFiles({ prefix: `postPhotos/zzv${RUN}` }).catch(() => {});
   for (const u of created.users) await adminAuth(admin).deleteUser(u).catch(() => {});
@@ -243,7 +308,10 @@ try {
   const author = await clientFor(MAIN);
   await checkFeedLimits(viewer);
   await checkPrivatePosts(viewer, author);
+  await checkPrayersTab(author, viewer);
+  await checkPraying(author, viewer, await clientFor(AUTHORS[1]));
   await checkListenerCutoff(viewer);
+  await checkPrayingCleanup();
   await checkPhotoLinks(author, viewer);
 } catch (e) {
   report.error = `${e.code ?? ""} ${e.message}`;
@@ -252,5 +320,6 @@ try {
   await cleanup();
   console.log("\n===== paste everything below this line =====");
   console.log(JSON.stringify(report, null, 2));
-  process.exit(report.error || report.checks.E_privatePosts?.pass === false ? 1 : 0);
+  const failed = ["E_privatePosts", "F_prayersTab", "G_praying"].some((k) => report.checks[k]?.pass === false);
+  process.exit(report.error || failed ? 1 : 0);
 }

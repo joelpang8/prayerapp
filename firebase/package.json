@@ -9,6 +9,7 @@
     "pretest": "npm --prefix functions run build && npm --prefix notify-proto run build",
     "dev:prompt": "node scripts/fire-prompt.mjs",
     "prompt:real": "node scripts/fire-prompt.mjs --project prayerapp-4ce99",
+    "backfill:verses": "node scripts/backfill-verse-books.mjs",
     "test:sandbox": "SKIP_CROSS_SERVICE=1 firebase emulators:exec --only firestore,storage --project demo-prayerapp \"vitest run\""
   },
   "devDependencies": {
