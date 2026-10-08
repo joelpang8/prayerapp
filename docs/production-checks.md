@@ -6,11 +6,12 @@
 |---|---|---|
 | **B** | How many friends can one feed query cover before the rules' lookup limit refuses it? | This sets `FEED_CHUNK_SIZE` (currently 5). |
 | **C** | After an unfriend, is an *open* real-time listener cut off, and is a later post withheld? | Backs up FriendScope's teardown on the phone. |
+| **E** | Are private posts hidden from a current friend? A friend's query without the `visibility == "friends"` filter must be refused, the filtered query must leave the private post out, and a direct read of it must be refused. | Confirms the private-post fix in production. The script exits with an error if E fails. **Don't use private posts with real friends until E passes.** |
 | **D** | Does revoking a photo's download token on unfriend really kill a saved link? Does reading a photo create a new token? | This is the guarantee from step 2. |
 
 It runs on **your Mac, with your own Google login**. It creates throwaway users (uids starting `zzv`), follows, posts and one tiny photo. It deletes all of them when it finishes, including after a failure. It prints a JSON report with no secrets in it. Paste that report back to me.
 
-Dry run against the local emulators: `npx firebase emulators:exec --only auth,firestore,storage,functions --project demo-prayerapp "node scripts/verify-production.mjs --emulator"`. I ran this in my environment: the mechanics work, and B, C and D all produce results. In the emulator, check B showed 10 friends working and 12 refused.
+Dry run against the local emulators: `npx firebase emulators:exec --only auth,firestore,storage,functions --project demo-prayerapp "node scripts/verify-production.mjs --emulator"`. I ran this in my environment: the mechanics work, and B, C, D and E all produce results. In the emulator, check B showed 10 friends working and 12 refused, and E passed. All four parts of E behaved as intended.
 
 ## One-time setup
 
@@ -55,4 +56,5 @@ Add `--bucket <name>` only if your bucket isn't `prayerapp-4ce99.firebasestorage
 
 - **B:** set `FEED_CHUNK_SIZE` to a safe value below the largest working size.
 - **C:** confirm, or adjust the docs if production behaves differently from the emulator.
+- **E:** must say `"pass": true`. If it doesn't, stop and send me the report; the rules deployed aren't the ones in this repo.
 - **D:** if the link dies after unfriend, the guarantee holds. If it doesn't, we switch photo reads to a different design, such as short-lived signed URLs from a Cloud Function. That's more work, but it closes the gap for certain.

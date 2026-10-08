@@ -22,7 +22,7 @@ import { getStorage as adminStorage } from "firebase-admin/storage";
 import { deleteApp, initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, signInWithCustomToken } from "firebase/auth";
 import {
-  collection, connectFirestoreEmulator, deleteDoc, doc, getDocs, initializeFirestore,
+  collection, connectFirestoreEmulator, deleteDoc, doc, getDoc, getDocs, initializeFirestore,
   limit, memoryLocalCache, onSnapshot, orderBy, query, where,
 } from "firebase/firestore";
 import {
@@ -69,6 +69,7 @@ const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x
 
 const created = { users: new Set(), docs: new Set(), apps: [] };
 const report = { run: RUN, mode: emulator ? "emulator (dry run: B and D results are not meaningful)" : "production", checks: {} };
+// E must pass in both modes; anything else is reported for the owner to read.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log("•", ...a);
 
@@ -101,12 +102,13 @@ async function setDocAdmin(path, data) {
 
 const follow = (a, b) => setDocAdmin(`follows/${a}_${b}`, { followerId: a, followeeId: b, createdAt: AdminTimestamp.now() });
 
-async function seedPost(author, minutesAgo = 5) {
+async function seedPost(author, minutesAgo = 5, visibility = "friends") {
   const t = AdminTimestamp.fromMillis(Date.now() - minutesAgo * 60_000);
-  const id = `${RUN}${minutesAgo}_${author}`;
+  const id = `${RUN}${minutesAgo}${visibility === "private" ? "p" : ""}_${author}`;
+  const folder = visibility === "private" ? "privatePhotos" : "postPhotos";
   await setDocAdmin(`posts/${id}`, {
-    authorId: author, promptId: "20000101", promptFiredAt: t, createdAt: t,
-    notes: "verification post", photoPath: `postPhotos/${author}/none.jpg`,
+    authorId: author, promptId: "20000101", promptFiredAt: t, createdAt: t, visibility,
+    notes: "verification post", photoPath: `${folder}/${author}/none.jpg`,
   });
   return id;
 }
@@ -117,7 +119,7 @@ async function checkFeedLimits(viewer) {
   for (const k of [1, 2, 3, 4, 5, 6, 8, 10, 12, 16]) {
     const authors = AUTHORS.slice(0, k);
     try {
-      const snap = await getDocs(query(collection(viewer.fs, "posts"), where("authorId", "in", authors), orderBy("createdAt", "desc"), limit(50)));
+      const snap = await getDocs(query(collection(viewer.fs, "posts"), where("authorId", "in", authors), where("visibility", "==", "friends"), orderBy("createdAt", "desc"), limit(50)));
       results.push({ friendsInQuery: k, ok: true, posts: snap.size });
     } catch (e) {
       results.push({ friendsInQuery: k, ok: false, code: e.code, message: String(e.message).slice(0, 200) });
@@ -128,12 +130,31 @@ async function checkFeedLimits(viewer) {
   log(`B feed limits: largest working 'in' query = ${okMax} friends`);
 }
 
+// ---------- E: private posts stay with their author ----------
+async function checkPrivatePosts(viewer, author) {
+  const privateId = await seedPost(MAIN, 6, "private");
+  const outcome = (p) => p.then((v) => ({ ok: true, ...v }), (e) => ({ ok: false, code: e.code }));
+  const out = {
+    // A friend's query that doesn't ask for shared posts only must be refused outright.
+    unfilteredFriendQuery: await outcome(getDocs(query(collection(viewer.fs, "posts"), where("authorId", "==", MAIN)))
+      .then((s) => ({ ids: s.docs.map((d) => d.id) }))),
+    filteredFriendQuery: await outcome(getDocs(query(collection(viewer.fs, "posts"), where("authorId", "==", MAIN), where("visibility", "==", "friends")))
+      .then((s) => ({ includesPrivate: s.docs.some((d) => d.id === privateId) }))),
+    friendDirectGet: await outcome(getDoc(doc(viewer.fs, "posts", privateId)).then(() => ({}))),
+    authorDirectGet: await outcome(getDoc(doc(author.fs, "posts", privateId)).then((d) => ({ exists: d.exists() }))),
+  };
+  out.pass = !out.unfilteredFriendQuery.ok && out.filteredFriendQuery.ok && !out.filteredFriendQuery.includesPrivate
+    && !out.friendDirectGet.ok && out.authorDirectGet.ok && out.authorDirectGet.exists;
+  report.checks.E_privatePosts = out;
+  log(`E private posts hidden from friends = ${out.pass}`);
+}
+
 // ---------- C: open listener after unfriend ----------
 async function checkListenerCutoff(viewer) {
   const events = [];
   const t0 = Date.now();
   const unsub = onSnapshot(
-    query(collection(viewer.fs, "posts"), where("authorId", "==", MAIN)),
+    query(collection(viewer.fs, "posts"), where("authorId", "==", MAIN), where("visibility", "==", "friends")),
     (s) => events.push({ t: Date.now() - t0, kind: "snapshot", ids: s.docs.map((d) => d.id) }),
     (e) => events.push({ t: Date.now() - t0, kind: "error", code: e.code }),
   );
@@ -221,6 +242,7 @@ try {
   const viewer = await clientFor(VIEWER);
   const author = await clientFor(MAIN);
   await checkFeedLimits(viewer);
+  await checkPrivatePosts(viewer, author);
   await checkListenerCutoff(viewer);
   await checkPhotoLinks(author, viewer);
 } catch (e) {
@@ -230,5 +252,5 @@ try {
   await cleanup();
   console.log("\n===== paste everything below this line =====");
   console.log(JSON.stringify(report, null, 2));
-  process.exit(report.error ? 1 : 0);
+  process.exit(report.error || report.checks.E_privatePosts?.pass === false ? 1 : 0);
 }
