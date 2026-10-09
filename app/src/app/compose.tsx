@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { CountdownPill } from "../components/PromptCountdown";
+import { PrayerHelper } from "../components/PrayerHelper";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db, storage } from "../firebase";
 import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
@@ -156,6 +157,7 @@ function Composer({
           <Button title="Choose photo (development)" kind="secondary" onPress={() => capture(pickPhotoForDevelopment)} disabled={busy} />
         )}
         <Text style={styles.label}>What did you pray for?</Text>
+        <PrayerHelper notes={notes} />
         <TextInput
           value={notes}
           onChangeText={setNotes}
