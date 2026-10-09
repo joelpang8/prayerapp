@@ -117,6 +117,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "authorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "promptId",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

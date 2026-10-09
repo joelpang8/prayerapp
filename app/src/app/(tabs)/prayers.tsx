@@ -6,13 +6,14 @@ import { PostCard } from "../../components/PostCard";
 import { SelectField } from "../../components/SelectField";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { db } from "../../firebase";
-import { addMonths, dayKey, monthStart, monthTitle, thisMonth, type YearMonth } from "../../lib/calendar";
+import { addMonths, monthTitle, type YearMonth } from "../../lib/calendar";
 import {
   EMPTY_VERSE_INDEX, isFiltered, NO_FILTER, PAGE_SIZE, refsInBook, watchFilteredPosts, watchPostsOnDays, watchVerseIndex,
   type PrayerFilter, type VerseIndex,
 } from "../../lib/myPrayers";
 import { appDayId, onThisDayIds, yearsAgoText } from "../../lib/onThisDay";
-import { watchMyPostsBetween, type Post } from "../../lib/posts";
+import { appMonthOf, buildRecap, dayKeyOfPromptId, prayersText, watchMyPostsInMonth } from "../../lib/monthRecap";
+import { type Post } from "../../lib/posts";
 import { BOOKS } from "../../lib/scripture/books";
 import { bookById, formatReference, parseRefId } from "../../lib/scripture/reference";
 import { useNow } from "../../session/hooks";
@@ -26,7 +27,8 @@ import { useReadySession } from "../../session/SessionProvider";
 export default function PrayersScreen() {
   const styles = useStyles();
   const { profile } = useReadySession();
-  const [month, setMonth] = useState<YearMonth>(() => thisMonth());
+  // The app's months (prompt days, America/New_York), like the recap.
+  const [month, setMonth] = useState<YearMonth>(() => appMonthOf(new Date()));
   const { posts, loaded } = useMonthPosts(profile.uid, month);
   const [selected, setSelected] = useState<string | null>(null);
   const scroll = useRef<ScrollView>(null);
@@ -38,13 +40,13 @@ export default function PrayersScreen() {
   const marked = useMemo(() => {
     const m = new Map<string, boolean>();
     for (const p of posts) {
-      const key = dayKey(p.createdAt);
+      const key = dayKeyOfPromptId(p.promptId);
       m.set(key, (m.get(key) ?? false) || !!p.answeredAt);
     }
     return m;
   }, [posts]);
 
-  const now = thisMonth();
+  const now = appMonthOf(new Date());
   const isThisMonth = month.year === now.year && month.month === now.month;
 
   function changeMonth(delta: number) {
@@ -66,6 +68,7 @@ export default function PrayersScreen() {
   return (
     <ScrollView ref={scroll} style={styles.root} contentContainerStyle={styles.content}>
       <OnThisDay uid={profile.uid} />
+      {loaded && <MonthInPrayer month={month} posts={posts} />}
       <MonthCalendar
         month={month}
         marked={marked}
@@ -75,7 +78,7 @@ export default function PrayersScreen() {
         canGoForward={!isThisMonth}
       />
       {!isThisMonth && (
-        <Pressable onPress={() => { setSelected(null); offsets.current.clear(); setMonth(thisMonth()); }} style={styles.backToNow} hitSlop={8}>
+        <Pressable onPress={() => { setSelected(null); offsets.current.clear(); setMonth(appMonthOf(new Date())); }} style={styles.backToNow} hitSlop={8}>
           <Text style={styles.backToNowText}>Back to this month</Text>
         </Pressable>
       )}
@@ -88,8 +91,8 @@ export default function PrayersScreen() {
           <Muted>{isThisMonth ? "Your prayers this month will appear here." : `No prayers in ${monthTitle(month)}.`}</Muted>
         )}
         {posts.map((post, i) => {
-          const key = dayKey(post.createdAt);
-          const firstOfDay = i === 0 || dayKey(posts[i - 1].createdAt) !== key;
+          const key = dayKeyOfPromptId(post.promptId);
+          const firstOfDay = i === 0 || dayKeyOfPromptId(posts[i - 1].promptId) !== key;
           return (
             <View
               key={post.id}
@@ -257,15 +260,43 @@ function useMonthPosts(uid: string, month: YearMonth): { posts: Post[]; loaded: 
   const { year, month: m } = month;
   const key = `${year}-${m}`;
   useEffect(() => {
-    const from = monthStart({ year, month: m });
-    const to = monthStart(addMonths({ year, month: m }, 1));
     const k = `${year}-${m}`;
-    return watchMyPostsBetween(db, uid, from, to, (posts) => setState({ key: k, posts }), (err) => {
+    return watchMyPostsInMonth(db, uid, { year, month: m }, (posts) => setState({ key: k, posts }), (err) => {
       console.warn("prayers for month failed", err);
       setState({ key: k, posts: [] });
     });
   }, [uid, year, m]);
   return state?.key === key ? { posts: state.posts, loaded: true } : { posts: [], loaded: false };
+}
+
+/**
+ * "Your month in prayer": counts only, from my own posts in the month the
+ * calendar shows. No streaks, goals or comparisons, and nothing at all for
+ * a month without prayers. Worked out on the phone; nothing is stored.
+ */
+function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
+  const styles = useStyles();
+  const { profile } = useReadySession();
+  const recap = buildRecap(profile.uid, posts);
+  if (recap.posted === 0) return null;
+  const name = monthTitle(month);
+  const lines = [
+    `You posted ${prayersText(recap.posted)}.`,
+    recap.answered > 0 ? `${recap.answered === 1 ? "1 is" : `${recap.answered} are`} marked answered.` : "",
+  ].filter(Boolean);
+  const verses = recap.verses.map(refLabel);
+  return (
+    <View style={styles.recap} accessible accessibilityLabel={`Your month in prayer, ${name}. ${lines.join(" ")}${verses.length ? ` Verses: ${verses.join(", ")}.` : ""}`}>
+      <Text style={styles.recapTitle} accessibilityRole="header">{name} in prayer</Text>
+      {lines.map((l) => <Text key={l} style={styles.recapLine}>{l}</Text>)}
+      {verses.length > 0 && (
+        <Text style={styles.recapVerses}>
+          {verses.length === 1 ? "Verse" : "Verses"}: {verses.join(" · ")}
+        </Text>
+      )}
+      <Muted>Only you see this.</Muted>
+    </View>
+  );
 }
 
 const useStyles = makeStyles((colors) => ({
@@ -274,6 +305,10 @@ const useStyles = makeStyles((colors) => ({
   backToNow: { alignSelf: "center", paddingVertical: 10 },
   backToNowText: { fontSize: 16, fontFamily: fonts.serifSemiBold, color: colors.accent },
   list: { marginTop: 16, gap: 8 },
+  recap: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 6, marginBottom: 16 },
+  recapTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.text },
+  recapLine: { fontSize: 17, lineHeight: 24, color: colors.text },
+  recapVerses: { fontSize: 16, lineHeight: 23, color: colors.accent, fontFamily: fonts.display },
   onThisDay: { marginBottom: 20, gap: 8 },
   onThisDayTitle: { fontSize: 24, fontFamily: fonts.display, color: colors.text },
   onThisDayItem: { gap: 4 },

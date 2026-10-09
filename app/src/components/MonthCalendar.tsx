@@ -1,6 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
 import { dayKey, monthGrid, monthTitle, type YearMonth } from "../lib/calendar";
+import { dayKeyOfPromptId } from "../lib/monthRecap";
+import { appDayId } from "../lib/onThisDay";
 import { fonts, makeStyles, Text, useColors } from "./ui";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -27,7 +29,8 @@ export function MonthCalendar({
 }) {
   const styles = useStyles();
   const colors = useColors();
-  const today = dayKey(new Date());
+  // Today by the app's day (America/New_York), like the prayers it marks.
+  const today = dayKeyOfPromptId(appDayId(new Date()));
   return (
     <View style={styles.root}>
       <View style={styles.header}>

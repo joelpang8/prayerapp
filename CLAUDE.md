@@ -12,7 +12,8 @@
 - **Never call `getDownloadURL()`** on post photos. Load them with `getBytes` through `app/src/lib/photoCache.ts`. A unit test fails if app code calls it.
 - **Anything holding other people's content on the device** must register with `FriendScope` (`app/src/lib/friendScope.ts`) and implement `evictAuthor`/`clear`. It stays memory-only, never written to disk.
 - **Scripture:** posts store only a verse *reference* (and its book code, `verseBook`), never the verse text.
-- **Days** for "On this day" are the app's days (prompt ids, America/New_York), never the phone's local date.
+- **Days and months** in the Prayers tab ("On this day", the calendar, "Your month in prayer") are the app's (prompt ids, America/New_York), never the phone's local date.
+- **"Your month in prayer"** is counts only, from my own posts, worked out on the phone and never stored: no streaks, goals, comparisons or "missed" language, and never on-time/late.
 - **Prayer helper (ACTS)** only shows hints while writing. It never writes into the notes or adds fields to posts.
 - **Listen (text-to-speech)** plays only from a tap, reads only the verse text and reference, and stops when its screen closes or the app leaves the foreground. `expo-audio` is only for the silent-mode session switch: keep its plugin options (no microphone permission, no background audio).
 - **Build order and open decisions** are in `README.md` and `docs/decisions.md`. Ask before building anything that depends on an open decision.

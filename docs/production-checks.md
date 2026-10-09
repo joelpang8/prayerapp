@@ -7,7 +7,7 @@
 | **B** | How many friends can one feed query cover before the rules' lookup limit refuses it? | This sets `FEED_CHUNK_SIZE` (currently 5). |
 | **C** | After an unfriend, is an *open* real-time listener cut off, and is a later post withheld? | Backs up FriendScope's teardown on the phone. |
 | **E** | Are private posts hidden from a current friend? A friend's query without the `visibility == "friends"` filter must be refused, the filtered query must leave the private post out, and a direct read of it must be refused. | Confirms the private-post fix in production. The script exits with an error if E fails. **Don't use private posts with real friends until E passes.** |
-| **F** | Do the Prayers tab's queries work in production (filters by answered, verse book, exact verse; "On this day")? The emulator doesn't check indexes, production does. A friend running the same query on my posts must be refused. | A missing index shows here as `failed-precondition` with a link to create it. |
+| **F** | Do the Prayers tab's queries work in production (filters by answered, verse book, exact verse; "On this day"; one month for the calendar and recap)? The emulator doesn't check indexes, production does. A friend running the same query on my posts must be refused. | A missing index shows here as `failed-precondition` with a link to create it. |
 | **G** | "I'll pray for this": can a friend tap, can the owner see it, is a non-friend refused, can't the owner tap their own, and does the Cloud Function delete the tap after an unfriend? | Confirms the rules and the cleanup function are the deployed ones. |
 | **D** | Does revoking a photo's download token on unfriend really kill a saved link? Does reading a photo create a new token? | This is the guarantee from step 2. |
 
@@ -33,6 +33,7 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    - `authorId, verseBook, createdAt desc` and `authorId, verseRef, createdAt desc`: Prayers filtered by verse.
    - `authorId, answeredAt desc`: Answered.
    - `authorId, verseBook, answeredAt desc` and `authorId, verseRef, answeredAt desc`: Answered, by verse.
+   - `authorId, promptId desc`: the Prayers calendar and "Your month in prayer" (one app month by prompt id).
    - "On this day" (`authorId ==`, `promptId in`) and taps (`friendUid ==`) use Firestore's automatic single-field indexes; check F confirms.
 5. **After the first deploy of the Prayers filters, backfill older posts** (once; safe to repeat). From `firebase/`:
    ```sh

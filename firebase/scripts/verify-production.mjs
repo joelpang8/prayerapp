@@ -164,6 +164,8 @@ async function checkPrayersTab(author, viewer) {
     answeredByBook: () => mine(where("verseBook", "==", "PHP"), ...answered),
     answeredByVerse: () => mine(where("verseRef", "==", "PHP.4.6-7"), ...answered),
     onThisDay: () => mine(where("promptId", "in", ["20240101", "20230101"])),
+    // The Prayers calendar and "Your month in prayer": one app month.
+    monthInPrayer: () => mine(where("promptId", ">=", "20240101"), where("promptId", "<", "20240201"), orderBy("promptId", "desc")),
   };
   const out = {};
   for (const [name, run] of Object.entries(queries)) {

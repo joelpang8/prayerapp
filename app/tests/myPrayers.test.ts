@@ -3,6 +3,7 @@ import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { doc, setDoc, Timestamp, type Firestore } from "firebase/firestore";
 import { follow } from "../src/lib/friends";
 import { NO_FILTER, refsInBook, watchFilteredPosts, watchPostsOnDays, watchVerseIndex, type PrayerFilter, type VerseIndex } from "../src/lib/myPrayers";
+import { watchMyPostsInMonth } from "../src/lib/monthRecap";
 import { onThisDayIds } from "../src/lib/onThisDay";
 import type { Post } from "../src/lib/posts";
 import { dbAs, seedUser, setupEnv, until } from "./env";
@@ -118,5 +119,30 @@ describe("verse picker", () => {
     const stop = watchVerseIndex(dbAs(env, "bob"), "alice", () => {}, (e) => { error = e; });
     await until(() => error !== null);
     stop();
+  });
+});
+
+describe("one app month (calendar and recap)", () => {
+  async function month(viewer: string, ym: { year: number; month: number }) {
+    let posts: Post[] | null = null;
+    let error: Error | null = null;
+    const stop = watchMyPostsInMonth(dbAs(env, viewer), "alice", ym, (p) => { posts = p; }, (e) => { error = e; });
+    await until(() => posts !== null || error !== null);
+    stop();
+    return { ids: posts ? (posts as Post[]).map((p) => p.id) : null, error };
+  }
+
+  test("my posts in that month by prompt day, private ones included, never a friend's", async () => {
+    await post("20250201_alice", "alice", { visibility: "private", photoPath: "privatePhotos/alice/p.jpg" });
+    // Posted late, early on 1 March by the clock, but for 28 February's prompt.
+    await post("20250228_alice", "alice");
+    await post("20250301_alice", "alice");
+    await post("20250215_bob", "bob");
+    expect((await month("alice", { year: 2025, month: 2 })).ids).toEqual(["20250228_alice", "20250201_alice"]);
+    expect((await month("alice", { year: 2024, month: 2 })).ids).toEqual(["20240229_alice"]);
+  });
+
+  test("a friend can't run it on my posts", async () => {
+    expect((await month("bob", { year: 2025, month: 10 })).error).not.toBeNull();
   });
 });
