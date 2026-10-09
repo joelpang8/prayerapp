@@ -64,6 +64,13 @@ const config: ExpoConfig = {
     "expo-router",
     ...(appleSignIn ? ["expo-apple-authentication"] : []),
     "expo-image",
+    // Only used to let "Listen" play with the silent switch on. No recording
+    // and no background audio, so no microphone permission or audio
+    // background mode (the plugin adds both by default).
+    [
+      "expo-audio",
+      { microphonePermission: false, recordAudioAndroid: false, enableBackgroundPlayback: false },
+    ],
     [
       "expo-image-picker",
       {

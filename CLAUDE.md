@@ -14,6 +14,7 @@
 - **Scripture:** posts store only a verse *reference* (and its book code, `verseBook`), never the verse text.
 - **Days** for "On this day" are the app's days (prompt ids, America/New_York), never the phone's local date.
 - **Prayer helper (ACTS)** only shows hints while writing. It never writes into the notes or adds fields to posts.
+- **Listen (text-to-speech)** plays only from a tap, reads only the verse text and reference, and stops when its screen closes or the app leaves the foreground. `expo-audio` is only for the silent-mode session switch: keep its plugin options (no microphone permission, no background audio).
 - **Build order and open decisions** are in `README.md` and `docs/decisions.md`. Ask before building anything that depends on an open decision.
 - **Step 4 prototype stays isolated.** `firebase/notify-proto/` and `prototypes/notify-app/` must not be imported by `app/` or `firebase/functions/` until it's proven on devices. Deploy the app with `functions:default`.
 - **Theme:** colors come from `useColors()` / `makeStyles()` in `app/src/components/ui.tsx` (light and dark). Don't hard-code colors. Text and inputs use `Text`/`TextInput`/`Span` from there (lint enforces it).

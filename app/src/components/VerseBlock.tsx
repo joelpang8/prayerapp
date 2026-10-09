@@ -1,10 +1,13 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Pressable, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
+import { spokenPassage } from "../lib/verseSpeech";
 import { usePassage } from "../session/hooks";
-import { fonts, makeStyles, Span, Text } from "./ui";
+import { useVerseSpeech } from "../session/useVerseSpeech";
+import { fonts, makeStyles, Span, Text, useColors } from "./ui";
 
 const PREVIEW_VERSES = 4;
 
@@ -46,6 +49,8 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
   const [all, setAll] = useState(false);
   const { passage, failed } = usePassage(open ? refId : null);
   const reference = passage?.reference ?? displayRef(refId);
+  // Per block, so the same verse shown twice doesn't play in both places.
+  const { speaking, toggle } = useVerseSpeech(`${refId}#${useId()}`);
 
   if (!open) {
     return (
@@ -63,10 +68,13 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
           <Text style={styles.more}>Show all {passage!.verses.length} verses</Text>
         </Pressable>
       )}
-      <Text style={styles.ref}>
-        {reference}
-        {passage ? ` (${passage.translation})` : ""}
-      </Text>
+      <View style={styles.refRow}>
+        <Text style={styles.ref}>
+          {reference}
+          {passage ? ` (${passage.translation})` : ""}
+        </Text>
+        {passage && <ListenButton speaking={speaking} reference={reference} onPress={() => toggle(spokenPassage(passage))} />}
+      </View>
       {passage && (
         <Pressable
           onPress={() => router.push({ pathname: "/read/[ref]", params: { ref: refId } })}
@@ -82,13 +90,35 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
   );
 }
 
+/** Reads the verse aloud with the phone's voice, only when tapped. */
+function ListenButton({ speaking, reference, onPress }: { speaking: boolean; reference: string; onPress: () => void }) {
+  const styles = useStyles();
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={speaking ? `Stop reading ${reference}` : `Listen to ${reference}`}
+      accessibilityHint={speaking ? undefined : "Reads the verse aloud"}
+      hitSlop={8}
+      style={styles.listen}
+    >
+      <Ionicons name={speaking ? "stop-circle-outline" : "volume-medium-outline"} size={22} color={colors.accent} />
+      <Text style={styles.listenText}>{speaking ? "Stop" : "Listen"}</Text>
+    </Pressable>
+  );
+}
+
 const useStyles = makeStyles((colors) => ({
   block: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 12, gap: 6 },
   text: { fontSize: 19, lineHeight: 28, color: colors.text, fontFamily: fonts.serif },
   num: { fontSize: 13, color: colors.muted, fontFamily: fonts.serifMedium },
   // EB Garamond's true italic, as the KJV prints the translators' supplied words.
   supplied: { fontFamily: fonts.serifItalic },
-  ref: { fontSize: 16, color: colors.muted, fontFamily: fonts.display },
+  ref: { fontSize: 16, color: colors.muted, fontFamily: fonts.display, flexShrink: 1 },
+  refRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  listen: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 36 },
+  listenText: { fontSize: 15, color: colors.accent, fontFamily: fonts.serifSemiBold },
   refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
   more: { fontSize: 15, color: colors.accent },
   readMore: { alignSelf: "flex-start", paddingVertical: 4 },
