@@ -1,5 +1,5 @@
 import { KJV_BOOKS } from "./kjv";
-import { formatReference, parseRefId, type VerseRef } from "./reference";
+import { chapterTitle, formatReference, parseRefId, type VerseRef } from "./reference";
 import type { TranslationId } from "./translations";
 
 /** Part of a verse. `supplied` = words the KJV prints in italics. */
@@ -63,5 +63,42 @@ export async function getPassage(refId: string, translation: TranslationId): Pro
     reference: formatReference(ref),
     translation,
     verses: [...versesOf(ref, chapters)].map(({ chapter, verse, raw }) => ({ chapter, verse, segments: segmentsOf(raw) })),
+  };
+}
+
+export type Chapter = {
+  book: string;
+  chapter: number;
+  /** "Psalm 145" */
+  title: string;
+  translation: TranslationId;
+  verses: PassageVerse[];
+  /** Chapters in the book, for next/previous. */
+  chapters: number;
+};
+
+/** A whole chapter of the bundled KJV ("Read more"). No network. */
+export async function getChapter(book: string, chapter: number, translation: TranslationId): Promise<Chapter> {
+  if (translation !== "KJV") throw new TranslationUnavailableError(translation);
+  const chapters = await kjvChapters(book);
+  const verses = chapters[chapter - 1];
+  if (!verses) throw new Error(`${book} has no chapter ${chapter}`);
+  return {
+    book,
+    chapter,
+    title: chapterTitle(book, chapter),
+    translation,
+    verses: verses.map((raw, i) => ({ chapter, verse: i + 1, segments: segmentsOf(raw) })),
+    chapters: chapters.length,
+  };
+}
+
+/** Which verses of `chapter` the reference covers (to highlight and scroll to). */
+export function versesInChapter(refId: string, chapter: number): { first: number; last: number } | null {
+  const ref = parseRefId(refId);
+  if (ref.wholeChapter || chapter < ref.startChapter || chapter > ref.endChapter) return null;
+  return {
+    first: chapter === ref.startChapter ? ref.startVerse : 1,
+    last: chapter === ref.endChapter ? ref.endVerse : Number.MAX_SAFE_INTEGER,
   };
 }

@@ -69,3 +69,5 @@ Versification differs slightly between translations: 3 John has 14 verses in the
 1. **The step 4 scheduler** writes each day's prompt with the next verse from `verse-list.json`.
 2. **Licensed translations**, after the provider answers. They'll come through a Cloud Function proxy, with each translation added to `allowedTranslations()` in the rules and to `translations.ts`, and with any required copyright notice shown next to the verse. `getPassage` is the only place that needs a new branch.
 3. **UK distribution:** the KJV is under Crown copyright in the UK. Check this before launching there.
+
+**Read more (added later).** `app/src/app/read/[ref].tsx` shows the whole chapter around a stored reference from the bundled KJV (`getChapter` in `lib/scripture/text.ts`), highlighting the verses the reference covers (`versesInChapter`). It makes no network calls. Tests: `app/tests/unit/readChapter.test.ts`.

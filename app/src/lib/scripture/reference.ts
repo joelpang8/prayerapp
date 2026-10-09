@@ -128,6 +128,11 @@ export function parseReference(input: string): VerseRef {
   return validate(ref);
 }
 
+/** "Psalm 145", "Philippians 4": a chapter's heading. */
+export function chapterTitle(bookId: string, chapter: number): string {
+  return displayChapterName(byId.get(bookId)!, chapter);
+}
+
 function displayChapterName(book: Book, chapter: number): string {
   // "Psalm 23" for one psalm; the book itself is "Psalms".
   const name = book.id === "PSA" ? "Psalm" : book.name;

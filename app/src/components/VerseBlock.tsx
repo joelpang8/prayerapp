@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
@@ -66,6 +67,17 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
         {reference}
         {passage ? ` (${passage.translation})` : ""}
       </Text>
+      {passage && (
+        <Pressable
+          onPress={() => router.push({ pathname: "/read/[ref]", params: { ref: refId } })}
+          accessibilityRole="link"
+          accessibilityLabel={`Read more: the whole chapter around ${reference}`}
+          hitSlop={8}
+          style={styles.readMore}
+        >
+          <Text style={styles.more}>Read more</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -79,5 +91,6 @@ const useStyles = makeStyles((colors) => ({
   ref: { fontSize: 16, color: colors.muted, fontFamily: fonts.display },
   refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
   more: { fontSize: 15, color: colors.accent },
+  readMore: { alignSelf: "flex-start", paddingVertical: 4 },
   muted: { fontSize: 15, color: colors.muted },
 }));

@@ -66,6 +66,7 @@ function RootNavigator() {
         <Stack.Screen name="post/[id]" options={{ ...pushed, title: "Prayer" }} />
         <Stack.Screen name="activity" options={{ ...pushed, title: "Activity" }} />
         <Stack.Screen name="u/[username]" options={{ ...pushed, title: "Invite" }} />
+        <Stack.Screen name="read/[ref]" options={{ ...pushed, title: "Read" }} />
       </Stack.Protected>
     </Stack>
   );
