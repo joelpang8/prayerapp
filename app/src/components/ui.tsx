@@ -41,6 +41,9 @@ const light = {
   flame: "#E39B32",
   flameCore: "#FFE7A6",
   wax: "#F1EADF",
+  /** Reading mode (the chapter screen): warmer paper and its hairlines. */
+  paper: "#F4ECDD",
+  paperRule: "#E2D6C2",
 };
 
 /** Night: warm dark brown rather than pure black, with a lighter accent for contrast. */
@@ -58,6 +61,8 @@ const dark: typeof light = {
   flame: "#EDA548",
   flameCore: "#FFE3A0",
   wax: "#CDC2B1",
+  paper: "#1B1813",
+  paperRule: "#3A342B",
 };
 
 export type Colors = typeof light;
