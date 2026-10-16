@@ -160,7 +160,8 @@ Same command, `npm run ios:device`, signed with your paid team instead. The app 
    REMOTE_PUSH=
    ```
    Leave the Firebase web values as they are. Then run `npm run ios:device -- --check`; it should show `signing: paid team 67F8CKV875`.
-4. **Build:** connect the iPhone and run `npm run ios:device`. The first time, Xcode registers the App ID under your team by itself; if macOS asks for your keychain password, choose **Always Allow**. No "Trust" step is needed for a paid team.
+4. **Build:** connect the iPhone (paired with Xcode, Developer Mode on) and run `npm run ios:device`. If macOS asks for your keychain password, choose **Always Allow**. No "Trust" step is needed for a paid team.
+   - **First build of a new bundle id:** it fails with "No profiles for '…' were found", because Expo doesn't let Xcode create profiles from the command line when a team is preset. Fix it once: `open ios/*.xcworkspace`, select the target → **Signing & Capabilities**, tick **Automatically manage signing**, choose your team, wait for "Xcode Managed Profile", quit Xcode, and run `npm run ios:device` again. Do this again after adding a capability (Sign in with Apple, push).
 5. **Sign in with Apple** (when you're ready): in Firebase, **Authentication → Sign-in method → Add new provider → Apple**, enable it and save (nothing else is needed for the iOS app). Then set `EXPO_PUBLIC_APPLE_SIGN_IN=1` in `app/.env.device` and build again; Xcode adds the capability to the App ID.
 6. **Push** stays off (`REMOTE_PUSH=` empty) until the step 4 prototype is proven on the device. `docs/step4-notifications.md` covers the push key.
 

@@ -130,10 +130,32 @@ console.log(`
   - build:              Release, runs without your Mac
 `);
 
-function run(cmd, args) {
+function run(cmd, args, onFail = () => {}) {
   const r = spawnSync(cmd, args, { cwd: appDir, env, stdio: "inherit" });
-  if (r.status !== 0) process.exit(r.status ?? 1);
+  if (r.status !== 0) {
+    onFail();
+    process.exit(r.status ?? 1);
+  }
 }
+
+// Expo only lets Xcode create provisioning profiles when it picks the team
+// itself; with a team preset (APPLE_TEAM_ID) it doesn't, so the very first
+// paid build of a new bundle id fails with "No profiles for ...". Xcode
+// makes the profile once the project is opened there; after that the
+// command line finds it.
+const firstPaidBuildTip = () => {
+  if (!paid) return;
+  console.error(`
+  If the error says "No profiles for '${bundleId}' were found", let Xcode create
+  the profile once (it can't from the command line with a team preset):
+    1. open ios/*.xcworkspace
+    2. Click the blue project at the top left, then the target under TARGETS,
+       then the "Signing & Capabilities" tab.
+    3. Tick "Automatically manage signing" and choose Team: ${teamId}.
+       Wait until "Provisioning Profile: Xcode Managed Profile" shows, no red errors.
+    4. Quit Xcode and run npm run ios:device again.
+`);
+};
 
 if (checkOnly) {
   // Show the resolved native settings, to confirm nothing needs a paid account.
@@ -157,7 +179,7 @@ if (checkOnly) {
 // turned on) automatically. Without it, Expo signs with your Personal Team's
 // Apple Development certificate and Xcode creates the free profile.
 run("npx", ["expo", "prebuild", "--clean", "--platform", "ios"]);
-run("npx", ["expo", "run:ios", "--device", "--configuration", "Release", ...process.argv.slice(2).filter((a) => a !== "--check")]);
+run("npx", ["expo", "run:ios", "--device", "--configuration", "Release", ...process.argv.slice(2).filter((a) => a !== "--check")], firstPaidBuildTip);
 
 console.log(paid ? `
   Installed, signed with your team ${teamId}. It keeps working for a year
