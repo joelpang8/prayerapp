@@ -4,6 +4,7 @@
 //
 //   npm run ios:device               # check .env.device, regenerate ios/, build and install
 //   npm run ios:device -- --check    # only check .env.device and show what would be built
+//   npm run ios:testflight           # paid team only: archive and upload to TestFlight
 //
 // It always builds:
 //  - a Release build: the JavaScript is inside the app, so it runs without
@@ -15,12 +16,13 @@
 // Values come from app/.env.device, never from app/.env (which stays set up
 // for the Simulator and the emulators).
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const appDir = fileURLToPath(new URL("..", import.meta.url));
 const envPath = fileURLToPath(new URL("../.env.device", import.meta.url));
 const checkOnly = process.argv.includes("--check");
+const testflight = process.argv.includes("--testflight");
 
 function fail(lines) {
   console.error(["", ...lines.map((l) => `  ${l}`), ""].join("\n"));
@@ -104,6 +106,7 @@ const remotePush = paid && get("REMOTE_PUSH") === "1";
 const projectId = get("EXPO_PUBLIC_FIREBASE_PROJECT_ID");
 if (projectId.startsWith("demo-")) problems.push(`EXPO_PUBLIC_FIREBASE_PROJECT_ID is "${projectId}", the emulator project. Use your real one (prayerapp-4ce99).`);
 
+if (testflight && !paid) problems.push("TestFlight needs the paid program: set APPLE_TEAM_ID.");
 if (problems.length) fail(["app/.env.device needs fixing:", ...problems.map((p) => `- ${p}`)]);
 
 // Device values win; emulator mode is forced off, and so are features the
@@ -127,7 +130,7 @@ console.log(`
   - Firebase project:   ${projectId} (real project, not the emulators)
   - sign-in:            ${appleSignIn ? "Google and Apple" : "Google only (Apple sign-in off)"}
   - push:               ${remotePush ? "on (aps-environment entitlement)" : "off (in-app notification permission still works)"}
-  - build:              Release, runs without your Mac
+  - build:              ${testflight ? "App Store archive, uploaded to TestFlight" : "Release, runs without your Mac"}
 `);
 
 function run(cmd, args, onFail = () => {}) {
@@ -170,6 +173,51 @@ if (checkOnly) {
   console.log(`  Google URL scheme:    ${JSON.stringify(cfg.ios?.infoPlist?.CFBundleURLTypes ?? []).includes(scheme) ? "set" : "MISSING"}`);
   if (needsPaid.length && !paid) fail([`These need the paid program and would break a free-team build: ${needsPaid.join(", ")}`]);
   console.log("\n  .env.device looks good. Run `npm run ios:device` with your iPhone connected.\n");
+  process.exit(0);
+}
+
+// TestFlight: archive with the paid team and upload to App Store Connect.
+// Xcode signs for distribution with the account you're signed into
+// (Settings > Apple Accounts) and sets a new build number on each upload,
+// so nothing needs bumping by hand. The app must already exist in App Store
+// Connect with this bundle id (docs/testflight.md).
+if (testflight) {
+  run("npx", ["expo", "prebuild", "--clean", "--platform", "ios"]);
+  const workspace = readdirSync(`${appDir}/ios`).find((f) => f.endsWith(".xcworkspace"));
+  if (!workspace) fail(["No .xcworkspace in ios/ after prebuild."]);
+  const scheme = workspace.replace(/\.xcworkspace$/, "");
+  const out = `${appDir}/ios/build`;
+  mkdirSync(out, { recursive: true });
+  writeFileSync(`${out}/ExportOptions.plist`, `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>method</key><string>app-store-connect</string>
+  <key>destination</key><string>upload</string>
+  <key>teamID</key><string>${teamId}</string>
+  <key>signingStyle</key><string>automatic</string>
+  <key>manageAppVersionAndBuildNumber</key><true/>
+  <key>uploadSymbols</key><true/>
+</dict></plist>
+`);
+  const archive = `${out}/${scheme}.xcarchive`;
+  run("xcodebuild", [
+    "-workspace", `ios/${workspace}`, "-scheme", scheme, "-configuration", "Release",
+    "-destination", "generic/platform=iOS", "-archivePath", archive,
+    "-allowProvisioningUpdates", "archive",
+  ]);
+  run("xcodebuild", [
+    "-exportArchive", "-archivePath", archive, "-exportOptionsPlist", `${out}/ExportOptions.plist`,
+    "-exportPath", `${out}/export`, "-allowProvisioningUpdates",
+  ], () => console.error(`
+  The upload failed. Common causes:
+  - No app with bundle id ${bundleId} in App Store Connect yet (docs/testflight.md, step 1).
+  - Xcode isn't signed into your Apple account (Xcode > Settings > Apple Accounts).
+`));
+  console.log(`
+  Uploaded to App Store Connect. In 5–30 minutes it appears under
+  TestFlight for your app (Apple processes it first). Then add testers there
+  (docs/testflight.md). To go back to the Simulator: npx expo prebuild --clean -p ios.
+`);
   process.exit(0);
 }
 

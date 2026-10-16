@@ -51,6 +51,7 @@
     "test:unit": "vitest run tests/unit",
     "lint": "expo lint",
     "ios:device": "node scripts/ios-device.mjs",
+    "ios:testflight": "node scripts/ios-device.mjs --testflight",
     "verses": "tsx scripts/verses.ts",
     "generate:kjv": "tsx scripts/generate-kjv.ts"
   },

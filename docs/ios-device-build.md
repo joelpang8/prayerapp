@@ -165,7 +165,8 @@ Same command, `npm run ios:device`, signed with your paid team instead. The app 
    - **"ApplicationVerificationFailed" when installing:** the iPhone isn't registered on the team yet. In the same Xcode window, choose the iPhone as the run destination at the top; under **Signing & Capabilities** click **Register Device** (or **Try Again**) until the errors clear, quit Xcode, and run `npm run ios:device` again.
    - **Many "codesign wants to access key" dialogs** on the first build: enter your Mac login password and click **Always Allow** in each, or run `security set-key-partition-list -S apple-tool:,apple:,codesign: -s ~/Library/Keychains/login.keychain-db` once.
 5. **Sign in with Apple** (when you're ready): in Firebase, **Authentication → Sign-in method → Add new provider → Apple**, enable it and save (nothing else is needed for the iOS app). Then set `EXPO_PUBLIC_APPLE_SIGN_IN=1` in `app/.env.device` and build again; Xcode adds the capability to the App ID.
-6. **Push** stays off (`REMOTE_PUSH=` empty) until the step 4 prototype is proven on the device. `docs/step4-notifications.md` covers the push key.
+6. **Friends' phones:** use TestFlight (`npm run ios:testflight`), see `testflight.md`.
+7. **Push** stays off (`REMOTE_PUSH=` empty) until the step 4 prototype is proven on the device. `docs/step4-notifications.md` covers the push key.
 
 ## Checking the friend flows by hand (step 1 acceptance)
 

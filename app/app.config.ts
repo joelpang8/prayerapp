@@ -44,6 +44,9 @@ const config: ExpoConfig = {
     bundleIdentifier: bundleId,
     ...(appleTeamId ? { appleTeamId } : {}),
     supportsTablet: false,
+    // Only standard HTTPS (exempt), so App Store Connect doesn't ask about
+    // export compliance on every TestFlight build.
+    config: { usesNonExemptEncryption: false },
     usesAppleSignIn: appleSignIn,
     infoPlist: {
       // Ask iOS for approximate location by default: only a town name is shown.
