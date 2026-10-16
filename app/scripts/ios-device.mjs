@@ -1,5 +1,6 @@
-// Builds the app for your own iPhone with a free Apple Personal Team, against
-// your real Firebase project. See docs/ios-device-build.md.
+// Builds the app for your own iPhone against your real Firebase project,
+// signed with your paid Apple Developer team (APPLE_TEAM_ID in .env.device)
+// or, without one, a free Personal Team. See docs/ios-device-build.md.
 //
 //   npm run ios:device               # check .env.device, regenerate ios/, build and install
 //   npm run ios:device -- --check    # only check .env.device and show what would be built
@@ -7,8 +8,9 @@
 // It always builds:
 //  - a Release build: the JavaScript is inside the app, so it runs without
 //    your Mac or Metro;
-//  - without Sign in with Apple and without push (both need the paid Apple
-//    Developer Program; a free team can't sign an app that asks for them);
+//  - free team: without Sign in with Apple and without push (a free team
+//    can't sign an app that asks for them). Paid team: each is on only if
+//    .env.device sets it to "1";
 //  - against the real project: emulator mode is forced off.
 // Values come from app/.env.device, never from app/.env (which stays set up
 // for the Simulator and the emulators).
@@ -90,29 +92,41 @@ if (webClient && !webClient.endsWith(".apps.googleusercontent.com")) {
 }
 if (webClient && webClient === iosClient) problems.push("EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is the iOS client id; use the Web client ID from Firebase > Authentication > Google.");
 
+const teamId = get("APPLE_TEAM_ID");
+const paid = !!teamId;
+if (teamId && !/^[A-Z0-9]{10}$/.test(teamId)) problems.push(`APPLE_TEAM_ID "${teamId}" should be 10 capital letters and digits (Membership details on developer.apple.com).`);
+if (!paid && (get("EXPO_PUBLIC_APPLE_SIGN_IN") === "1" || get("REMOTE_PUSH") === "1")) {
+  problems.push("Sign in with Apple and push need the paid program: set APPLE_TEAM_ID first.");
+}
+const appleSignIn = paid && get("EXPO_PUBLIC_APPLE_SIGN_IN") === "1";
+const remotePush = paid && get("REMOTE_PUSH") === "1";
+
 const projectId = get("EXPO_PUBLIC_FIREBASE_PROJECT_ID");
 if (projectId.startsWith("demo-")) problems.push(`EXPO_PUBLIC_FIREBASE_PROJECT_ID is "${projectId}", the emulator project. Use your real one (prayerapp-4ce99).`);
 
 if (problems.length) fail(["app/.env.device needs fixing:", ...problems.map((p) => `- ${p}`)]);
 
-// Device values win; features a free team can't sign are forced off, and so
-// is emulator mode. Expo never overrides variables already set here, so
-// anything in app/.env (the Simulator setup) can't leak in.
+// Device values win; emulator mode is forced off, and so are features the
+// team can't sign (or that aren't turned on). Expo never overrides
+// variables already set here, so anything in app/.env (the Simulator
+// setup) can't leak in.
 const env = {
   ...process.env,
   ...device,
   EXPO_PUBLIC_USE_EMULATORS: "",
   EXPO_PUBLIC_EMULATOR_HOST: "",
-  EXPO_PUBLIC_APPLE_SIGN_IN: "",
-  REMOTE_PUSH: "",
+  APPLE_TEAM_ID: teamId,
+  EXPO_PUBLIC_APPLE_SIGN_IN: appleSignIn ? "1" : "",
+  REMOTE_PUSH: remotePush ? "1" : "",
 };
 
 console.log(`
   iPhone build
   - bundle id:          ${bundleId}
+  - signing:            ${paid ? `paid team ${teamId}` : "free Personal Team (app expires after 7 days)"}
   - Firebase project:   ${projectId} (real project, not the emulators)
-  - sign-in:            Google only (Apple sign-in off)
-  - push:               off (in-app notification permission still works)
+  - sign-in:            ${appleSignIn ? "Google and Apple" : "Google only (Apple sign-in off)"}
+  - push:               ${remotePush ? "on (aps-environment entitlement)" : "off (in-app notification permission still works)"}
   - build:              Release, runs without your Mac
 `);
 
@@ -127,23 +141,29 @@ if (checkOnly) {
   if (r.status !== 0) fail(["Couldn't read the app config:", r.stderr.trim()]);
   const cfg = JSON.parse(r.stdout);
   const entitlements = Object.keys(cfg.ios?.entitlements ?? {});
-  const paid = entitlements.filter((k) => ["com.apple.developer.applesignin", "aps-environment"].includes(k));
+  const needsPaid = entitlements.filter((k) => ["com.apple.developer.applesignin", "aps-environment"].includes(k));
   console.log(`  Native bundle id:     ${cfg.ios?.bundleIdentifier}`);
+  console.log(`  Team:                 ${cfg.ios?.appleTeamId ?? "none (free Personal Team)"}`);
   console.log(`  Entitlements:         ${entitlements.length ? entitlements.join(", ") : "none"}`);
   console.log(`  Google URL scheme:    ${JSON.stringify(cfg.ios?.infoPlist?.CFBundleURLTypes ?? []).includes(scheme) ? "set" : "MISSING"}`);
-  if (paid.length) fail([`These need the paid program and would break a free-team build: ${paid.join(", ")}`]);
+  if (needsPaid.length && !paid) fail([`These need the paid program and would break a free-team build: ${needsPaid.join(", ")}`]);
   console.log("\n  .env.device looks good. Run `npm run ios:device` with your iPhone connected.\n");
   process.exit(0);
 }
 
 // Regenerate ios/ for this bundle id (the Simulator build uses another one),
-// then build Release and install. With no team preset, Expo signs with the
-// Apple Development certificate in your keychain (your Personal Team) and
-// lets Xcode create the free provisioning profile.
+// then build Release and install. With APPLE_TEAM_ID, the project is set to
+// that team and Xcode creates the App ID and profile (with any capabilities
+// turned on) automatically. Without it, Expo signs with your Personal Team's
+// Apple Development certificate and Xcode creates the free profile.
 run("npx", ["expo", "prebuild", "--clean", "--platform", "ios"]);
 run("npx", ["expo", "run:ios", "--device", "--configuration", "Release", ...process.argv.slice(2).filter((a) => a !== "--check")]);
 
-console.log(`
+console.log(paid ? `
+  Installed, signed with your team ${teamId}. It keeps working for a year
+  (no 7-day limit). For friends' phones, use TestFlight instead.
+  - To go back to the Simulator later: npx expo prebuild --clean -p ios, then npm run ios.
+` : `
   Installed. On the iPhone, the first time:
   - Settings > General > VPN & Device Management > your Apple ID > Trust.
   - The app stops opening after 7 days (free team limit): run this again.

@@ -144,6 +144,26 @@ This catches common mistakes: an empty value, `com.example.*`, a URL scheme that
 - **"Maximum number of apps for free development profiles":** delete an older sideloaded app from the phone.
 - **Back to the Simulator afterwards:** in `app/`, run `npx expo prebuild --clean -p ios`, then `npm run ios -- --port 8082`. The phone build uses a different bundle id, so the iOS project is regenerated.
 
+## C. Your iPhone with the paid Apple Developer Program
+
+Same command, `npm run ios:device`, signed with your paid team instead. The app keeps working for a year (no 7-day limit), and Sign in with Apple and push can be turned on, each only when its setup is done.
+
+1. **Choose your permanent bundle id**, e.g. `com.joelpang.praynow`. It can't change once the app is on the App Store. Use a new one rather than the free-team id from B3: Apple usually won't let a paid team claim an id registered by a Personal Team.
+2. **Add it to Firebase** as in B4 step 3: **Project settings → Your apps → Add app → iOS**, with the new bundle id. From its **GoogleService-Info.plist**, copy `CLIENT_ID` and `REVERSED_CLIENT_ID`. Google sign-in on iOS is tied to the bundle id, so the old values won't work.
+3. **Update `app/.env.device`:**
+   ```
+   IOS_BUNDLE_ID=com.joelpang.praynow
+   APPLE_TEAM_ID=67F8CKV875
+   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<new CLIENT_ID>
+   GOOGLE_IOS_URL_SCHEME=<new REVERSED_CLIENT_ID>
+   EXPO_PUBLIC_APPLE_SIGN_IN=
+   REMOTE_PUSH=
+   ```
+   Leave the Firebase web values as they are. Then run `npm run ios:device -- --check`; it should show `signing: paid team 67F8CKV875`.
+4. **Build:** connect the iPhone and run `npm run ios:device`. The first time, Xcode registers the App ID under your team by itself; if macOS asks for your keychain password, choose **Always Allow**. No "Trust" step is needed for a paid team.
+5. **Sign in with Apple** (when you're ready): in Firebase, **Authentication → Sign-in method → Add new provider → Apple**, enable it and save (nothing else is needed for the iOS app). Then set `EXPO_PUBLIC_APPLE_SIGN_IN=1` in `app/.env.device` and build again; Xcode adds the capability to the App ID.
+6. **Push** stays off (`REMOTE_PUSH=` empty) until the step 4 prototype is proven on the device. `docs/step4-notifications.md` covers the push key.
+
 ## Checking the friend flows by hand (step 1 acceptance)
 
 You need two accounts. Use the Simulator plus your phone, or two Simulators in emulator mode.

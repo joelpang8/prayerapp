@@ -17,6 +17,10 @@ const appleSignIn = process.env.EXPO_PUBLIC_APPLE_SIGN_IN === "1";
 // which is all the Simulator and `npm run dev:prompt` need.
 const remotePush = process.env.REMOTE_PUSH === "1";
 
+// Your paid Apple Developer team (app/.env.device, used by `npm run ios:device`).
+// Set: Xcode signs with that team. Unset: the free Personal Team, as before.
+const appleTeamId = process.env.APPLE_TEAM_ID || undefined;
+
 // Expo applies expo-apple-authentication's and expo-notifications' plugins
 // automatically whenever the packages are installed, and they always add their
 // entitlements. Remove them again while those features are off.
@@ -38,6 +42,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   ios: {
     bundleIdentifier: bundleId,
+    ...(appleTeamId ? { appleTeamId } : {}),
     supportsTablet: false,
     usesAppleSignIn: appleSignIn,
     infoPlist: {
