@@ -1,4 +1,4 @@
-# TestFlight: friends install Pray Now from a link
+# TestFlight: friends install PrayAlong from a link
 
 Needs the paid Apple Developer Program and `APPLE_TEAM_ID` in `app/.env.device` (see `ios-device-build.md`, part C). The TestFlight build uses the same settings as `npm run ios:device`: the real Firebase project, Google and Apple sign-in, push only once it's turned on.
 
@@ -7,7 +7,7 @@ Needs the paid Apple Developer Program and `APPLE_TEAM_ID` in `app/.env.device` 
 1. Go to **appstoreconnect.apple.com** → **Apps** → **+** → **New App**.
 2. Fill in:
    - **Platforms:** iOS
-   - **Name:** Pray Now. It must be unique on the App Store; if it's taken, try something like "Pray Now: daily prayer". You can change it before release.
+   - **Name:** PrayAlong (the App Store name; unique on the store). The name under the icon comes from `name` in `app/app.config.ts`, also PrayAlong.
    - **Primary language:** English
    - **Bundle ID:** pick `com.joelpang.praynow`. It's listed because Xcode registered it during the first device build.
    - **SKU:** any private label, e.g. `praynow`

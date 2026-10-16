@@ -14,7 +14,7 @@ export function inviteLink(username: string): string {
 }
 
 export function inviteMessage(username: string): string {
-  return `Pray with me on Pray Now 🙏\nAdd me as a friend: @${username}\n${inviteLink(username)}`;
+  return `Pray with me on PrayAlong 🙏\nAdd me as a friend: @${username}\n${inviteLink(username)}`;
 }
 
 export async function shareInvite(username: string): Promise<void> {

@@ -113,7 +113,7 @@ This catches common mistakes: an empty value, `com.example.*`, a URL scheme that
 1. Connect the iPhone and unlock it.
 2. Run `npm run ios:device`. When asked, **choose your iPhone** from the list. The first build takes 5–15 minutes.
 3. If macOS asks for your keychain password ("codesign wants to access key"), type your Mac login password and click **Always Allow**.
-4. **The first time only**, on the iPhone, go to **Settings → General → VPN & Device Management**, tap your Apple ID under **Developer App**, and tap **Trust**. Then open **Pray Now**.
+4. **The first time only**, on the iPhone, go to **Settings → General → VPN & Device Management**, tap your Apple ID under **Developer App**, and tap **Trust**. Then open **PrayAlong**.
 
 ### B7. Using it
 
