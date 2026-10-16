@@ -35,12 +35,6 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    - `authorId, verseBook, answeredAt desc` and `authorId, verseRef, answeredAt desc`: Answered, by verse.
    - `authorId, promptId desc`: the Prayers calendar and "Your month in prayer" (one app month by prompt id).
    - "On this day" (`authorId ==`, `promptId in`) and taps (`friendUid ==`) use Firestore's automatic single-field indexes; check F confirms.
-5. **After the first deploy of the Prayers filters, backfill older posts** (once; safe to repeat). From `firebase/`:
-   ```sh
-   node scripts/backfill-verse-books.mjs --project prayerapp-4ce99         # shows what it would change
-   node scripts/backfill-verse-books.mjs --project prayerapp-4ce99 --yes   # does it
-   ```
-   It adds `verseBook` to posts made before the filter existed and builds each person's verse index. Without it, older posts don't show under a verse filter.
 3. **Your login for the script.** Install the gcloud CLI (`brew install --cask google-cloud-sdk`), then:
    ```sh
    gcloud auth application-default login
@@ -55,6 +49,13 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
      --role="roles/iam.serviceAccountTokenCreator" --project prayerapp-4ce99
    ```
    The exact service account email is under Firebase console → Project settings → **Service accounts**. You can remove this role again after the checks.
+
+5. **After the first deploy of the Prayers filters, backfill older posts** (needs the login from step 3) (once; safe to repeat). From `firebase/`:
+   ```sh
+   node scripts/backfill-verse-books.mjs --project prayerapp-4ce99         # shows what it would change
+   node scripts/backfill-verse-books.mjs --project prayerapp-4ce99 --yes   # does it
+   ```
+   It adds `verseBook` to posts made before the filter existed and builds each person's verse index. Without it, older posts don't show under a verse filter.
 
 ## Run
 
