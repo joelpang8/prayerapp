@@ -37,6 +37,10 @@ const light = {
   danger: "#B3261E",
   /** Text on a danger background (e.g. the Activity badge). */
   onDanger: "#FFFFFF",
+  /** The prayer-window candle: flame, its bright core, and the wax. Decorative only. */
+  flame: "#E39B32",
+  flameCore: "#FFE7A6",
+  wax: "#F1EADF",
 };
 
 /** Night: warm dark brown rather than pure black, with a lighter accent for contrast. */
@@ -51,6 +55,9 @@ const dark: typeof light = {
   accentSoft: "#2D2742",
   danger: "#F2B8B5",
   onDanger: "#3A0D0B",
+  flame: "#EDA548",
+  flameCore: "#FFE3A0",
+  wax: "#CDC2B1",
 };
 
 export type Colors = typeof light;

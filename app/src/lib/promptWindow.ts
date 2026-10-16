@@ -36,3 +36,14 @@ export function mmss(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000));
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
+
+/**
+ * How much of the whole on-time window (prayer time + grace) is left,
+ * 1 → 0: the candle's height on Today. Decorative only; it never shows
+ * late as anything worse.
+ */
+export function candleLeft(firedAtMs: number, nowMs: number, windowMs = RESPOND_WINDOW_MS, graceMs = GRACE_MS): number {
+  const total = windowMs + graceMs;
+  const elapsed = Math.max(0, nowMs - firedAtMs);
+  return Math.max(0, Math.min(1, (total - elapsed) / total));
+}

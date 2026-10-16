@@ -1,5 +1,5 @@
-import { expect, test } from "vitest";
-import { mmss, windowState } from "../../src/lib/promptWindow";
+import { describe, expect, test } from "vitest";
+import { candleLeft, mmss, windowState } from "../../src/lib/promptWindow";
 
 const S = 1000;
 const fired = 1_000_000;
@@ -22,4 +22,18 @@ test("mm:ss like BeReal, rounding up", () => {
   expect(mmss(999)).toBe("00:01");
   expect(mmss(0)).toBe("00:00");
   expect(mmss(-5)).toBe("00:00");
+});
+
+describe("the candle", () => {
+  const fired = 1_000_000;
+  test("burns down over the whole on-time window (prayer time + grace)", () => {
+    expect(candleLeft(fired, fired)).toBe(1);
+    expect(candleLeft(fired, fired + 2 * 60_000)).toBeCloseTo(5 / 7);
+    expect(candleLeft(fired, fired + 7 * 60_000)).toBe(0);
+  });
+
+  test("never below empty or above full", () => {
+    expect(candleLeft(fired, fired + 60 * 60_000)).toBe(0);
+    expect(candleLeft(fired, fired - 5_000)).toBe(1); // phone clock a little behind
+  });
 });

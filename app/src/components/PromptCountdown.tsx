@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
-import { mmss, windowState } from "../lib/promptWindow";
+import { candleLeft, mmss, windowState } from "../lib/promptWindow";
+import { Candle } from "./Candle";
 import { fonts, makeStyles, Text, useColors } from "./ui";
 
 /** The current countdown, re-read twice a second until the post would be late. */
@@ -13,7 +14,7 @@ function useWindow(firedAt: Date) {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
   }, [live]);
-  return state;
+  return { ...state, candle: candleLeft(firedAt.getTime(), now) };
 }
 
 /**
@@ -29,6 +30,7 @@ export function PromptCountdown({ firedAt, whenLate = null }: { firedAt: Date; w
   const urgent = w.phase === "respond" && w.msLeft <= 10_000;
   return (
     <View style={styles.root} accessible accessibilityLabel={`${mmss(w.msLeft)} left${w.phase === "grace" ? " in the grace period" : " to pray"}`}>
+      <Candle left={w.candle} />
       <Text style={[styles.time, urgent && { color: colors.danger }]}>{mmss(w.msLeft)}</Text>
       <Text style={styles.label}>{w.phase === "respond" ? "Time to pray." : "Grace period: still on time"}</Text>
       <View style={styles.track}>
