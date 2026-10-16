@@ -70,6 +70,19 @@ node scripts/verify-production.mjs \
 
 Add `--bucket <name>` only if your bucket isn't `prayerapp-4ce99.firebasestorage.app`. The name is shown at the top of the Storage page in the console. It takes about 2–3 minutes, most of it waiting for the unfriend function to run.
 
+## Results: production, run 6fc3f730 (October 2026)
+
+All checks passed against `prayerapp-4ce99` after deploying the rules, indexes and nine functions.
+
+- **E (private posts): pass.** A friend's unfiltered query and direct read are refused; the filtered query leaves the private post out; the author reads it. The private-post fix is confirmed in production.
+- **F (Prayers tab): pass.** All seven query shapes work (every index built); a friend running them on someone else's posts is refused.
+- **G ("I'll pray for this"): pass.** Friend taps and sees only their own; owner lists; stranger can't tap or read; owner can't tap their own; the tap was deleted by the function right after an unfriend.
+- **B (feed limits):** `in` queries work up to 10 friends and are refused at 12. `FEED_CHUNK_SIZE` stays at 5, well inside the limit.
+- **C (unfriend, live):** production cuts an open listener off on the unfriend itself (about 50 ms later, no new data needed), and a later post is never delivered. Stronger than the emulator, which only refused on the next change.
+- **D (photo links):** no token after upload, none created by reading bytes; a token a friend minted with `getDownloadURL` stopped working 3 seconds after the unfriend (HTTP 403), and the former friend can no longer read the bytes. The step 2 guarantee holds.
+
+Rerun the script after any change to the rules, indexes or functions.
+
 ## What I'll do with the report
 
 - **B:** set `FEED_CHUNK_SIZE` to a safe value below the largest working size.
