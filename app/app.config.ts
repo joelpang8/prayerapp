@@ -99,7 +99,10 @@ const config: ExpoConfig = {
         isIosBackgroundLocationEnabled: false,
         isAndroidBackgroundLocationEnabled: false,
         isAndroidForegroundServiceEnabled: false,
-        motionUsagePermission: false,
+        // Never asked for: the app doesn't use motion data. App Store Connect
+        // still requires the text because expo-location's code references the
+        // motion API (ITMS-90683), so say so plainly.
+        motionUsagePermission: "Pray Now doesn't use motion or fitness data and never asks for it.",
       },
     ],
     // Prompt notifications. No custom sounds or background modes: a prompt is
