@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
+import { EmptyState } from "../../components/EmptyState";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, TextInput } from "../../components/ui";
 import { db } from "../../firebase";
 import {
@@ -78,7 +79,9 @@ export default function FriendsScreen() {
 
       <SectionTitle>Friends</SectionTitle>
       {!loaded && <Muted>Loading…</Muted>}
-      {loaded && graph.friends.size === 0 && <Muted>No friends yet. Find someone by their username above.</Muted>}
+      {loaded && graph.friends.size === 0 && (
+        <EmptyState icon="people-circle-outline" title="Pray together" message="Find a friend by their username above, or invite someone you pray with." />
+      )}
       {[...graph.friends].map((uid) =>
         row(uid, (
           <Button

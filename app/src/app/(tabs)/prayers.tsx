@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { EmptyState } from "../../components/EmptyState";
 import { MonthCalendar } from "../../components/MonthCalendar";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
@@ -88,7 +89,9 @@ export default function PrayersScreen() {
       ) : (
       <View style={styles.list} onLayout={(e) => { listY.current = e.nativeEvent.layout.y; }}>
         {loaded && posts.length === 0 && (
-          <Muted>{isThisMonth ? "Your prayers this month will appear here." : `No prayers in ${monthTitle(month)}.`}</Muted>
+          isThisMonth
+            ? <EmptyState icon="book-outline" title="Your prayers gather here" message="Each prayer you post this month appears below the calendar." />
+            : <EmptyState icon="book-outline" title={monthTitle(month)} message="No prayers were posted this month." />
         )}
         {posts.map((post, i) => {
           const key = dayKeyOfPromptId(post.promptId);
@@ -239,7 +242,7 @@ function FilteredList({ uid, filter }: { uid: string; filter: PrayerFilter }) {
   return (
     <View style={styles.list}>
       <Muted>{describeFilter(filter)}</Muted>
-      {current && current.posts.length === 0 && <Muted>No prayers match yet.</Muted>}
+      {current && current.posts.length === 0 && <EmptyState icon="search-outline" title="No prayers match" message="Try another filter, or clear the filters." />}
       {current?.posts.map((post) => (
         <PostCard key={post.id} post={post} author={profile} footer={<OwnPostActions post={post} />} />
       ))}

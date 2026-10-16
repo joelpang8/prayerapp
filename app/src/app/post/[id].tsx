@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
+import { EmptyState } from "../../components/EmptyState";
 import { MoreMenu } from "../../components/MoreMenu";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
@@ -52,7 +53,7 @@ export default function PostScreen() {
   if (!post) {
     return (
       <View style={styles.root}>
-        <View style={styles.content}>{loaded && <Muted>This prayer isn&apos;t available any more.</Muted>}</View>
+        <View style={styles.content}>{loaded && <EmptyState icon="leaf-outline" title="This prayer isn't available" message="It may have been removed." />}</View>
       </View>
     );
   }

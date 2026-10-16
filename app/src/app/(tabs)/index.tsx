@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { EmptyState } from "../../components/EmptyState";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { PromptCountdown } from "../../components/PromptCountdown";
@@ -101,7 +102,9 @@ export default function TodayScreen() {
           </Pressable>
         )}
       </View>
-      {feed.length === 0 && <Muted>Nothing from friends yet.</Muted>}
+      {feed.length === 0 && (
+        <EmptyState icon="people-outline" title="Your friends' prayers gather here" message="When a friend prays, their post shows up on this page." />
+      )}
       {feed.map((post) => (
         <PostCard
           key={post.id}

@@ -2,7 +2,8 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { Avatar } from "../components/Avatar";
-import { fonts, makeStyles, Muted, Text } from "../components/ui";
+import { EmptyState } from "../components/EmptyState";
+import { fonts, makeStyles, Text } from "../components/ui";
 import { timeAgo, type Activity } from "../lib/activity";
 import { reactionInfo } from "../lib/reactions";
 import { useActivity, useNow } from "../session/hooks";
@@ -40,7 +41,7 @@ export default function ActivityScreen() {
       contentContainerStyle={styles.content}
       data={items}
       keyExtractor={(a) => a.id}
-      ListEmptyComponent={<Muted>Nothing from friends in the last week yet. When they pray, comment or react, it shows up here.</Muted>}
+      ListEmptyComponent={<EmptyState icon="leaf-outline" title="All quiet" message="When friends pray, comment or react, it shows up here." />}
       renderItem={({ item }) => {
         const who = names.get(item.actorId);
         return (
