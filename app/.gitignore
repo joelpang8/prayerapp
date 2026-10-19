@@ -45,3 +45,6 @@ yarn-error.*
 .env.device
 firestore-debug.log
 storage-debug.log
+
+# Firebase iOS app config for push builds (REMOTE_PUSH=1); from the Firebase console.
+GoogleService-Info.plist

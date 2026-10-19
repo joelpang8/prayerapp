@@ -6,11 +6,11 @@ import { AppState, Linking, Platform } from "react-native";
 /**
  * Prompt notifications ("Time to pray").
  *
- * In development they come from `npm run dev:prompt`, which drops one into
- * the iOS Simulator. Real pushes to phones are step 4's integration, still to
- * come: they need the paid Apple account (REMOTE_PUSH=1, see app.config.ts).
- * Whatever sends them, the app's part is the same: permission, showing the
- * alert, and opening Today when it's tapped.
+ * On phones they're the daily push from the server (firebase/functions,
+ * firePrompt), in builds with REMOTE_PUSH=1; push.ts subscribes the phone.
+ * In development, `npm run dev:prompt` drops one into the iOS Simulator.
+ * Either way the app's part is the same: permission, showing the alert, and
+ * opening Today when it's tapped.
  */
 
 export type NotificationStatus = "granted" | "denied" | "undetermined";
@@ -29,7 +29,7 @@ export function statusFrom(p: Pick<Notifications.NotificationPermissionsStatus, 
 
 // The app's own on/off switch (Settings). iOS doesn't let an app withdraw
 // its permission, so "off" is the app's choice: it stops showing prompts
-// and, once real pushes exist, it unsubscribes this phone from them.
+// and unsubscribes this phone from the push (push.ts).
 // A preference about this device, not anyone's content, so it's kept on disk.
 const ENABLED_KEY = "notifications.enabled";
 let enabled = true;

@@ -5,7 +5,8 @@ import { View, type ColorValue } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
 import { ActivityBell } from "../../components/ActivityBell";
 import { navigationFonts, useColors } from "../../components/ui";
-import { useNotificationTaps } from "../../lib/notifications";
+import { useNotificationPermission, useNotificationsEnabled, useNotificationTaps } from "../../lib/notifications";
+import { usePromptSubscription, usePushTaps } from "../../lib/push";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph } from "../../session/SessionProvider";
 
@@ -50,7 +51,14 @@ export default function TabsLayout() {
   const requests = [...graph.incoming].filter((uid) => !blocked.has(uid)).length;
   // Tapping a "Time to pray" notification opens Today. (These tabs only
   // exist once signed in, so a tap while signed out just opens sign-in.)
-  useNotificationTaps(useCallback(() => router.navigate("/"), []));
+  const openToday = useCallback(() => router.navigate("/"), []);
+  useNotificationTaps(openToday);
+  usePushTaps(openToday);
+  // Push builds: this phone gets the daily "Time to pray" push only while the
+  // app's notifications switch is on and the phone allows notifications.
+  const permission = useNotificationPermission();
+  const notificationsOn = useNotificationsEnabled();
+  usePromptSubscription(permission.status === null ? null : notificationsOn && permission.status === "granted");
   return (
     <Tabs
       screenOptions={{

@@ -17,6 +17,11 @@ const appleSignIn = process.env.EXPO_PUBLIC_APPLE_SIGN_IN === "1";
 // which is all the Simulator and `npm run dev:prompt` need.
 const remotePush = process.env.REMOTE_PUSH === "1";
 
+// Push builds link React Native Firebase (messaging), which reads the iOS
+// app's GoogleService-Info.plist (Firebase console > Your apps > iOS app for
+// this bundle id). Git-ignored; only needed when REMOTE_PUSH=1.
+const googleServicesFile = process.env.GOOGLE_SERVICES_PLIST || "./GoogleService-Info.plist";
+
 // Your paid Apple Developer team (app/.env.device, used by `npm run ios:device`).
 // Set: Xcode signs with that team. Unset: the free Personal Team, as before.
 const appleTeamId = process.env.APPLE_TEAM_ID || undefined;
@@ -51,8 +56,19 @@ const config: ExpoConfig = {
     infoPlist: {
       // Ask iOS for approximate location by default: only a town name is shown.
       NSLocationDefaultAccuracyReduced: true,
+      // Push builds: as proven in the step 4 prototype.
+      ...(remotePush ? { UIBackgroundModes: ["remote-notification"] } : {}),
     },
+    ...(remotePush
+      ? {
+          googleServicesFile,
+          // Lets "Time to pray" break through Focus if the user allows it.
+          entitlements: { "com.apple.developer.usernotifications.time-sensitive": true },
+        }
+      : {}),
   },
+  // Read by app/src/lib/push.ts: whether this build has push linked in.
+  extra: { remotePush },
   android: {
     package: bundleId,
     adaptiveIcon: {
@@ -108,6 +124,17 @@ const config: ExpoConfig = {
     // Prompt notifications. No custom sounds or background modes: a prompt is
     // a plain alert, and the app reads the prompt itself from Firestore.
     ["expo-notifications", { enableBackgroundRemoteNotifications: false }],
+    // The daily "Time to pray" push (FCM topic), in push builds only; the same
+    // setup that was proven on an iPhone in the step 4 prototype. Its native
+    // code is only linked when REMOTE_PUSH=1 (react-native.config.js).
+    ...(remotePush
+      ? [
+          "@react-native-firebase/app",
+          "@react-native-firebase/messaging",
+          "./plugins/withRNFirebaseNoSPM",
+          ["expo-build-properties", { ios: { useFrameworks: "static" } }] as [string, object],
+        ]
+      : []),
     // Google Sign-In needs the reversed iOS client id as a URL scheme. It's
     // left out until configured, so emulator-only development still builds.
     ...(googleUrlScheme

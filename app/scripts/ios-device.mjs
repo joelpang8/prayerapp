@@ -103,6 +103,20 @@ if (!paid && (get("EXPO_PUBLIC_APPLE_SIGN_IN") === "1" || get("REMOTE_PUSH") ===
 const appleSignIn = paid && get("EXPO_PUBLIC_APPLE_SIGN_IN") === "1";
 const remotePush = paid && get("REMOTE_PUSH") === "1";
 
+// Push builds link React Native Firebase, which needs the iOS app's
+// GoogleService-Info.plist for this bundle id (git-ignored, in app/).
+const plistPath = fileURLToPath(new URL(`../${get("GOOGLE_SERVICES_PLIST") || "GoogleService-Info.plist"}`, import.meta.url));
+if (remotePush) {
+  if (!existsSync(plistPath)) {
+    problems.push(`REMOTE_PUSH=1 needs ${plistPath}: Firebase console > Project settings > Your apps > the iOS app for ${get("IOS_BUNDLE_ID")} > GoogleService-Info.plist.`);
+  } else {
+    const plistBundle = /<key>BUNDLE_ID<\/key>\s*<string>([^<]+)<\/string>/.exec(readFileSync(plistPath, "utf8"))?.[1];
+    if (plistBundle && plistBundle !== get("IOS_BUNDLE_ID")) {
+      problems.push(`GoogleService-Info.plist is for ${plistBundle}, but IOS_BUNDLE_ID is ${get("IOS_BUNDLE_ID")}. Download the plist of the iOS app with that bundle id.`);
+    }
+  }
+}
+
 const projectId = get("EXPO_PUBLIC_FIREBASE_PROJECT_ID");
 if (projectId.startsWith("demo-")) problems.push(`EXPO_PUBLIC_FIREBASE_PROJECT_ID is "${projectId}", the emulator project. Use your real one (prayerapp-4ce99).`);
 
@@ -129,7 +143,7 @@ console.log(`
   - signing:            ${paid ? `paid team ${teamId}` : "free Personal Team (app expires after 7 days)"}
   - Firebase project:   ${projectId} (real project, not the emulators)
   - sign-in:            ${appleSignIn ? "Google and Apple" : "Google only (Apple sign-in off)"}
-  - push:               ${remotePush ? "on (aps-environment entitlement)" : "off (in-app notification permission still works)"}
+  - push:               ${remotePush ? "on: daily \"Time to pray\" push (React Native Firebase, GoogleService-Info.plist)" : "off (in-app notification permission still works)"}
   - build:              ${testflight ? "App Store archive, uploaded to TestFlight" : "Release, runs without your Mac"}
 `);
 

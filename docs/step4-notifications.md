@@ -113,9 +113,19 @@ Send `proto-run.mjs` several times and note what the phone shows each time:
 
 Latencies to watch: fired-to-sent should be under 1 s. Sent-to-shown on the phone is normally a few seconds, but can be longer on iOS when the phone is asleep; that's the real-world number we need.
 
-## After it works: integration plan
+## Proven on an iPhone (October 2026)
+
+With the paid account and the APNs key in Firebase, the prototype app on an iPhone received the push with the app open, in the background, swiped away and with the phone locked. That cleared integration.
+
+## Integrated
+
+- **Server** (`firebase/functions/src/dailyPrompt.ts`, functions in `index.ts`): `planDailyPrompt` runs at 07:00 New York and writes `promptSchedule/{date}` with a random second in 08:00–21:00 and the day's verse. Clients can't read that collection (default deny, tested), so the moment stays secret. `schedulePromptTask` queues a Cloud Task for it; `firePrompt` never fires early, creates `prompts/{date}` and sends one push to the `prompt` topic. Every step is idempotent. A prompt already sent by hand that day is left alone, with no push.
+- **App** (`app/src/lib/push.ts`): in push builds (`REMOTE_PUSH=1`) the phone subscribes to the `prompt` topic while the app's notifications switch is on and the phone allows notifications, and unsubscribes when either is off. Tapping the alert opens Today. React Native Firebase's native code is linked only into push builds (`app/react-native.config.js`), so Simulator builds don't need a plist.
+- **Setup for push builds:** `REMOTE_PUSH=1` in `app/.env.device`, and `app/GoogleService-Info.plist` from the Firebase iOS app for the app's bundle id. `npm run ios:device -- --check` checks both.
+
+## After it works: integration plan (done; kept for reference)
 
 These are separate steps, and each gets its own tests:
 1. **Scheduler:** a daily function (`onSchedule`) picks the day's moment and writes a *server-only* schedule doc, so the time can't be read in advance. It then schedules the Cloud Task. When the task fires, it writes `prompts/{date}` with `firedAt` and the day's `verseRef` from `verse-list.json`, then sends the push to the real topic.
 2. **App:** add React Native Firebase messaging and a topic subscription. (Permission, tap handling and the countdown are already in the app.) The Today screen then shows the live countdown. It already reacts to a new prompt within seconds through Firestore, even if a push is late.
-3. **Remove** the prototype codebase and app.
+3. **Remove** the prototype codebase and app, once the integrated push is confirmed on a phone.

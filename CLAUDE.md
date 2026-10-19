@@ -17,6 +17,7 @@
 - **Prayer helper (ACTS)** only shows hints while writing. It never writes into the notes or adds fields to posts.
 - **Listen (text-to-speech)** plays only from a tap, reads only the verse text and reference, and stops when its screen closes or the app leaves the foreground. `expo-audio` is only for the silent-mode session switch: keep its plugin options (no microphone permission, no background audio).
 - **Build order and open decisions** are in `README.md` and `docs/decisions.md`. Ask before building anything that depends on an open decision.
-- **Step 4 prototype stays isolated.** `firebase/notify-proto/` and `prototypes/notify-app/` must not be imported by `app/` or `firebase/functions/` until it's proven on devices. Deploy the app with `functions:default`.
+- **Step 4 prototype stays isolated.** `firebase/notify-proto/` and `prototypes/notify-app/` were proven on an iPhone and are now integrated as copies (`firebase/functions/src/dailyPrompt.ts`, `app/src/lib/push.ts`). Never import the prototype from `app/` or `firebase/functions/`; it gets removed once the integrated push is confirmed on a phone. Deploy the app with `functions:default`.
+- **Daily prompt schedule is secret:** `promptSchedule/` is server-only (clients denied); never log or expose the day's moment before it fires. Push is one FCM topic (`prompt`); never store per-user push tokens.
 - **Theme:** colors come from `useColors()` / `makeStyles()` in `app/src/components/ui.tsx` (light and dark). Don't hard-code colors. Text and inputs use `Text`/`TextInput`/`Span` from there (lint enforces it).
 - **Expo SDK 57.** Check APIs against the installed packages' types, not memory. Use `npx expo install` to add packages.
