@@ -163,13 +163,16 @@ function run(cmd, args, onFail = () => {}) {
 const firstPaidBuildTip = () => {
   if (!paid) return;
   console.error(`
-  If the error says "No profiles for '${bundleId}' were found", let Xcode create
-  the profile once (it can't from the command line with a team preset):
+  If the error says "No profiles for '${bundleId}' were found", or that the
+  provisioning profile "does not support" a capability (after turning on push
+  or Apple sign-in), let Xcode create or update the profile once (it can't
+  from the command line with a team preset):
     1. open ios/*.xcworkspace
     2. Click the blue project at the top left, then the target under TARGETS,
        then the "Signing & Capabilities" tab.
     3. Tick "Automatically manage signing" and choose Team: ${teamId}.
-       Wait until "Provisioning Profile: Xcode Managed Profile" shows, no red errors.
+       Wait until "Provisioning Profile: Xcode Managed Profile" shows, no red errors
+       (click "Try Again" if offered).
     4. Quit Xcode and run npm run ios:device again.
 `);
 };
