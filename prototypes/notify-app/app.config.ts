@@ -37,6 +37,8 @@ const config: ExpoConfig = {
     "./plugins/withSceneLifecycle",
     "@react-native-firebase/app",
     "@react-native-firebase/messaging",
+    // Firebase through CocoaPods, not Swift Package Manager (see the plugin).
+    "./plugins/withRNFirebaseNoSPM",
     ["expo-build-properties", { ios: { useFrameworks: "static" } }],
   ],
 };
