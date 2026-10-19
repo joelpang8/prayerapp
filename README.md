@@ -35,6 +35,10 @@ prayerapp/
 └── .github/workflows/ci.yml  Rules tests + app type-check, lint and tests on every push
 ```
 
+## Updating the app
+
+From new code to phones (Simulator, your phone, TestFlight): `docs/updating.md`.
+
 ## Tests
 
 You need Node 22 and Java 11+. On a Mac: `brew install node@22 openjdk`.
