@@ -12,8 +12,7 @@ prayerapp/
 │   ├── firestore.rules       Security rules for Firestore: the privacy boundary
 │   ├── storage.rules         Security rules for post photos (same friendship check)
 │   ├── functions/            Cloud Functions: photo-link revocation, photo cleanup
-│   ├── notify-proto/         Step 4 PROTOTYPE functions (separate codebase): scheduled topic push
-│   ├── scripts/              fire-prompt.mjs (emulator-only), verify-production.mjs, proto-run.mjs
+│   ├── scripts/              fire-prompt.mjs, schedule-prompt.mjs, verify-production.mjs, backfill-verse-books.mjs
 │   ├── verses/verses.txt     Your curated daily verse list (check with: cd app && npm run verses)
 │   ├── firebase.json         Emulator config (demo project, no cloud needed)
 │   └── tests/                Rules + functions tests, run against the emulators
@@ -24,7 +23,6 @@ prayerapp/
 │   ├── src/auth/             Apple / Google sign-in
 │   ├── src/session/          Signed-in session: wires FriendScope and caches to the UI
 │   └── tests/                Data-layer tests (unit + against the emulators)
-├── prototypes/notify-app/    Step 4 PROTOTYPE app: push receipt + countdown, standalone
 ├── docs/
 │   ├── decisions.md          Settled and open decisions
 │   ├── step1-auth-friends.md Data model, security model, cached visibility
@@ -55,5 +53,5 @@ In a sandbox that routes traffic through an HTTPS proxy, use `npm run test:sandb
 1. Auth and mutual-follow friends, with tested security rules. **(done in code; still needs a run on a real device)**
 2. Posts and feed: photo and notes, on-time/late flag, personal history, friend feed. **(done in code; backend deployed and verified in production, including private posts: see `docs/production-checks.md`; still needs a run on a device)**
 3. Scripture: store only the verse reference, and render it in each viewer's chosen version. **(done in code: references, KJV text, curated list, per-viewer display; still needs a run on a device)**
-4. Notifications and countdown: prototyped on its own first. **(prototype proven on an iPhone; integrated: daily random prompt and push in `functions`, subscription in the app; needs a deploy and a push build to confirm on a phone)**
+4. Notifications and countdown: prototyped on its own first. **(done: proven on an iPhone, then integrated; the daily random prompt and push run in production and reached a phone. The prototype has been removed.)**
 5. Account deletion and data export. Must also remove the profile photo (`avatars/{uid}/`), bio (`users/{uid}/friendsOnly/about`), the user's comments and reactions on other people's posts, their "I'll pray for this" taps (`users/*/prayingFor/*_{uid}`, plus their own `prayingFor`) and `users/{uid}/private/verseIndex`.

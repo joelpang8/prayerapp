@@ -5,8 +5,7 @@
  * push (no per-user push tokens are stored).
  *
  * Pure parts, tested without the cloud. Ported from the step 4 prototype
- * (firebase/notify-proto) after it was proven on an iPhone; the app's code
- * never imports the prototype.
+ * after it was proven on an iPhone (the prototype has since been removed).
  */
 import { randomInt } from "node:crypto";
 import type { TopicMessage } from "firebase-admin/messaging";

@@ -17,7 +17,7 @@ There are two ways to run the app:
 4. Install CocoaPods: `brew install cocoapods`. `expo run:ios` uses it to install native dependencies.
 5. Install dependencies:
    ```sh
-   cd firebase && npm install && npm --prefix functions install && npm --prefix notify-proto install
+   cd firebase && npm install && npm --prefix functions install
    cd ../app && npm install
    ```
 

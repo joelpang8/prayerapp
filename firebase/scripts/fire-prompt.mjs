@@ -109,8 +109,8 @@ if (real) {
 await ref.set(prompt);
 console.log(`Prompt ${id} fired at ${firedAt.toLocaleTimeString()}${verseRef ? ` with ${verseRef}` : ""}`);
 
-// The Simulator notification. Same words as the real push (notify-proto's
-// message.ts); a prompt sent "minutes ago" says so instead.
+// The Simulator notification. Same words as the real push
+// (functions/src/dailyPrompt.ts); a prompt sent "minutes ago" says so instead.
 if (process.platform === "darwin" && !process.argv.includes("--no-notify")) {
   const b = process.argv.indexOf("--bundle-id");
   const envFile = new URL("../../app/.env", import.meta.url);

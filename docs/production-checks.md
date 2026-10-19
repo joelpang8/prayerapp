@@ -25,7 +25,7 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    npm --prefix functions install
    npx firebase deploy --only firestore,storage,functions:default
    ```
-   `functions:default` deploys only the app's nine functions. The step 4 push prototype is a separate codebase, `notify-proto`, and is deployed on its own when you test it (see `step4-notifications.md`). This command deploys the Firestore rules and indexes, the Storage rules and those nine functions. When it asks, let Storage read Firestore; the photo rules need that. Indexes can take a few minutes to build; checks B and F fail with `failed-precondition` until they're ready.
+   `functions:default` deploys the app's functions (twelve, including the daily prompt's three). This command deploys the Firestore rules and indexes, the Storage rules and those functions. When it asks, let Storage read Firestore; the photo rules need that. Indexes can take a few minutes to build; checks B and F fail with `failed-precondition` until they're ready.
    
    Indexes on `posts` (all in `firebase/firestore.indexes.json`):
    - `authorId, createdAt desc`: my posts by month; the feed.

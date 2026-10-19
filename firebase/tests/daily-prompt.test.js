@@ -32,6 +32,19 @@ describe("picking the day's moment (unit)", () => {
     expect(zonedToUtc("20260715", "08:00", "America/New_York").toISOString()).toBe("2026-07-15T12:00:00.000Z");
   });
 
+  test("wall-clock times in any zone, across daylight saving (ported from the prototype)", () => {
+    expect(zonedToUtc("20260308", "02:30", "America/Chicago").toISOString()).toBe("2026-03-08T08:30:00.000Z"); // nonexistent -> 03:30 CDT
+    expect(zonedToUtc("20261101", "01:30", "America/Chicago").toISOString()).toBe("2026-11-01T06:30:00.000Z"); // repeated hour: first occurrence
+    expect(zonedToUtc("20260715", "09:00", "Europe/London").toISOString()).toBe("2026-07-15T08:00:00.000Z");
+    expect(zonedToUtc("20260715", "09:00", "UTC").toISOString()).toBe("2026-07-15T09:00:00.000Z");
+  });
+
+  test("bad windows are rejected", () => {
+    expect(() => pickFireTime("20260715", { ...PROMPT_WINDOW, earliest: "21:00", latest: "08:00" })).toThrow();
+    expect(() => pickFireTime("20260715", { ...PROMPT_WINDOW, earliest: "8:00" })).toThrow();
+    expect(() => pickFireTime("2026-07-15", PROMPT_WINDOW)).toThrow();
+  });
+
   test("spread across the whole window, not clustered", () => {
     const start = zonedToUtc("20260715", "08:00", "America/New_York").getTime();
     const hours = new Set();
