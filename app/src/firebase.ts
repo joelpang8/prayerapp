@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApps, initializeApp } from "firebase/app";
 import { connectAuthEmulator, getReactNativePersistence, initializeAuth, type Auth } from "firebase/auth";
 import { connectFirestoreEmulator, initializeFirestore, type Firestore } from "firebase/firestore";
+import { connectFunctionsEmulator, getFunctions, type Functions } from "firebase/functions";
 import { connectStorageEmulator, getStorage, type FirebaseStorage } from "firebase/storage";
 import { resolveFirebaseConfig } from "./lib/firebaseConfig";
 import { firestoreSettings } from "./lib/firestoreSettings";
@@ -24,7 +25,7 @@ const resolved = resolveFirebaseConfig({
 export const usingEmulators = resolved.usingEmulators;
 const emulatorHost = resolved.emulatorHost;
 
-type Services = { auth: Auth; db: Firestore; storage: FirebaseStorage };
+type Services = { auth: Auth; db: Firestore; storage: FirebaseStorage; functions: Functions };
 
 function init(): Services {
   if (getApps().length) {
@@ -36,6 +37,8 @@ function init(): Services {
   const auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
   const db = initializeFirestore(app, firestoreSettings);
   const storage = getStorage(app);
+  // Callable functions (e.g. deleteAccount); the app's functions run in us-central1.
+  const functions = getFunctions(app, "us-central1");
   // Give up on an upload after a minute rather than the default ten, so a
   // post made with no connection falls back to the outbox's retries quickly.
   storage.maxUploadRetryTime = 60_000;
@@ -43,10 +46,11 @@ function init(): Services {
     connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
     connectFirestoreEmulator(db, emulatorHost, 8080);
     connectStorageEmulator(storage, emulatorHost, 9199);
+    connectFunctionsEmulator(functions, emulatorHost, 5001);
   }
-  const services = { auth, db, storage };
+  const services = { auth, db, storage, functions };
   (globalThis as unknown as { __prayerFirebase: Services }).__prayerFirebase = services;
   return services;
 }
 
-export const { auth, db, storage } = init();
+export const { auth, db, storage, functions } = init();

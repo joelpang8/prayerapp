@@ -9,11 +9,12 @@
 | **E** | Are private posts hidden from a current friend? A friend's query without the `visibility == "friends"` filter must be refused, the filtered query must leave the private post out, and a direct read of it must be refused. | Confirms the private-post fix in production. The script exits with an error if E fails. **Don't use private posts with real friends until E passes.** |
 | **F** | Do the Prayers tab's queries work in production (filters by answered, verse book, exact verse; "On this day"; one month for the calendar and recap)? The emulator doesn't check indexes, production does. A friend running the same query on my posts must be refused. | A missing index shows here as `failed-precondition` with a link to create it. |
 | **G** | "I'll pray for this": can a friend tap, can the owner see it, is a non-friend refused, can't the owner tap their own, and does the Cloud Function delete the tap after an unfriend? | Confirms the rules and the cleanup function are the deployed ones. |
+| **H** | Account deletion: does `deleteAccount` (called as a throwaway user, just signed in) remove their profile, posts, comment, reaction, follow, avatar and sign-in, while another person's post stays? | Confirms the deployed function and its collection-group indexes. The script exits with an error if H fails. |
 | **D** | Does revoking a photo's download token on unfriend really kill a saved link? Does reading a photo create a new token? | This is the guarantee from step 2. |
 
 It runs on **your Mac, with your own Google login**. It creates throwaway users (uids starting `zzv`), follows, posts, a prayer request and tap, and one tiny photo. It deletes all of them when it finishes, including after a failure. It prints a JSON report with no secrets in it. Paste that report back to me.
 
-Dry run against the local emulators: `npx firebase emulators:exec --only auth,firestore,storage,functions --project demo-prayerapp "node scripts/verify-production.mjs --emulator"`. I ran this in my environment: the mechanics work, and B to G all produce results. In the emulator, check B showed 10 friends working and 12 refused, and E, F and G passed (F's indexes can only be proven in production).
+Dry run against the local emulators: `npx firebase emulators:exec --only auth,firestore,storage,functions --project demo-prayerapp "node scripts/verify-production.mjs --emulator"`. I ran this in my environment: the mechanics work, and B to H all produce results. In the emulator, check B showed 10 friends working and 12 refused, and E, F, G and H passed (F's indexes can only be proven in production).
 
 ## One-time setup
 
@@ -25,7 +26,7 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    npm --prefix functions install
    npx firebase deploy --only firestore,storage,functions:default
    ```
-   `functions:default` deploys the app's functions (twelve, including the daily prompt's three). This command deploys the Firestore rules and indexes, the Storage rules and those functions. When it asks, let Storage read Firestore; the photo rules need that. Indexes can take a few minutes to build; checks B and F fail with `failed-precondition` until they're ready.
+   `functions:default` deploys the app's functions (thirteen, including the daily prompt's three and `deleteAccount`). This command deploys the Firestore rules and indexes, the Storage rules and those functions. When it asks, let Storage read Firestore; the photo rules need that. Indexes can take a few minutes to build; checks B and F fail with `failed-precondition` until they're ready.
    
    Indexes on `posts` (all in `firebase/firestore.indexes.json`):
    - `authorId, createdAt desc`: my posts by month; the feed.
@@ -35,6 +36,7 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    - `authorId, verseBook, answeredAt desc` and `authorId, verseRef, answeredAt desc`: Answered, by verse.
    - `authorId, promptId desc`: the Prayers calendar and "Your month in prayer" (one app month by prompt id).
    - "On this day" (`authorId ==`, `promptId in`) and taps (`friendUid ==`) use Firestore's automatic single-field indexes; check F confirms.
+   - Collection-group field overrides on `comments.authorId`, `reactions.authorId` and `prayingFor.friendUid`: account deletion finds a person's comments, reactions and taps everywhere. Check H confirms.
 3. **Your login for the script.** Install the gcloud CLI (`brew install --cask google-cloud-sdk`), then:
    ```sh
    gcloud auth application-default login
@@ -56,6 +58,8 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    node scripts/backfill-verse-books.mjs --project prayerapp-4ce99 --yes   # does it
    ```
    It adds `verseBook` to posts made before the filter existed and builds each person's verse index. Without it, older posts don't show under a verse filter.
+
+6. **Apple token revocation (for account deletion).** Apple asks apps to revoke the Apple sign-in when an account is deleted. The app does this through Firebase, which needs Apple's code flow set up once: Firebase console → Authentication → Sign-in method → **Apple** → fill in the **OAuth code flow configuration**: Apple Team ID `67F8CKV875`, a **Key ID** and **private key** of a key with "Sign in with Apple" enabled (Apple Developer → Keys → +; it can be a new key, separate from the push key), and a **Services ID** (Apple Developer → Identifiers → Services IDs; any id such as `com.joelpang.praynow.signin`). Without it, deletion still removes everything; the app just logs that revoking failed, and the person can remove PrayAlong under Settings → Apple ID → Sign in with Apple.
 
 ## Run
 
@@ -87,6 +91,6 @@ Rerun the script after any change to the rules, indexes or functions.
 
 - **B:** set `FEED_CHUNK_SIZE` to a safe value below the largest working size.
 - **C:** confirm, or adjust the docs if production behaves differently from the emulator.
-- **F** and **G:** must say `"pass": true`. A `failed-precondition` in F means an index is still building (wait, then rerun) or missing (tell me).
+- **F**, **G** and **H:** must say `"pass": true`. A `failed-precondition` in F means an index is still building (wait, then rerun) or missing (tell me).
 - **E:** must say `"pass": true`. If it doesn't, stop and send me the report; the rules deployed aren't the ones in this repo.
 - **D:** if the link dies after unfriend, the guarantee holds. If it doesn't, we switch photo reads to a different design, such as short-lived signed URLs from a Cloud Function. That's more work, but it closes the gap for certain.

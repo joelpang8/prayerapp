@@ -4,6 +4,8 @@ import { GoogleSignin, isSuccessResponse } from "@react-native-google-signin/goo
 import {
   GoogleAuthProvider,
   OAuthProvider,
+  reauthenticateWithCredential,
+  revokeAccessToken,
   signInWithCredential,
   signOut as firebaseSignOut,
   type UserCredential,
@@ -72,6 +74,54 @@ export async function signInForDevelopment(name: string): Promise<SignInResult> 
   const fakeToken = JSON.stringify({ sub, email: `${sub}@example.com`, email_verified: true, name });
   const credential = await signInWithCredential(auth, GoogleAuthProvider.credential(fakeToken));
   return { credential, suggestedName: name };
+}
+
+/**
+ * Signs the current person in again with the same provider, as required
+ * right before deleting the account. For Apple it also returns the
+ * authorization code, which deleteAccount needs to revoke Apple's token.
+ * Returns null if they cancelled.
+ */
+export async function reauthenticate(): Promise<{ appleAuthorizationCode: string | null } | null> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not signed in.");
+  const provider = user.providerData[0]?.providerId;
+  if (provider === "apple.com") {
+    const rawNonce = Crypto.randomUUID();
+    const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+    let apple: AppleAuthentication.AppleAuthenticationCredential;
+    try {
+      apple = await AppleAuthentication.signInAsync({ requestedScopes: [], nonce: hashedNonce });
+    } catch (err) {
+      if ((err as { code?: string }).code === "ERR_REQUEST_CANCELED") return null;
+      throw err;
+    }
+    if (!apple.identityToken) throw new Error("Apple did not return an identity token.");
+    await reauthenticateWithCredential(user, new OAuthProvider("apple.com").credential({ idToken: apple.identityToken, rawNonce }));
+    return { appleAuthorizationCode: apple.authorizationCode ?? null };
+  }
+  if (usingEmulators) {
+    // Development sign-in: the same fake Google token it signed in with.
+    const sub = (user.email ?? "tester@example.com").split("@")[0];
+    const fakeToken = JSON.stringify({ sub, email: user.email, email_verified: true, name: user.displayName ?? sub });
+    await reauthenticateWithCredential(user, GoogleAuthProvider.credential(fakeToken));
+    return { appleAuthorizationCode: null };
+  }
+  if (!googleConfigured) throw new Error("Google Sign-In isn't configured.");
+  const response = await GoogleSignin.signIn();
+  if (!isSuccessResponse(response)) return null;
+  if (!response.data.idToken) throw new Error("Google did not return an ID token.");
+  await reauthenticateWithCredential(user, GoogleAuthProvider.credential(response.data.idToken));
+  return { appleAuthorizationCode: null };
+}
+
+/**
+ * Apple requires apps to revoke its tokens when an account is deleted.
+ * Needs Apple's OAuth code-flow settings in the Firebase console
+ * (Authentication > Apple: Services ID, team, key); see docs.
+ */
+export async function revokeAppleToken(authorizationCode: string): Promise<void> {
+  await revokeAccessToken(auth, authorizationCode);
 }
 
 export async function signOut(): Promise<void> {

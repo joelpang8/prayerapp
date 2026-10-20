@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Switch, View } from "react-native";
 import { signOut } from "../../auth/signIn";
@@ -115,6 +116,7 @@ export default function SettingsScreen() {
 
       <View style={styles.spacer} />
       <Button title="Sign out" kind="secondary" onPress={() => signOut()} />
+      <Button title="Delete account…" kind="danger" onPress={() => router.push("/delete-account")} />
     </ScrollView>
   );
 }

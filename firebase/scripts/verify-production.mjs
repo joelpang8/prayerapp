@@ -28,6 +28,7 @@ import {
 import {
   connectStorageEmulator, getBytes, getDownloadURL, getStorage, ref, uploadBytes,
 } from "firebase/storage";
+import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
 
 // ---------- arguments ----------
 const arg = (name) => {
@@ -85,15 +86,17 @@ async function clientFor(userId) {
   const auth = getAuth(app);
   const fs = initializeFirestore(app, { localCache: memoryLocalCache() });
   const st = getStorage(app);
+  const fn = getFunctions(app, "us-central1");
   if (emulator) {
     connectAuthEmulator(auth, `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}`, { disableWarnings: true });
     const [fh, fp] = process.env.FIRESTORE_EMULATOR_HOST.split(":");
     connectFirestoreEmulator(fs, fh, Number(fp));
     const [sh, sp] = process.env.FIREBASE_STORAGE_EMULATOR_HOST.split(":");
     connectStorageEmulator(st, sh, Number(sp));
+    connectFunctionsEmulator(fn, "127.0.0.1", 5001);
   }
   await signInWithCustomToken(auth, token);
-  return { fs, st };
+  return { fs, st, fn };
 }
 
 async function setDocAdmin(path, data) {
@@ -215,6 +218,44 @@ async function checkPrayingCleanup() {
   log(`G tap deleted after unfriend = ${gone}`);
 }
 
+// ---------- H: account deletion ----------
+// A throwaway account with a post, a comment and a reaction on someone else's
+// post, a follow and a profile photo deletes itself; all of it must go,
+// including the sign-in, and the other person's post must stay.
+async function checkAccountDeletion() {
+  const gone = uid("del");
+  const other = uid("dlo");
+  await setDocAdmin(`users/${gone}`, { username: `zzv${RUN}del`.toLowerCase(), displayName: "deletion check", createdAt: AdminTimestamp.now() });
+  await setDocAdmin(`users/${other}`, { username: `zzv${RUN}dlo`.toLowerCase(), displayName: "deletion check 2", createdAt: AdminTimestamp.now() });
+  const myPost = await seedPost(gone, 7);
+  const theirPost = await seedPost(other, 8);
+  await setDocAdmin(`posts/${theirPost}/comments/c1`, { authorId: gone, text: "check", createdAt: AdminTimestamp.now() });
+  await setDocAdmin(`posts/${theirPost}/reactions/${gone}`, { authorId: gone, kind: "praying", createdAt: AdminTimestamp.now() });
+  await follow(gone, other);
+  await files.file(`avatars/${gone}/a.jpg`).save(JPEG, { contentType: "image/jpeg" });
+  const client = await clientFor(gone);
+  const out = {};
+  try {
+    await httpsCallable(client.fn, "deleteAccount")();
+    out.called = true;
+  } catch (e) {
+    out.called = false;
+    out.error = `${e.code ?? ""} ${String(e.message).slice(0, 200)}`;
+  }
+  const exists = async (path) => (await db.doc(path).get()).exists;
+  out.userDocGone = !(await exists(`users/${gone}`));
+  out.postGone = !(await exists(`posts/${myPost}`));
+  out.commentGone = !(await exists(`posts/${theirPost}/comments/c1`));
+  out.reactionGone = !(await exists(`posts/${theirPost}/reactions/${gone}`));
+  out.followGone = !(await exists(`follows/${gone}_${other}`));
+  out.avatarGone = !(await files.file(`avatars/${gone}/a.jpg`).exists())[0];
+  out.signInGone = await adminAuth(admin).getUser(gone).then(() => false, (e) => e.code === "auth/user-not-found");
+  out.otherPostKept = await exists(`posts/${theirPost}`);
+  out.pass = Object.entries(out).every(([k, v]) => k === "error" || v === true);
+  report.checks.H_accountDeletion = out;
+  log(`H account deletion = ${out.pass}`);
+}
+
 // ---------- C: open listener after unfriend ----------
 async function checkListenerCutoff(viewer) {
   const events = [];
@@ -296,6 +337,7 @@ async function cleanup() {
   created.docs.add(`users/${MAIN}/private/verseIndex`);
   for (const path of created.docs) await db.doc(path).delete().catch(() => {});
   await files.deleteFiles({ prefix: `postPhotos/zzv${RUN}` }).catch(() => {});
+  await files.deleteFiles({ prefix: `avatars/zzv${RUN}` }).catch(() => {});
   for (const u of created.users) await adminAuth(admin).deleteUser(u).catch(() => {});
 }
 
@@ -314,6 +356,7 @@ try {
   await checkPraying(author, viewer, await clientFor(AUTHORS[1]));
   await checkListenerCutoff(viewer);
   await checkPrayingCleanup();
+  await checkAccountDeletion();
   await checkPhotoLinks(author, viewer);
 } catch (e) {
   report.error = `${e.code ?? ""} ${e.message}`;
@@ -322,6 +365,6 @@ try {
   await cleanup();
   console.log("\n===== paste everything below this line =====");
   console.log(JSON.stringify(report, null, 2));
-  const failed = ["E_privatePosts", "F_prayersTab", "G_praying"].some((k) => report.checks[k]?.pass === false);
+  const failed = ["E_privatePosts", "F_prayersTab", "G_praying", "H_accountDeletion"].some((k) => report.checks[k]?.pass === false);
   process.exit(report.error || failed ? 1 : 0);
 }

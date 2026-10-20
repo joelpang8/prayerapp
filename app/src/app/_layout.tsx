@@ -67,6 +67,7 @@ function RootNavigator() {
         <Stack.Screen name="activity" options={{ ...pushed, title: "Activity" }} />
         <Stack.Screen name="u/[username]" options={{ ...pushed, title: "Invite" }} />
         <Stack.Screen name="read/[ref]" options={{ ...pushed, title: "Read" }} />
+        <Stack.Screen name="delete-account" options={{ ...pushed, title: "Delete account" }} />
       </Stack.Protected>
     </Stack>
   );
