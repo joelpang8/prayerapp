@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import { deletePost, setAnswered, type Post } from "../lib/posts";
 import { Button, makeStyles } from "./ui";
 import { t } from "../i18n";
+import { haptics } from "../lib/haptics";
 
 export function OwnPostActions({ post }: { post: Post }) {
   const styles = useStyles();
@@ -32,6 +33,7 @@ export function OwnPostActions({ post }: { post: Post }) {
     setBusy(true);
     try {
       await setAnswered(db, post, true);
+      haptics.done();
     } catch (err) {
       console.warn(err);
       Alert.alert(t("common.didntWork"), t("common.tryAgain"));

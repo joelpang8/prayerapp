@@ -13,6 +13,7 @@ import { usePassage, useSavedVerses } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
 import { useVerseSpeech } from "../session/useVerseSpeech";
 import { fonts, makeStyles, Span, Text, useColors } from "./ui";
+import { haptics } from "../lib/haptics";
 
 const PREVIEW_VERSES = 4;
 
@@ -122,7 +123,10 @@ function SaveButton({ refId, reference }: { refId: string; reference: string }) 
     setBusy(true);
     try {
       if (saved) await unsaveVerse(db, profile.uid, refId);
-      else await saveVerse(db, profile.uid, refId);
+      else {
+        haptics.tap();
+        await saveVerse(db, profile.uid, refId);
+      }
     } catch (err) {
       console.warn("save verse failed", err);
     } finally {

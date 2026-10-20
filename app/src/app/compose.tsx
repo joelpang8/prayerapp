@@ -16,6 +16,7 @@ import { editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, postIdFor, setAnswe
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
 import { t } from "../i18n";
+import { haptics } from "../lib/haptics";
 
 export default function ComposeScreen() {
   const styles = useStyles();
@@ -173,6 +174,7 @@ function Composer({
         });
       }
       if (!editing) void clearDraft(uid);
+      haptics.done();
       setLeaving(true);
     } catch (err) {
       console.warn("post failed", err);

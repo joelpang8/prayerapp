@@ -9,6 +9,7 @@ import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
 import { fonts, makeStyles, Muted, Text } from "./ui";
 import { t } from "../i18n";
+import { haptics } from "../lib/haptics";
 
 const BULLET_WIDTH = 12;
 
@@ -69,6 +70,7 @@ function FriendRequests({ uid, name, requests }: { uid: string; name: string; re
 
   async function toggle(itemId: string) {
     setBusy(itemId);
+    haptics.tap();
     try {
       if (mine.has(itemId)) await stopPraying(db, uid, me.uid, itemId);
       else await prayFor(db, uid, me.uid, itemId);
