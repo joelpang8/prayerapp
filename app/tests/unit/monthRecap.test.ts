@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, test } from "vitest";
 import { appMonthOf, buildRecap, dayKeyOfPromptId, monthIdRange, prayersText } from "../../src/lib/monthRecap";
 
@@ -106,5 +107,27 @@ describe("the recap", () => {
   test("wording", () => {
     expect(prayersText(1)).toBe("1 prayer");
     expect(prayersText(12)).toBe("12 prayers");
+  });
+});
+
+describe("calendar thumbnails", () => {
+  test("one mark per app day: the newest prayer's photo, answered if any prayer that day was", async () => {
+    const { markedDays } = await import("../../src/lib/monthRecap");
+    const m = markedDays([
+      { promptId: "20261015", answeredAt: null, photoPath: "postPhotos/me/b.jpg" },
+      { promptId: "20261015", answeredAt: new Date(), photoPath: "postPhotos/me/a.jpg" },
+      { promptId: "20261003", answeredAt: null, photoPath: "privatePhotos/me/c.jpg" },
+    ]);
+    expect([...m.entries()]).toEqual([
+      ["2026-10-15", { answered: true, photoPath: "postPhotos/me/b.jpg" }],
+      ["2026-10-03", { answered: false, photoPath: "privatePhotos/me/c.jpg" }],
+    ]);
+  });
+
+  test("the calendar only loads my own photos, kept in memory", () => {
+    const src = readFileSync("src/components/MonthCalendar.tsx", "utf8");
+    expect(src).toContain("usePhoto(path, profile.uid)");
+    expect(src).toContain('cachePolicy="none"');
+    expect(src).not.toMatch(/getDownloadURL/);
   });
 });

@@ -75,3 +75,18 @@ export function buildRecap(me: string, posts: readonly Pick<Post, "authorId" | "
 
 /** "1 prayer", "12 prayers". */
 export const prayersText = (n: number) => (n === 1 ? "1 prayer" : `${n} prayers`);
+
+/**
+ * The calendar's marks: for each app day with a prayer, whether any prayer
+ * that day was answered, and the photo of the first one in `posts` (newest
+ * first) for its thumbnail.
+ */
+export function markedDays(posts: readonly Pick<Post, "promptId" | "answeredAt" | "photoPath">[]): Map<string, { answered: boolean; photoPath: string | null }> {
+  const m = new Map<string, { answered: boolean; photoPath: string | null }>();
+  for (const p of posts) {
+    const key = dayKeyOfPromptId(p.promptId);
+    const prev = m.get(key);
+    m.set(key, { answered: (prev?.answered ?? false) || !!p.answeredAt, photoPath: prev?.photoPath ?? p.photoPath ?? null });
+  }
+  return m;
+}

@@ -44,6 +44,9 @@ const light = {
   /** Answered prayers: a quiet gold mark (text and borders) and its soft fill. */
   gold: "#8A5F0E",
   goldSoft: "#FBF3DF",
+  /** Text on a photo (e.g. the date on a calendar thumbnail), over a soft dark wash. */
+  scrim: "rgba(0,0,0,0.32)",
+  onScrim: "#FFFFFF",
   /** Reading mode (the chapter screen): warmer paper and its hairlines. */
   paper: "#F4ECDD",
   paperRule: "#E2D6C2",
@@ -66,6 +69,8 @@ const dark: typeof light = {
   wax: "#CDC2B1",
   gold: "#E2BE6A",
   goldSoft: "#2E2717",
+  scrim: "rgba(0,0,0,0.4)",
+  onScrim: "#FFFFFF",
   paper: "#1B1813",
   paperRule: "#3A342B",
 };

@@ -13,7 +13,7 @@ import {
   type PrayerFilter, type VerseIndex,
 } from "../../lib/myPrayers";
 import { appDayId, onThisDayIds, yearsAgoText } from "../../lib/onThisDay";
-import { appMonthOf, buildRecap, dayKeyOfPromptId, prayersText, watchMyPostsInMonth } from "../../lib/monthRecap";
+import { appMonthOf, buildRecap, dayKeyOfPromptId, markedDays, prayersText, watchMyPostsInMonth } from "../../lib/monthRecap";
 import { type Post } from "../../lib/posts";
 import { BOOKS } from "../../lib/scripture/books";
 import { bookById, formatReference, parseRefId } from "../../lib/scripture/reference";
@@ -38,14 +38,7 @@ export default function PrayersScreen() {
   const offsets = useRef(new Map<string, number>());
   const listY = useRef(0);
 
-  const marked = useMemo(() => {
-    const m = new Map<string, boolean>();
-    for (const p of posts) {
-      const key = dayKeyOfPromptId(p.promptId);
-      m.set(key, (m.get(key) ?? false) || !!p.answeredAt);
-    }
-    return m;
-  }, [posts]);
+  const marked = useMemo(() => markedDays(posts), [posts]);
 
   const now = appMonthOf(new Date());
   const isThisMonth = month.year === now.year && month.month === now.month;
