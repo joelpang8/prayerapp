@@ -79,6 +79,7 @@
 | Idea | Why it waits |
 |---|---|
 | **Lock-screen countdown that starts with the app closed** | Built in October 2026 starting on the phone when the app is opened. Starting it from the alert itself needs push-to-start tokens stored per phone, which the app deliberately doesn't do. |
+| **Prayer circles** (named groups such as "Small group" or "Family" to share a prayer with only some friends) | Skipped for now (October 2026). Proposed design if picked up: a post's audience is a circle **and** the live mutual-friend check (it can only narrow, never widen); circle photos in their own Storage folder checked against the post; comments and reactions follow "can see the post"; account deletion removes circles and the person from others' circles. Open questions to ask first: whether members see the circle's name, whether removing someone hides older circle posts, one or several circles per post, comments on circle posts. |
 | **Home-screen widget** with the day's verse | Needs a native widget extension target and an App Group to share data with the app; App Groups aren't available to a free Personal Team. |
 | **Web invite links** that work without the app installed | Needs a small website plus Universal Links (Associated Domains), which also needs the paid account. |
 
