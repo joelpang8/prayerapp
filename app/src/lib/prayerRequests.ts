@@ -46,3 +46,24 @@ export function assignRequestIds(before: readonly PrayerRequest[], lines: readon
   }
   return lines.map((line) => unused.get(line)?.shift() ?? newId());
 }
+
+/*
+ * The bullet-list editor: one text box per request. While editing, empty
+ * rows are kept (a new row starts empty); saving drops them (splitRequests).
+ */
+
+/** The editor's rows for the stored text: one per line, at least one. */
+export function editorRows(text: string): string[] {
+  const rows = splitRequests(text);
+  return rows.length > 0 ? rows : [""];
+}
+
+/** One request is one line: a pasted line break becomes a space. */
+export function cleanRow(text: string): string {
+  return text.replace(/\s*\r?\n\s*/g, " ");
+}
+
+/** Room for another row: under the limit, and no empty row waiting to be filled. */
+export function canAddRow(rows: readonly string[]): boolean {
+  return rows.length < MAX_REQUESTS && rows.every((r) => r.trim() !== "");
+}

@@ -66,3 +66,41 @@ describe("who's praying (the owner's view)", () => {
     expect(prayingNamesText(["Ana", "Ben", "Cy"])).toBe("Ana, Ben and Cy are praying for this");
   });
 });
+
+describe("the bullet-list editor", () => {
+  test("starts with one row per request, or one empty row", async () => {
+    const { editorRows } = await import("../../src/lib/prayerRequests");
+    expect(editorRows("Mum's health\nWisdom at work")).toEqual(["Mum's health", "Wisdom at work"]);
+    expect(editorRows("")).toEqual([""]);
+    expect(editorRows("  \n a \n\n")).toEqual(["a"]);
+  });
+
+  test("a pasted line break stays in one request", async () => {
+    const { cleanRow } = await import("../../src/lib/prayerRequests");
+    expect(cleanRow("Mum's\nhealth")).toBe("Mum's health");
+    expect(cleanRow("a \r\n  b")).toBe("a b");
+  });
+
+  test("adds a row only under the limit and when none is empty", async () => {
+    const { canAddRow, MAX_REQUESTS } = await import("../../src/lib/prayerRequests");
+    expect(canAddRow(["a"])).toBe(true);
+    expect(canAddRow(["a", " "])).toBe(false);
+    expect(canAddRow(Array.from({ length: MAX_REQUESTS - 1 }, (_, i) => `r${i}`))).toBe(true);
+    expect(canAddRow(Array.from({ length: MAX_REQUESTS }, (_, i) => `r${i}`))).toBe(false);
+  });
+
+  test("saves as one request per line, blank rows dropped, ids kept for unchanged requests", async () => {
+    const { joinRequests, splitRequests, assignRequestIds } = await import("../../src/lib/prayerRequests");
+    const edited = joinRequests(["Mum's health", "", "Wisdom at work", " "]);
+    const lines = splitRequests(edited);
+    expect(joinRequests(lines)).toBe("Mum's health\nWisdom at work");
+    let n = 0;
+    const ids = assignRequestIds([{ id: "reqmumhealth1", text: "Mum's health" }], lines, () => `newid000${++n}`);
+    expect(ids).toEqual(["reqmumhealth1", "newid0001"]);
+  });
+});
+
+test("blank rows left in the editor don't count toward the limits", () => {
+  const text = ["x".repeat(495), ...Array(12).fill("")].join("\n");
+  expect(aboutProblem({ ...EMPTY_ABOUT, prayerRequests: text })).toBeNull();
+});

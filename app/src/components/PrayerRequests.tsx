@@ -9,8 +9,10 @@ import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
 import { fonts, makeStyles, Muted, Text } from "./ui";
 
+const BULLET_WIDTH = 12;
+
 /**
- * The "Prayer requests" part of a profile, one request per line.
+ * The "Prayer requests" part of a profile, as a bullet list.
  *  - My own: how many friends are praying for each (names only if I've
  *    turned that on in Settings). Nothing is ever sent to me about it.
  *  - A friend's: a gentle "I'll pray for this" toggle on each. Other
@@ -43,8 +45,8 @@ function MyRequests({ requests }: { requests: PrayerRequest[] }) {
         const line = who.length === 0 ? "" : showNames && names.length === who.length ? prayingNamesText(names) : prayingCountText(who.length);
         return (
           <View key={r.id ?? `line${i}`} style={styles.request} accessible accessibilityLabel={line ? `${r.text}. ${line}.` : r.text}>
-            <Text style={styles.text}>{r.text}</Text>
-            {!!line && <Text style={styles.praying}>🙏 {line}</Text>}
+            <Bullet text={r.text} />
+            {!!line && <Text style={[styles.praying, styles.indent]}>🙏 {line}</Text>}
           </View>
         );
       })}
@@ -83,7 +85,7 @@ function FriendRequests({ uid, name, requests }: { uid: string; name: string; re
         const praying = !!r.id && mine.has(r.id);
         return (
           <View key={r.id ?? `line${i}`} style={styles.request}>
-            <Text style={styles.text}>{r.text}</Text>
+            <Bullet text={r.text} />
             {r.id && isFriend && (
               <Pressable
                 onPress={() => toggle(r.id!)}
@@ -92,7 +94,7 @@ function FriendRequests({ uid, name, requests }: { uid: string; name: string; re
                 accessibilityState={{ selected: praying, busy: busy === r.id }}
                 accessibilityLabel={praying ? `Praying for: ${r.text}` : `I'll pray for: ${r.text}`}
                 accessibilityHint={praying ? "Double-tap to stop" : `${name} may see that you're praying for this`}
-                style={[styles.pray, praying && styles.prayOn]}
+                style={[styles.pray, styles.indent, praying && styles.prayOn]}
                 hitSlop={6}
               >
                 <Text style={styles.prayText}>{praying ? "✓ Praying" : "🙏 I'll pray for this"}</Text>
@@ -108,7 +110,23 @@ function FriendRequests({ uid, name, requests }: { uid: string; name: string; re
   );
 }
 
+/** One request, after a bullet. (VoiceOver reads the text; the bullet is decoration.) */
+function Bullet({ text }: { text: string }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.bulletRow}>
+      <Text style={styles.bullet} importantForAccessibility="no" accessibilityElementsHidden>•</Text>
+      <Text style={[styles.text, styles.bulletText]}>{text}</Text>
+    </View>
+  );
+}
+
 const useStyles = makeStyles((colors) => ({
+  bulletRow: { flexDirection: "row", gap: 8 },
+  bullet: { fontSize: 17, lineHeight: 24, color: colors.accent, width: BULLET_WIDTH, textAlign: "center" },
+  bulletText: { flex: 1 },
+  // Lines under a request (who's praying, the button) line up with its text.
+  indent: { marginLeft: BULLET_WIDTH + 8 },
   card: { alignSelf: "stretch", backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12, marginBottom: 16 },
   label: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6 },
   request: { gap: 6 },

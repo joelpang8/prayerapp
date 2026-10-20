@@ -6,7 +6,7 @@ import { EBGaramond_400Regular } from "@expo-google-fonts/eb-garamond/400Regular
 import { EBGaramond_400Regular_Italic } from "@expo-google-fonts/eb-garamond/400Regular_Italic";
 import { EBGaramond_500Medium } from "@expo-google-fonts/eb-garamond/500Medium";
 import { EBGaramond_600SemiBold } from "@expo-google-fonts/eb-garamond/600SemiBold";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { useTextScale } from "../lib/textSize";
 import {
   ActivityIndicator,
@@ -156,7 +156,8 @@ export function Text({ style, ...props }: TextProps) {
  */
 export const Span = RNText;
 
-export function TextInput({ style, ...props }: TextInputProps) {
+/** `ref` reaches the native input (React 19 passes it as a prop), e.g. to focus it. */
+export function TextInput({ style, ...props }: TextInputProps & { ref?: Ref<RNTextInput> }) {
   const styles = useStyles();
   const colors = useColors();
   const scale = useTextScale();

@@ -195,7 +195,9 @@ export function formatBirthday(value: string): string {
 
 export function aboutProblem(a: About): string | null {
   for (const [key, max] of Object.entries(ABOUT_LIMITS) as [keyof typeof ABOUT_LIMITS, number][]) {
-    if (a[key].trim().length > max) return `At most ${max} characters.`;
+    // Requests count as saved: blank rows left in the editor don't count.
+    const value = key === "prayerRequests" ? joinRequests(splitRequests(a[key])) : a[key].trim();
+    if (value.length > max) return `At most ${max} characters.`;
   }
   if (splitRequests(a.prayerRequests).length > MAX_REQUESTS) return `At most ${MAX_REQUESTS} prayer requests, one per line.`;
   const b = a.birthday && parseBirthday(a.birthday);

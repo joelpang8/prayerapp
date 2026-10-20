@@ -6,7 +6,9 @@ import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors
 import { db, storage } from "../firebase";
 import { photoBlob, pickAvatar } from "../lib/capture";
 import { BirthdayField } from "../components/BirthdayField";
+import { RequestListEditor } from "../components/RequestListEditor";
 import { SelectField } from "../components/SelectField";
+import { joinRequests, MAX_REQUESTS, splitRequests } from "../lib/prayerRequests";
 import { BIBLE_VERSIONS, DENOMINATIONS } from "../lib/faith";
 import { ABOUT_LIMITS, aboutFields, aboutProblem, removeAvatar, saveAbout, setAvatar, watchAbout, type About, type AboutDoc } from "../lib/profile";
 import { useReadySession } from "../session/SessionProvider";
@@ -69,7 +71,9 @@ export default function EditProfileScreen() {
 
   const next = form;
   const problem = next ? aboutProblem(next) : null;
-  const changed = !!next && !!saved && (Object.keys(next) as (keyof About)[]).some((k) => next[k].trim() !== saved[k]);
+  // Requests compare as saved: blank rows in the editor don't count as a change.
+  const asSaved = (k: keyof About, v: string) => (k === "prayerRequests" ? joinRequests(splitRequests(v)) : v.trim());
+  const changed = !!next && !!saved && (Object.keys(next) as (keyof About)[]).some((k) => asSaved(k, next[k]) !== saved[k]);
 
   async function submit() {
     if (!next) return;
@@ -85,6 +89,7 @@ export default function EditProfileScreen() {
     }
   }
 
+  const requestsLeft = ABOUT_LIMITS.prayerRequests - joinRequests(splitRequests(form?.prayerRequests ?? "")).length;
   const set = (key: keyof About) => (text: string) => {
     setSavedNote(false);
     setForm((f) => (f ? { ...f, [key]: text } : f));
@@ -140,9 +145,16 @@ export default function EditProfileScreen() {
         </View>
         {field("hometown", "Where I'm from", "e.g. Lagos, Nigeria")}
 
-        {field("prayerRequests", "Prayer requests", "What would you like your friends to pray for? One per line.", true)}
+        <View style={styles.field}>
+          <View style={styles.fieldHeader}>
+            <Text style={styles.label} accessibilityRole="header">Prayer requests</Text>
+            {requestsLeft < 40 && <Text style={[styles.counter, requestsLeft < 0 && { color: colors.danger }]}>{requestsLeft}</Text>}
+          </View>
+          <Muted>What would you like your friends to pray for?</Muted>
+          {form && <RequestListEditor initial={form.prayerRequests} onChange={set("prayerRequests")} />}
+        </View>
         <Muted>
-          One request per line, up to 10. Friends can tap &ldquo;I&apos;ll pray for this&rdquo; on each one, and only you see how many
+          Up to {MAX_REQUESTS}. Friends can tap &ldquo;I&apos;ll pray for this&rdquo; on each one, and only you see how many
           are praying. Rewording a request starts its count again.
         </Muted>
         <View style={styles.field}>
