@@ -158,9 +158,17 @@ const config: ExpoConfig = {
           "@react-native-firebase/app",
           "@react-native-firebase/messaging",
           "./plugins/withRNFirebaseNoSPM",
-          ["expo-build-properties", { ios: { useFrameworks: "static" } }] as [string, object],
         ]
       : []),
+    // Build Expo's modules from source with this Mac's Xcode instead of
+    // using Expo's precompiled ones: those only work with the exact Swift
+    // version they were built with, and broke when Xcode updated (Swift 6.4
+    // vs 6.3.1: "this SDK is not supported by the compiler"). Push builds
+    // also need static frameworks for React Native Firebase.
+    [
+      "expo-build-properties",
+      { ios: { usePrecompiledModules: false, ...(remotePush ? { useFrameworks: "static" } : {}) } },
+    ] as [string, object],
     // Google Sign-In needs the reversed iOS client id as a URL scheme. It's
     // left out until configured, so emulator-only development still builds.
     ...(googleUrlScheme

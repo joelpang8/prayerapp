@@ -178,3 +178,14 @@ You need two accounts. Use the Simulator plus your phone, or two Simulators in e
 - [ ] Accept: both accounts show each other under **Friends**.
 - [ ] Remove, and confirm: both lists are empty straight away, with no leftover request on either side.
 - [ ] Sign out, then back in as a different account: none of the first account's friends appear.
+
+## After Xcode updates: "this SDK is not supported by the compiler"
+
+Expo's modules are built from source on your Mac (`usePrecompiledModules: false` in `app/app.config.ts`), because precompiled ones only work with the Swift version they were built with. If a build after an Xcode update still fails with "this SDK is not supported by the compiler" or "cannot find type '__ObjC::expo'", clear the old builds once and build again:
+
+```sh
+cd ~/prayerapp/app
+bash node_modules/expo-modules-jsi/apple/scripts/clear-caches.sh
+rm -rf ~/Library/Developer/Xcode/DerivedData/PrayAlong-*
+npm run ios:device
+```
