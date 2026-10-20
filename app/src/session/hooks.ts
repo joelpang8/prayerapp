@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import { loadLastSeen, saveLastSeen, type Activity } from "../lib/activity";
 import { CommentThread, type Comment } from "../lib/comments";
@@ -8,6 +8,7 @@ import { ReactionThread, type Reaction } from "../lib/reactions";
 import { watchMyPosts, type Post } from "../lib/posts";
 import { MyPrayersFor, PrayingForMe, type PrayerTap } from "../lib/praying";
 import { PhotoEvictedError } from "../lib/photoCache";
+import { watchSavedVerses, type SavedVerse } from "../lib/savedVerses";
 import { watchLatestPrompt, type Prompt } from "../lib/prompts";
 import { getPassage, type Passage } from "../lib/scripture/text";
 import { DEFAULT_TRANSLATION } from "../lib/scripture/translations";
@@ -316,6 +317,45 @@ export function useSettings(): Settings {
   const [settings, setSettings] = useState<Settings>(settingsStore.value);
   useEffect(() => subscribeSettings(profile.uid, setSettings), [profile.uid]);
   return settings;
+}
+
+// My saved verses (scripture memory), shared by every Save button and the
+// Prayers tab: one listener while any of them is on screen.
+const savedStore = {
+  uid: null as string | null,
+  value: { verses: [] as SavedVerse[], loaded: false },
+  listeners: new Set<(v: { verses: SavedVerse[]; loaded: boolean }) => void>(),
+  unsubscribe: null as null | (() => void),
+};
+
+function subscribeSaved(uid: string, listener: (v: { verses: SavedVerse[]; loaded: boolean }) => void): () => void {
+  if (savedStore.uid !== uid) {
+    savedStore.unsubscribe?.();
+    savedStore.uid = uid;
+    savedStore.value = { verses: [], loaded: false };
+    savedStore.unsubscribe = watchSavedVerses(db, uid, (verses) => {
+      savedStore.value = { verses, loaded: true };
+      for (const l of savedStore.listeners) l(savedStore.value);
+    }, (err) => console.warn("saved verses failed", err));
+  }
+  savedStore.listeners.add(listener);
+  listener(savedStore.value);
+  return () => {
+    savedStore.listeners.delete(listener);
+    if (savedStore.listeners.size === 0) {
+      savedStore.unsubscribe?.();
+      savedStore.unsubscribe = null;
+      savedStore.uid = null;
+    }
+  };
+}
+
+export function useSavedVerses(): { verses: SavedVerse[]; loaded: boolean; isSaved: (refId: string) => boolean } {
+  const { profile } = useReadySession();
+  const [state, setState] = useState(savedStore.value);
+  useEffect(() => subscribeSaved(profile.uid, setState), [profile.uid]);
+  const ids = useMemo(() => new Set(state.verses.map((v) => v.refId)), [state.verses]);
+  return { ...state, isSaved: (refId) => ids.has(refId) };
 }
 
 // Public-domain scripture text is not user content, so caching it is fine.

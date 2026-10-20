@@ -4,6 +4,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { MonthCalendar } from "../../components/MonthCalendar";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
+import { SavedVerses } from "../../components/SavedVerses";
 import { SelectField } from "../../components/SelectField";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { db } from "../../firebase";
@@ -62,6 +63,7 @@ export default function PrayersScreen() {
   return (
     <ScrollView ref={scroll} style={styles.root} contentContainerStyle={styles.content}>
       <OnThisDay uid={profile.uid} />
+      <SavedVerses />
       {loaded && <MonthInPrayer month={month} posts={posts} />}
       <MonthCalendar
         month={month}

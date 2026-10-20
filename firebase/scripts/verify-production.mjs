@@ -177,7 +177,16 @@ async function checkPrayersTab(author, viewer) {
   // The same query from a friend must be refused (it could include private posts).
   out.friendRefused = await getDocs(query(collection(viewer.fs, "posts"), where("authorId", "==", MAIN), where("verseBook", "==", "PHP")))
     .then(() => false, (e) => e.code === "permission-denied");
-  out.pass = Object.keys(queries).every((k) => out[k].ok && out[k].found === 1) && out.friendRefused;
+  // Saved verses (scripture memory): mine, newest first; a friend can't list them.
+  const savedPath = `users/${MAIN}/savedVerses/PSA.46.10`;
+  created.docs.add(savedPath);
+  const savedList = (fs) => getDocs(query(collection(fs, "users", MAIN, "savedVerses"), orderBy("savedAt", "desc"), limit(500)));
+  out.savedVerses = await setDoc(doc(author.fs, savedPath), { verseRef: "PSA.46.10", savedAt: serverTimestamp() })
+    .then(() => savedList(author.fs))
+    .then((s) => ({ ok: true, found: s.size }), (e) => ({ ok: false, code: e.code, message: String(e.message).slice(0, 300) }));
+  out.savedVersesFriendRefused = await savedList(viewer.fs).then(() => false, (e) => e.code === "permission-denied");
+  out.pass = Object.keys(queries).every((k) => out[k].ok && out[k].found === 1) && out.friendRefused
+    && out.savedVerses.ok && out.savedVerses.found === 1 && out.savedVersesFriendRefused;
   report.checks.F_prayersTab = out;
   log(`F Prayers tab queries (indexes built) = ${out.pass}`);
 }

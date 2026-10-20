@@ -217,6 +217,22 @@ service cloud.firestore {
         // Removed with the account (step 5), not by clients.
         allow delete: if false;
       }
+
+      // ---------- saved verses (scripture memory) ----------
+      // users/{uid}/savedVerses/{refId}: verses I've saved to read or listen
+      // to again. Only the owner can see or change them; friends never see
+      // them. Only the reference is stored, never the verse text. The doc id
+      // is the reference, so a verse is saved once. Unsave = delete.
+      match /savedVerses/{refId} {
+        allow get, list: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['verseRef', 'savedAt'])
+          && request.resource.data.verseRef == refId
+          && refId.matches('^[1-3]?[A-Z]{2,3}[.][0-9]{1,3}([.][0-9]{1,3}(-[0-9]{1,3}([.][0-9]{1,3})?)?)?$')
+          && request.resource.data.savedAt == request.time;
+        allow update: if false;
+        allow delete: if isSelf(uid);
+      }
     }
 
     // ---------- username -> uid index ----------

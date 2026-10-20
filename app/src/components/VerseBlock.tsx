@@ -5,7 +5,10 @@ import { Pressable, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
 import { spokenPassage } from "../lib/verseSpeech";
-import { usePassage } from "../session/hooks";
+import { db } from "../firebase";
+import { saveVerse, unsaveVerse } from "../lib/savedVerses";
+import { usePassage, useSavedVerses } from "../session/hooks";
+import { useReadySession } from "../session/SessionProvider";
 import { useVerseSpeech } from "../session/useVerseSpeech";
 import { fonts, makeStyles, Span, Text, useColors } from "./ui";
 
@@ -75,7 +78,12 @@ export function VerseBlock({ refId, collapsed = false, readMore = true }: { refI
           {reference}
           {passage ? ` (${passage.translation})` : ""}
         </Text>
-        {passage && <ListenButton speaking={speaking} reference={reference} onPress={() => toggle(spokenPassage(passage))} />}
+        {passage && (
+          <View style={styles.actions}>
+            <SaveButton refId={refId} reference={reference} />
+            <ListenButton speaking={speaking} reference={reference} onPress={() => toggle(spokenPassage(passage))} />
+          </View>
+        )}
       </View>
       {passage && readMore && (
         <Pressable
@@ -89,6 +97,45 @@ export function VerseBlock({ refId, collapsed = false, readMore = true }: { refI
         </Pressable>
       )}
     </View>
+  );
+}
+
+/**
+ * Save to (or remove from) my saved verses, to read or listen to again from
+ * the Prayers tab. Only the reference is saved; nobody else sees the list.
+ */
+function SaveButton({ refId, reference }: { refId: string; reference: string }) {
+  const styles = useStyles();
+  const colors = useColors();
+  const { profile } = useReadySession();
+  const { isSaved } = useSavedVerses();
+  const [busy, setBusy] = useState(false);
+  const saved = isSaved(refId);
+  async function toggle() {
+    setBusy(true);
+    try {
+      if (saved) await unsaveVerse(db, profile.uid, refId);
+      else await saveVerse(db, profile.uid, refId);
+    } catch (err) {
+      console.warn("save verse failed", err);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Pressable
+      onPress={toggle}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityState={{ selected: saved, busy }}
+      accessibilityLabel={saved ? `Saved: ${reference}` : `Save ${reference}`}
+      accessibilityHint={saved ? "Double-tap to remove it from your saved verses" : "Keeps it in your saved verses, on the Prayers tab"}
+      hitSlop={8}
+      style={styles.listen}
+    >
+      <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={20} color={colors.accent} />
+      <Text style={styles.listenText}>{saved ? "Saved" : "Save"}</Text>
+    </Pressable>
   );
 }
 
@@ -119,6 +166,7 @@ const useStyles = makeStyles((colors) => ({
   supplied: { fontFamily: fonts.serifItalic },
   ref: { fontSize: 16, color: colors.muted, fontFamily: fonts.display, flexShrink: 1 },
   refRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 14 },
   listen: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 36 },
   listenText: { fontSize: 15, color: colors.accent, fontFamily: fonts.serifSemiBold },
   refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
