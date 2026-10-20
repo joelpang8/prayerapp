@@ -16,3 +16,8 @@ describe("posting screen", () => {
     expect(compose).not.toMatch(/newPhoto/);
   });
 });
+
+test("the notes counter shows only near the limit", () => {
+  expect(compose).toContain("MAX_NOTES - notes.length <= NOTES_COUNTER_FROM");
+  expect(compose).toMatch(/const NOTES_COUNTER_FROM = 200;/);
+});

@@ -18,6 +18,9 @@ import { useReadySession } from "../session/SessionProvider";
 import { t } from "../i18n";
 import { haptics } from "../lib/haptics";
 
+/** The notes counter appears once this many characters or fewer are left. */
+const NOTES_COUNTER_FROM = 200;
+
 export default function ComposeScreen() {
   const styles = useStyles();
   const { postId } = useLocalSearchParams<{ postId?: string }>();
@@ -228,6 +231,12 @@ function Composer({
           placeholder={t("compose.notesPlaceholder")}
           textAlignVertical="top"
         />
+        {/* Shown only near the limit, like Edit profile. */}
+        {MAX_NOTES - notes.length <= NOTES_COUNTER_FROM && (
+          <Text style={styles.counter} accessibilityLiveRegion="polite">
+            {t("compose.charsLeft", { count: MAX_NOTES - notes.length })}
+          </Text>
+        )}
         {(!editing || editing.place) && (
           <View style={styles.placeRow}>
             <View style={styles.placeText}>
@@ -310,6 +319,7 @@ const useStyles = makeStyles((colors) => ({
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   verse: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
   verseLabel: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
+  counter: { fontSize: 14, color: colors.muted, alignSelf: "flex-end", marginTop: -6 },
   label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
   placeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   answerBox: { gap: 8, marginTop: 8 },
