@@ -74,6 +74,18 @@ node scripts/verify-production.mjs \
 
 Add `--bucket <name>` only if your bucket isn't `prayerapp-4ce99.firebasestorage.app`. The name is shown at the top of the Storage page in the console. It takes about 2–3 minutes, most of it waiting for the unfriend function to run.
 
+## Results: production, run 56a1ee36 (October 2026, after account deletion, saved verses and the photo lock)
+
+All checks passed against `prayerapp-4ce99` after deploying the rules, indexes and thirteen functions.
+
+- **E (private posts): pass.** Unfiltered friend query and direct read refused; filtered query leaves the private post out.
+- **F (Prayers tab): pass.** All seven post query shapes work; saved verses list for the owner (found 1) and a friend is refused.
+- **G ("I'll pray for this"): pass.** Tap deleted by the function immediately after an unfriend.
+- **H (account deletion): pass.** `deleteAccount` removed the user doc, post, comment, reaction, follow, avatar and sign-in; the other person's post was kept.
+- **B:** 10 friends per `in` query work, 12 refused (unchanged; `FEED_CHUNK_SIZE` stays 5).
+- **C:** an open listener was cut off about 57 ms after the unfriend, with no new data; the later post was never delivered.
+- **D:** a minted link died 3 seconds after the unfriend (HTTP 403); no tokens from reading bytes.
+
 ## Results: production, run 6fc3f730 (October 2026)
 
 All checks passed against `prayerapp-4ce99` after deploying the rules, indexes and nine functions.
