@@ -78,7 +78,7 @@
 
 | Idea | Why it waits |
 |---|---|
-| **Lock-screen countdown** (iOS Live Activity showing the 2-minute window) | Starting one when the prompt arrives, with the app closed, needs push-to-start, so it needs step 4's push and the paid account. The countdown itself runs on the phone (no push per second). |
+| **Lock-screen countdown that starts with the app closed** | Built in October 2026 starting on the phone when the app is opened. Starting it from the alert itself needs push-to-start tokens stored per phone, which the app deliberately doesn't do. |
 | **Home-screen widget** with the day's verse | Needs a native widget extension target and an App Group to share data with the app; App Groups aren't available to a free Personal Team. |
 | **Web invite links** that work without the app installed | Needs a small website plus Universal Links (Associated Domains), which also needs the paid account. |
 
