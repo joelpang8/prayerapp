@@ -167,35 +167,23 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
 
 export type PostEdit = {
   notes?: string;
-  newPhoto?: { jpeg: PhotoData; photoId: string };
   /** The place can only be removed after posting, not added or changed. */
   removePlace?: boolean;
 };
 
 /**
- * Edit notes and/or replace the photo. Marks the post edited. The old photo
- * is deleted by a Cloud Function once the post points at the new one.
+ * Edit the notes (and/or remove the place). Marks the post edited. The photo
+ * can't be changed after posting (firestore.rules); delete the post instead.
  */
-export async function editPost(db: Firestore, storage: FirebaseStorage, post: Post, edit: PostEdit): Promise<void> {
+export async function editPost(db: Firestore, post: Post, edit: PostEdit): Promise<void> {
   const notes = edit.notes ?? post.notes;
   const problem = notesProblem(notes);
   if (problem) throw new Error(problem);
-  let photoPath = post.photoPath;
-  if (edit.newPhoto) {
-    photoPath = photoPathFor(post.authorId, edit.newPhoto.photoId, post.visibility);
-    await uploadPhoto(storage, photoPath, edit.newPhoto.jpeg);
-  }
-  try {
-    await updateDoc(doc(db, "posts", post.id), {
-      notes: notes.trim(),
-      photoPath,
-      editedAt: serverTimestamp(),
-      ...(edit.removePlace && post.place ? { place: deleteField() } : {}),
-    });
-  } catch (err) {
-    if (photoPath !== post.photoPath) await deleteObject(ref(storage, photoPath)).catch(() => {});
-    throw err;
-  }
+  await updateDoc(doc(db, "posts", post.id), {
+    notes: notes.trim(),
+    editedAt: serverTimestamp(),
+    ...(edit.removePlace && post.place ? { place: deleteField() } : {}),
+  });
 }
 
 /**

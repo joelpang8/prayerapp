@@ -78,7 +78,7 @@ describe("posting against the real rules", () => {
         uid: "alice", prompt, notes: "From the park", jpeg: JPEG, photoId: "place1", place: "Austin, Texas",
       });
       await until(() => mine.state.posts?.[0]?.place === "Austin, Texas");
-      await editPost(dbAs(env, "alice"), storageAs(env, "alice"), mine.state.posts![0], { removePlace: true });
+      await editPost(dbAs(env, "alice"), mine.state.posts![0], { removePlace: true });
       await until(() => mine.state.posts?.[0]?.place === null && !!mine.state.posts?.[0]?.editedAt);
     } finally {
       mine.stop();
@@ -176,17 +176,17 @@ describe("posting against the real rules", () => {
     await expect(getMetadata(ref(storage, "postPhotos/alice/two.jpg"))).rejects.toMatchObject({ code: "storage/object-not-found" });
   });
 
-  test("edit notes and photo: marked edited, still on time", async () => {
+  test("edit notes: marked edited, still on time, same photo", async () => {
     const db = dbAs(env, "alice");
     const storage = storageAs(env, "alice");
     const mine = watchMine("alice");
     try {
       await createPost(db, storage, { uid: "alice", prompt, notes: "before", jpeg: JPEG, photoId: "orig" });
       await until(() => mine.state.posts?.length === 1);
-      await editPost(db, storage, mine.state.posts![0], { notes: "after", newPhoto: { jpeg: JPEG, photoId: "newer" } });
+      await editPost(db, mine.state.posts![0], { notes: "after" });
       await until(() => mine.state.posts?.[0].notes === "after" && mine.state.posts?.[0].editedAt !== null);
       const post = mine.state.posts![0];
-      expect(post.photoPath).toBe("postPhotos/alice/newer.jpg");
+      expect(post.photoPath).toBe("postPhotos/alice/orig.jpg");
       expect(isLate(post)).toBe(false);
     } finally {
       mine.stop();

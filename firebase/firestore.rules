@@ -414,17 +414,16 @@ service cloud.firestore {
         && validPhotoPath(request.resource.data.photoPath, request.resource.data.visibility)
         && (!('place' in request.resource.data) || validPlace(request.resource.data.place));
 
-      // Editable by the author: notes and/or photo. editedAt marks the post
-      // as edited and must be the server time. Timing fields never change,
-      // so editing can't turn a late post into an on-time one. Visibility
-      // can't change either (a private photo stays in the private folder).
+      // Editable by the author: the notes only. The photo is what was taken
+      // at the moment, so it can't be replaced (delete the post instead).
+      // editedAt marks the post as edited and must be the server time.
+      // Timing fields never change, so editing can't turn a late post into an
+      // on-time one. Visibility can't change either.
       allow update: if signedIn()
         && resource.data.authorId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes', 'photoPath', 'editedAt', 'place'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes', 'editedAt', 'place'])
         && request.resource.data.editedAt == request.time
         && validNotes(request.resource.data.notes)
-        // (One document by its own author, never a query, so a default is safe here.)
-        && validPhotoPath(request.resource.data.photoPath, resource.data.get('visibility', 'friends'))
         // The place can be removed, but not added or changed after posting:
         // it records where the post was made.
         && (!('place' in request.resource.data) || request.resource.data.place == resource.data.get('place', null));

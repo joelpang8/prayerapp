@@ -110,12 +110,20 @@ describe("creating a post", () => {
 describe("editing a post", () => {
   beforeEach(async () => { await assertSucceeds(create("alice")); });
 
-  test("author can edit notes and photo; editedAt must be server time", async () => {
+  test("author can edit the notes; editedAt must be server time", async () => {
     const db = signedInAs(env, "alice");
     await assertSucceeds(updateDoc(postRef(db, "alice"), { notes: "Update: surgery went well", editedAt: serverTimestamp() }));
-    await assertSucceeds(updateDoc(postRef(db, "alice"), { photoPath: "postPhotos/alice/def456.jpg", editedAt: serverTimestamp() }));
     const snap = await getDoc(postRef(db, "alice"));
     expect(snap.data().editedAt).toBeInstanceOf(Timestamp);
+  });
+
+  test("the photo can't be changed after posting, alone or with the notes", async () => {
+    const db = signedInAs(env, "alice");
+    await assertFails(updateDoc(postRef(db, "alice"), { photoPath: "postPhotos/alice/def456.jpg", editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(postRef(db, "alice"), { notes: "new words", photoPath: "postPhotos/alice/def456.jpg", editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(postRef(db, "alice"), { photoPath: deleteField(), editedAt: serverTimestamp() }));
+    const snap = await getDoc(postRef(db, "alice"));
+    expect(snap.data().photoPath).toBe("postPhotos/alice/abc123.jpg");
   });
 
   test("an edit without editedAt is rejected (the 'edited' indicator can't be skipped)", async () => {
@@ -141,10 +149,10 @@ describe("editing a post", () => {
     }
   });
 
-  test("edited notes and photo are validated like on create", async () => {
+  test("edited notes are validated like on create", async () => {
     const db = signedInAs(env, "alice");
     await assertFails(updateDoc(postRef(db, "alice"), { notes: "", editedAt: serverTimestamp() }));
-    await assertFails(updateDoc(postRef(db, "alice"), { photoPath: "postPhotos/bob/x.jpg", editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(postRef(db, "alice"), { notes: "x".repeat(5000), editedAt: serverTimestamp() }));
   });
 
   test("friends can't edit someone else's post", async () => {
@@ -322,12 +330,13 @@ describe("private posts and visibility", () => {
     await assertSucceeds(create("alice", { visibility: "private", photoPath: "privatePhotos/alice/abc123.jpg" }));
   });
 
-  test("visibility can't change after posting, and edits keep the photo in its folder", async () => {
+  test("visibility and a private post's photo can't change after posting", async () => {
     const db = signedInAs(env, "alice");
     await assertSucceeds(create("alice", { visibility: "private", photoPath: "privatePhotos/alice/abc123.jpg" }));
     await assertFails(updateDoc(postRef(db, "alice"), { visibility: "friends", editedAt: serverTimestamp() }));
     await assertFails(updateDoc(postRef(db, "alice"), { photoPath: "postPhotos/alice/new1.jpg", editedAt: serverTimestamp() }));
-    await assertSucceeds(updateDoc(postRef(db, "alice"), { photoPath: "privatePhotos/alice/new1.jpg", editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(postRef(db, "alice"), { photoPath: "privatePhotos/alice/new1.jpg", editedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(postRef(db, "alice"), { notes: "still private", editedAt: serverTimestamp() }));
   });
 });
 

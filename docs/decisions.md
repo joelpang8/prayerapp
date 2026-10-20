@@ -12,7 +12,7 @@
 | Usernames | Lowercase `[a-z0-9_]{3,20}`, unique, can't be changed in v1 | Keeps the rules simple. Changing a username means moving the lookup doc safely, which can wait. |
 | Frontend | React Native + Expo (TypeScript), Firebase JS SDK | Confirmed. The JS SDK is chosen so the client data layer can be tested in Node against the emulators. |
 | Sign-in | Sign in with Apple + Google | Confirmed. |
-| Post editing | Posts are editable and deletable. Edited posts show an "edited" indicator. | Confirmed. `editedAt` is set by the rules, not by the client. |
+| Post editing | The notes are editable (with an "edited" indicator), and posts are deletable. **The photo can't be changed after posting**: it's what was taken at the moment; to use a different one, delete the post. Marking answered and removing the place stay. | Confirmed (October 2026: photo locked, recommended option). `editedAt` is set by the rules, not by the client; the rules refuse any change to `photoPath`. Older app versions offering "Retake photo" while editing get an error. |
 | "Late" | A label on the post only. No streaks and no comparison between friends. | Confirmed. |
 | Prompt timing | Global: everyone is prompted at the same moment (v1) | Confirmed. Per-user timing is a v2 idea and would be a different design. |
 | Photo source | Camera only for real users | Confirmed: keeps it true to the moment. The library picker exists only in development builds (`__DEV__`), because the Simulator has no camera. |

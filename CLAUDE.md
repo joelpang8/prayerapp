@@ -9,6 +9,7 @@
 - **Prayers tab** queries are always `authorId == me` (private posts included) and must never include a friend's content. New query shapes need an index in `firebase/firestore.indexes.json` and a line in production check F.
 - **Blocks are secret:** never show the blocked person anything that reveals the block. Reports are write-only for clients.
 - **Account deletion** happens only in the server function `deleteAccount` (`firebase/functions/src/accountDeletion.ts`), after a sign-in under 5 minutes old. It must remove everything of the person's (including their comments, reactions and taps on other people's things) and nothing of anyone else's; reports about them stay with the quoted text removed. Anything new that stores a person's data must be added there, with a test in `firebase/tests/account-deletion.test.js`.
+- **A post's photo is fixed once posted.** Editing changes only the notes (plus removing the place, and marking answered); the rules refuse any `photoPath` change. To use a different photo, delete the post.
 - **Location:** posts store only an opt-in town-level place name, never coordinates.
 - **Never call `getDownloadURL()`** on post photos. Load them with `getBytes` through `app/src/lib/photoCache.ts`. A unit test fails if app code calls it.
 - **Anything holding other people's content on the device** must register with `FriendScope` (`app/src/lib/friendScope.ts`) and implement `evictAuthor`/`clear`. It stays memory-only, never written to disk.

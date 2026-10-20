@@ -6,8 +6,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Swit
 import { CountdownPill } from "../components/PromptCountdown";
 import { PrayerHelper } from "../components/PrayerHelper";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
-import { db, storage } from "../firebase";
-import { photoBlob, pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
+import { db } from "../firebase";
+import { pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
 import { currentPlaceName, LocationUnavailableError } from "../lib/location";
 import { editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, postIdFor, setAnswered } from "../lib/posts";
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
@@ -101,9 +101,8 @@ function Composer({
         // The prayer itself (marks it "edited") and its answer are saved
         // separately, so answering alone doesn't add the Edited label.
         const removePlace = !!editing.place && !showPlace;
-        if (notes.trim() !== editing.notes || photo || removePlace) {
-          const newPhoto = photo ? { jpeg: await photoBlob(photo.previewUri), photoId: photo.photoId } : undefined;
-          await editPost(db, storage, editing, { notes, newPhoto, removePlace });
+        if (notes.trim() !== editing.notes || removePlace) {
+          await editPost(db, editing, { notes, removePlace });
         }
         const answerChanged =
           answered !== !!editing.answeredAt || (answered && answerNote.trim() !== (editing.answerNote ?? ""));
@@ -138,7 +137,7 @@ function Composer({
     }
   }
 
-  const previewUri = photo?.previewUri ?? (editing ? existingUri : null);
+  const previewUri = editing ? existingUri : photo?.previewUri ?? null;
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -152,8 +151,12 @@ function Composer({
             <Muted>No photo yet</Muted>
           )}
         </View>
-        <Button title={previewUri ? "Retake photo" : "Take photo"} kind="secondary" onPress={() => capture(takePhoto)} disabled={busy} />
-        {__DEV__ && (
+        {editing ? (
+          <Muted>The photo stays as it was taken. To use a different one, delete this prayer.</Muted>
+        ) : (
+          <Button title={previewUri ? "Retake photo" : "Take photo"} kind="secondary" onPress={() => capture(takePhoto)} disabled={busy} />
+        )}
+        {__DEV__ && !editing && (
           <Button title="Choose photo (development)" kind="secondary" onPress={() => capture(pickPhotoForDevelopment)} disabled={busy} />
         )}
         <Text style={styles.label}>What did you pray for?</Text>
