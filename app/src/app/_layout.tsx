@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, type Theme } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Centered, fontAssets, fonts, navigationFonts, palettes, useColors } from "../components/ui";
@@ -15,6 +16,14 @@ import { SessionProvider, useSession } from "../session/SessionProvider";
 
 // Before any screen: prompts show as alerts even while the app is open.
 configureNotifications();
+
+// The launch screen stays up until the first real screen is ready (fonts,
+// appearance and whether someone is signed in), then fades, so there's no
+// spinner flash in between. Never longer than SPLASH_MAX_MS, e.g. offline.
+const SPLASH_MAX_MS = 5000;
+SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.setOptions({ fade: true, duration: 300 });
+const hideSplash = () => { SplashScreen.hideAsync().catch(() => {}); };
 
 function RootNavigator() {
   const colors = useColors();
@@ -45,6 +54,7 @@ function RootNavigator() {
     wasReady.current = ready;
     previousStatus.current = session.status;
   }, [ready, session.status]);
+  useEffect(() => { if (session.status !== "loading") hideSplash(); }, [session.status]);
   if (session.status === "loading") return <Centered />;
   // Pushed screens (profile, post) show a header with a back button.
   const pushed = {
@@ -106,6 +116,10 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
   useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs()]).finally(() => setAppearanceLoaded(true)); }, []);
+  useEffect(() => {
+    const t = setTimeout(hideSplash, SPLASH_MAX_MS);
+    return () => clearTimeout(t);
+  }, []);
   const theme = useNavigationTheme();
   if ((!fontsLoaded && !fontError) || !appearanceLoaded) return <Centered />;
   return (

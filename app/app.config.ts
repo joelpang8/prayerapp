@@ -88,6 +88,18 @@ const config: ExpoConfig = {
     "expo-router",
     ...(appleSignIn ? ["expo-apple-authentication"] : []),
     "expo-image",
+    // Launch screen: the candle and "PrayAlong" on the app's own background,
+    // light or dark with the phone. It stays up until the first screen is
+    // ready, then fades (app/src/app/_layout.tsx).
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/splash-light.png",
+        backgroundColor: "#FAF8F5",
+        imageWidth: 200,
+        dark: { image: "./assets/splash-dark.png", backgroundColor: "#15130F" },
+      },
+    ],
     // Only used to let "Listen" play with the silent switch on. No recording
     // and no background audio, so no microphone permission or audio
     // background mode (the plugin adds both by default).
