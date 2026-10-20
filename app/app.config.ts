@@ -36,6 +36,11 @@ const withoutPaidAccountEntitlements: ConfigPlugin = (c) =>
     return mod;
   });
 
+// Spanish system texts (permission prompts) and iOS's list of languages.
+// Off until the Spanish wording has been reviewed by a native speaker: must
+// match SPANISH_REVIEWED in src/i18n/index.ts (a test checks).
+const spanishReviewed = false;
+
 const config: ExpoConfig = {
   name: "PrayAlong",
   slug: "prayerapp",
@@ -43,6 +48,7 @@ const config: ExpoConfig = {
   version: "0.1.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
+  ...(spanishReviewed ? { locales: { es: "./locales/es.json" } } : {}),
   // "automatic" lets night mode follow the phone; the in-app setting can override it.
   userInterfaceStyle: "automatic",
   ios: {
@@ -88,6 +94,7 @@ const config: ExpoConfig = {
     "expo-router",
     ...(appleSignIn ? ["expo-apple-authentication"] : []),
     "expo-image",
+    ["expo-localization", { supportedLocales: { ios: spanishReviewed ? ["en", "es"] : ["en"] } }],
     // The lock-screen countdown (a Live Activity) while the prompt is open.
     // Started on the phone only: no push-to-start or update tokens (the
     // plugin's enablePushNotifications stays off). Its candle image is

@@ -24,9 +24,21 @@ export function phoneVoices(): Promise<Speech.Voice[]> {
 }
 void phoneVoices().catch(() => {});
 
+/**
+ * English verses: the voice and speed from Settings. Spanish verses (the
+ * Reina-Valera): the chosen voice only if it's Spanish, else the phone's
+ * Spanish voice, at the chosen speed.
+ */
+function voiceFor(lang: "en" | "es"): { language: string; voice?: string; rate: number } {
+  const prefs = getVoicePrefs();
+  const chosen = speechOptions(prefs, installed);
+  if (lang === "en") return chosen;
+  return chosen.voice && /^es/i.test(chosen.language) ? chosen : { language: "es-MX", rate: chosen.rate };
+}
+
 const speaker = new VerseSpeaker({
   // The voice and speed chosen in Settings (lib/voicePrefs.ts).
-  speak: (text, cb) => Speech.speak(text, { ...speechOptions(getVoicePrefs(), installed), useApplicationAudioSession: true, ...cb }),
+  speak: (text, cb, lang) => Speech.speak(text, { ...voiceFor(lang), useApplicationAudioSession: true, ...cb }),
   stop: () => Speech.stop(),
   beginAudio: () => setAudioModeAsync({ playsInSilentMode: true, interruptionMode: "doNotMix", shouldPlayInBackground: false, allowsRecording: false }),
   endAudio: async () => {
@@ -43,17 +55,17 @@ AppState.addEventListener("change", (state) => {
 });
 
 /** Play/stop for one verse. Stops when the calling component goes away. */
-export function useVerseSpeech(id: string | null): { speaking: boolean; toggle: (text: string) => void } {
+export function useVerseSpeech(id: string | null): { speaking: boolean; toggle: (text: string, lang?: "en" | "es") => void } {
   const [current, setCurrent] = useState(speaker.speaking);
   useEffect(() => speaker.subscribe(setCurrent), []);
   useEffect(() => () => { if (id) void speaker.stopIf(id); }, [id]);
   const speaking = !!id && current === id;
   return {
     speaking,
-    toggle: (text) => {
+    toggle: (text, lang = "en") => {
       if (!id) return;
       if (speaking) void speaker.stop();
-      else void speaker.start(id, text);
+      else void speaker.start(id, text, lang);
     },
   };
 }

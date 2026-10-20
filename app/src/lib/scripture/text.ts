@@ -1,7 +1,7 @@
 import { KJV_BOOKS } from "./kjv";
 import { RV1909_BOOKS, RV1909_NUMBERED_DIFFERENTLY } from "./rv1909";
 import { chapterTitle, formatReference, parseRefId, type VerseRef } from "./reference";
-import type { TranslationId } from "./translations";
+import { TRANSLATIONS, type TranslationId } from "./translations";
 
 /** Part of a verse. `supplied` = words the translators added (printed in italics). */
 export type Segment = { text: string; supplied: boolean };
@@ -81,7 +81,8 @@ export async function getPassage(refId: string, translation: TranslationId): Pro
   const chapters = await bookChapters(ref.book, shown);
   return {
     refId,
-    reference: formatReference(ref),
+    // A Spanish Bible names its books in Spanish; otherwise the app's language.
+    reference: formatReference(ref, TRANSLATIONS.find((x) => x.id === shown)?.language === "es" ? "es" : undefined),
     translation: shown,
     verses: [...versesOf(ref, chapters)].map(({ chapter, verse, raw }) => ({ chapter, verse, segments: segmentsOf(raw) })),
   };

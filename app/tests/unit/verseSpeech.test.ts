@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { getPassage } from "../../src/lib/scripture/text";
-import { spokenPassage, spokenReference, VerseSpeaker, type SpeechDeps } from "../../src/lib/verseSpeech";
+import { spokenLanguage, spokenPassage, spokenReference, VerseSpeaker, type SpeechDeps } from "../../src/lib/verseSpeech";
 
 describe("what Listen says", () => {
   test("references read naturally", () => {
@@ -85,5 +85,36 @@ describe("the speaker", () => {
     const s = new VerseSpeaker(f.deps);
     await s.start("a", "one");
     expect(f.log).toEqual(["speak:one"]);
+  });
+});
+
+describe("Spanish (Reina-Valera)", () => {
+  test("references are said in Spanish", () => {
+    expect(spokenReference("PSA.46.10", "es")).toBe("Salmo 46, versículo 10");
+    expect(spokenReference("PHP.4.6-7", "es")).toBe("Filipenses 4, versículos 6 al 7");
+    expect(spokenReference("JHN.3.16-4.2", "es")).toBe("Juan 3, versículo 16, al capítulo 4, versículo 2");
+    expect(spokenReference("1JN.1.9", "es")).toBe("Primera de Juan 1, versículo 9");
+    expect(spokenReference("2KI.6.17", "es")).toBe("Segundo de Reyes 6, versículo 17");
+    expect(spokenReference("PSA.23", "es")).toBe("Salmo 23");
+  });
+
+  test("a Spanish passage is read in Spanish, capitals as words", async () => {
+    const p = await getPassage("GEN.1.1", "RV1909");
+    expect(spokenLanguage(p)).toBe("es");
+    expect(spokenPassage(p)).toBe("Génesis 1, versículo 1. En el principio crió Dios los cielos y la tierra.");
+    expect(spokenLanguage(await getPassage("GEN.1.1", "KJV"))).toBe("en");
+  });
+
+  test("the speaker passes the language on", async () => {
+    const said: string[] = [];
+    const speaker = new VerseSpeaker({
+      speak: (_text, _cb, lang) => { said.push(lang); },
+      stop: () => {},
+      beginAudio: async () => {},
+      endAudio: async () => {},
+    });
+    await speaker.start("a", "hola", "es");
+    await speaker.start("b", "hello");
+    expect(said).toEqual(["es", "en"]);
   });
 });

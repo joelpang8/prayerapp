@@ -1,5 +1,7 @@
 import { bookById, parseRefId } from "./scripture/reference";
+import { spokenBookEs } from "./scripture/booksEs";
 import { plainText, type Passage } from "./scripture/text";
+import { TRANSLATIONS } from "./scripture/translations";
 
 /**
  * "Listen": reads a verse aloud with the phone's own text-to-speech
@@ -20,9 +22,11 @@ function spokenBook(bookId: string, oneChapter: boolean): string {
 /**
  * The reference as it's said aloud: "Psalm 145, verse 18",
  * "Philippians 4, verses 6 to 7", "John 3, verse 16, to chapter 4, verse 2",
- * "Psalm 23".
+ * "Psalm 23". In Spanish: "Salmo 145, versículo 18", "Filipenses 4,
+ * versículos 6 al 7", "Primera de Juan 1, versículo 9".
  */
-export function spokenReference(refId: string): string {
+export function spokenReference(refId: string, lang: "en" | "es" = "en"): string {
+  if (lang === "es") return spokenReferenceEs(refId);
   const r = parseRefId(refId);
   const book = spokenBook(r.book, r.startChapter === r.endChapter);
   if (r.wholeChapter) return `${book} ${r.startChapter}`;
@@ -34,22 +38,41 @@ export function spokenReference(refId: string): string {
   return `${book} ${r.startChapter}, verse ${r.startVerse}, to chapter ${r.endChapter}, verse ${r.endVerse}`;
 }
 
+function spokenReferenceEs(refId: string): string {
+  const r = parseRefId(refId);
+  const book = r.book === "PSA" && r.startChapter === r.endChapter ? "Salmo" : spokenBookEs(r.book);
+  if (r.wholeChapter) return `${book} ${r.startChapter}`;
+  if (r.startChapter === r.endChapter) {
+    return r.startVerse === r.endVerse
+      ? `${book} ${r.startChapter}, versículo ${r.startVerse}`
+      : `${book} ${r.startChapter}, versículos ${r.startVerse} al ${r.endVerse}`;
+  }
+  return `${book} ${r.startChapter}, versículo ${r.startVerse}, al capítulo ${r.endChapter}, versículo ${r.endVerse}`;
+}
+
+/** The language a passage is read in: its translation's (Spanish for the Reina-Valera). */
+export function spokenLanguage(passage: Pick<Passage, "translation">): "en" | "es" {
+  return TRANSLATIONS.find((x) => x.id === passage.translation)?.language === "es" ? "es" : "en";
+}
+
 /**
  * KJV capitals (LORD, GOD, JESUS) are for the eye; some voices spell them
  * out letter by letter, so they're read as ordinary words.
  */
 function forSpeech(text: string): string {
-  return text.replace(/\b[A-Z]{2,}\b/g, (w) => w[0] + w.slice(1).toLowerCase()).replace(/\s{2,}/g, " ").trim();
+  // Also the Reina-Valera's capitals ("EN el principio", "JEHOVÁ").
+  return text.replace(/(?<![\p{L}])\p{Lu}{2,}(?![\p{L}])/gu, (w) => w[0] + w.slice(1).toLowerCase()).replace(/\s{2,}/g, " ").trim();
 }
 
 /** What's read: the reference, then the verse text only (no brackets, no verse numbers). */
-export function spokenPassage(passage: Pick<Passage, "refId" | "verses">): string {
+export function spokenPassage(passage: Pick<Passage, "refId" | "verses"> & Partial<Pick<Passage, "translation">>): string {
   const text = passage.verses.map((v) => plainText(v.segments)).join(" ");
-  return `${spokenReference(passage.refId)}. ${forSpeech(text)}`;
+  const lang = passage.translation ? spokenLanguage({ translation: passage.translation }) : "en";
+  return `${spokenReference(passage.refId, lang)}. ${forSpeech(text)}`;
 }
 
 export type SpeechDeps = {
-  speak(text: string, callbacks: { onDone: () => void; onStopped: () => void; onError: () => void }): void;
+  speak(text: string, callbacks: { onDone: () => void; onStopped: () => void; onError: () => void }, lang: "en" | "es"): void;
   stop(): Promise<void> | void;
   /** Let speech play with the silent switch on, pausing other audio, only while reading. */
   beginAudio(): Promise<void>;
@@ -76,7 +99,7 @@ export class VerseSpeaker {
     return () => this.listeners.delete(listener);
   }
 
-  async start(id: string, text: string): Promise<void> {
+  async start(id: string, text: string, lang: "en" | "es" = "en"): Promise<void> {
     if (this.current) await this.stop();
     this.set(id);
     try {
@@ -90,7 +113,7 @@ export class VerseSpeaker {
       this.set(null);
       void this.deps.endAudio().catch(() => {});
     };
-    this.deps.speak(text, { onDone: finished, onStopped: finished, onError: finished });
+    this.deps.speak(text, { onDone: finished, onStopped: finished, onError: finished }, lang);
   }
 
   /** Stop whatever is playing (a tap, the screen closing, the app leaving the foreground). */

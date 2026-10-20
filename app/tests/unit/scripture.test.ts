@@ -116,3 +116,13 @@ describe("canonical ids", () => {
     expect(toApiBiblePassageId(parseReference("Psalm 23"))).toBe("PSA.23");
   });
 });
+
+test("references and book names in Spanish", async () => {
+  const { bookName, chapterTitle } = await import("../../src/lib/scripture/reference");
+  expect(formatReference(parseRefId("PHP.4.6-7"), "es")).toBe("Filipenses 4:6-7");
+  expect(formatReference(parseRefId("PSA.23"), "es")).toBe("Salmo 23");
+  expect(formatReference(parseRefId("1JN.1.9"), "es")).toBe("1 Juan 1:9");
+  expect(chapterTitle("REV", 21, "es")).toBe("Apocalipsis 21");
+  expect(bookName("PSA", "es")).toBe("Salmos");
+  expect(bookName("PSA", "en")).toBe("Psalms");
+});

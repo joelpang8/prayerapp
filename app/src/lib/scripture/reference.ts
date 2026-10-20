@@ -1,3 +1,5 @@
+import { currentLang, type Lang } from "../../i18n";
+import { BOOK_NAMES_ES } from "./booksEs";
 import { BOOKS, type Book } from "./books";
 
 /**
@@ -60,7 +62,7 @@ function versesIn(book: Book, chapter: number): number {
 function checkVerse(book: Book, chapter: number, verse: number) {
   const n = versesIn(book, chapter);
   if (verse < 1 || verse > n) {
-    throw new VerseRefError(`${displayChapterName(book, chapter)} has ${n} verses; there is no verse ${verse}.`);
+    throw new VerseRefError(`${displayChapterName(book, chapter, "en")} has ${n} verses; there is no verse ${verse}.`);
   }
 }
 
@@ -128,21 +130,28 @@ export function parseReference(input: string): VerseRef {
   return validate(ref);
 }
 
-/** "Psalm 145", "Philippians 4": a chapter's heading. */
-export function chapterTitle(bookId: string, chapter: number): string {
-  return displayChapterName(byId.get(bookId)!, chapter);
+/** A book's name in the app's language: "Philippians" / "Filipenses". */
+export function bookName(bookId: string, lang: Lang = currentLang()): string {
+  const book = byId.get(bookId);
+  if (!book) return bookId;
+  return lang === "es" ? BOOK_NAMES_ES[book.id] ?? book.name : book.name;
 }
 
-function displayChapterName(book: Book, chapter: number): string {
+/** "Psalm 145", "Philippians 4" ("Salmo 145", "Filipenses 4"): a chapter's heading. */
+export function chapterTitle(bookId: string, chapter: number, lang: Lang = currentLang()): string {
+  return displayChapterName(byId.get(bookId)!, chapter, lang);
+}
+
+function displayChapterName(book: Book, chapter: number, lang: Lang): string {
   // "Psalm 23" for one psalm; the book itself is "Psalms".
-  const name = book.id === "PSA" ? "Psalm" : book.name;
+  const name = book.id === "PSA" ? (lang === "es" ? "Salmo" : "Psalm") : bookName(book.id, lang);
   return `${name} ${chapter}`;
 }
 
-/** "Philippians 4:6-7", "Psalm 23", "John 3:16-4:2", "Jude 1:3" */
-export function formatReference(ref: VerseRef): string {
+/** "Philippians 4:6-7", "Psalm 23", "John 3:16-4:2", "Jude 1:3", in the app's language. */
+export function formatReference(ref: VerseRef, lang: Lang = currentLang()): string {
   const book = byId.get(ref.book)!;
-  const head = displayChapterName(book, ref.startChapter);
+  const head = displayChapterName(book, ref.startChapter, lang);
   if (ref.wholeChapter) return head;
   if (ref.startChapter === ref.endChapter) {
     return ref.startVerse === ref.endVerse

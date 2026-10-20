@@ -1,0 +1,7 @@
+{
+  "CFBundleDisplayName": "PrayAlong",
+  "NSCameraUsageDescription": "Toma una foto para acompañar tu oración, o para tu foto de perfil.",
+  "NSPhotoLibraryUsageDescription": "Elige una foto de perfil.",
+  "NSLocationWhenInUseUsageDescription": "Muestra a tus amigos el pueblo o la ciudad donde oraste, si lo eliges para una publicación. Tu ubicación exacta nunca se comparte.",
+  "NSMotionUsageDescription": "PrayAlong no usa datos de movimiento ni de actividad física, y nunca los pide."
+}
