@@ -4,7 +4,8 @@
  * are added only once their licence terms allow this use.
  */
 export const TRANSLATIONS = [
-  { id: "KJV", name: "King James Version", licence: "public domain" },
+  { id: "KJV", name: "King James Version", language: "en", licence: "public domain" },
+  { id: "RV1909", name: "Reina-Valera 1909", language: "es", licence: "public domain (eBible.org)" },
 ] as const;
 
 export type TranslationId = (typeof TRANSLATIONS)[number]["id"];

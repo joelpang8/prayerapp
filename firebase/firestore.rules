@@ -197,12 +197,13 @@ service cloud.firestore {
       // users/{uid}/private/settings: only the owner can read or write it.
       // Friends never see it.
       //   bibleVersion: the translation this user reads verses in.
-      // Only translations on this list can be chosen. KJV is public domain;
+      // Only translations on this list can be chosen. KJV and RV1909
+      // (Reina-Valera 1909, Spanish) are public domain;
       // licensed translations are added here only once their licence
       // allows it. Must match app/src/lib/scripture/translations.ts.
       match /private/{docId} {
         function allowedTranslations() {
-          return ['KJV'];
+          return ['KJV', 'RV1909'];
         }
 
         // verseIndex: { books: {PHP: 3}, refs: {"PHP.4.6-7": 2} }, the verses

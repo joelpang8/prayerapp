@@ -26,9 +26,15 @@ describe("preferred translation setting", () => {
     await assertSucceeds(getDoc(settings(signedInAs(env, "alice"))));
   });
 
+  test("owner can choose the Reina-Valera 1909 (Spanish, public domain)", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(setDoc(settings(db), { bibleVersion: "RV1909" }));
+    await assertSucceeds(updateDoc(settings(db), { bibleVersion: "KJV" }));
+  });
+
   test("translations not on the allowed list are rejected (licence gate)", async () => {
     const db = signedInAs(env, "alice");
-    for (const v of ["NIV", "ESV", "kjv", "", 1, null]) {
+    for (const v of ["NIV", "ESV", "kjv", "rv1909", "RVR1960", "", 1, null]) {
       await assertFails(setDoc(settings(db), { bibleVersion: v }));
     }
   });

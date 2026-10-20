@@ -1,8 +1,9 @@
 import { KJV_BOOKS } from "./kjv";
+import { RV1909_BOOKS, RV1909_NUMBERED_DIFFERENTLY } from "./rv1909";
 import { chapterTitle, formatReference, parseRefId, type VerseRef } from "./reference";
 import type { TranslationId } from "./translations";
 
-/** Part of a verse. `supplied` = words the KJV prints in italics. */
+/** Part of a verse. `supplied` = words the translators added (printed in italics). */
 export type Segment = { text: string; supplied: boolean };
 export type PassageVerse = { chapter: number; verse: number; segments: Segment[] };
 export type Passage = {
@@ -34,9 +35,27 @@ export function segmentsOf(raw: string): Segment[] {
 /** Plain text of a verse (for accessibility labels, sharing, tests). */
 export const plainText = (segments: Segment[]) => segments.map((s) => s.text).join("");
 
-async function kjvChapters(book: string): Promise<string[][]> {
-  const load = KJV_BOOKS[book];
-  if (!load) throw new Error(`No KJV text for ${book}`);
+// The bundled public-domain texts, one lazily loaded file per book.
+const BUNDLED: Record<TranslationId, Record<string, () => Promise<{ default: string[][] }>>> = {
+  KJV: KJV_BOOKS,
+  RV1909: RV1909_BOOKS,
+};
+
+/**
+ * The translation actually shown for these chapters: the Reina-Valera
+ * numbers a few chapters differently from the KJV (whose numbering stored
+ * references use), so there the KJV is shown instead, labelled KJV.
+ */
+export function shownTranslation(translation: TranslationId, book: string, chapters: readonly number[]): TranslationId {
+  if (translation === "RV1909" && chapters.some((c) => RV1909_NUMBERED_DIFFERENTLY[book]?.includes(c))) return "KJV";
+  return translation;
+}
+
+async function bookChapters(book: string, translation: TranslationId): Promise<string[][]> {
+  const books = BUNDLED[translation];
+  if (!books) throw new TranslationUnavailableError(translation);
+  const load = books[book];
+  if (!load) throw new Error(`No ${translation} text for ${book}`);
   return (await load()).default;
 }
 
@@ -51,17 +70,19 @@ function* versesOf(ref: VerseRef, chapters: string[][]) {
 /**
  * The text of a stored reference in the viewer's translation. Only the
  * reference is ever stored; this runs at display time, per viewer.
- * KJV is bundled with the app (public domain). Licensed translations will
- * come through a provider once their terms are known.
+ * The KJV and the Reina-Valera 1909 are bundled with the app (public
+ * domain). Licensed translations will come through a provider once their
+ * terms are known.
  */
 export async function getPassage(refId: string, translation: TranslationId): Promise<Passage> {
   const ref = parseRefId(refId);
-  if (translation !== "KJV") throw new TranslationUnavailableError(translation);
-  const chapters = await kjvChapters(ref.book);
+  const span = Array.from({ length: ref.endChapter - ref.startChapter + 1 }, (_, i) => ref.startChapter + i);
+  const shown = shownTranslation(translation, ref.book, span);
+  const chapters = await bookChapters(ref.book, shown);
   return {
     refId,
     reference: formatReference(ref),
-    translation,
+    translation: shown,
     verses: [...versesOf(ref, chapters)].map(({ chapter, verse, raw }) => ({ chapter, verse, segments: segmentsOf(raw) })),
   };
 }
@@ -77,10 +98,10 @@ export type Chapter = {
   chapters: number;
 };
 
-/** A whole chapter of the bundled KJV ("Read more"). No network. */
-export async function getChapter(book: string, chapter: number, translation: TranslationId): Promise<Chapter> {
-  if (translation !== "KJV") throw new TranslationUnavailableError(translation);
-  const chapters = await kjvChapters(book);
+/** A whole chapter of a bundled translation ("Read more"). No network. */
+export async function getChapter(book: string, chapter: number, requested: TranslationId): Promise<Chapter> {
+  const translation = shownTranslation(requested, book, [chapter]);
+  const chapters = await bookChapters(book, translation);
   const verses = chapters[chapter - 1];
   if (!verses) throw new Error(`${book} has no chapter ${chapter}`);
   return {
