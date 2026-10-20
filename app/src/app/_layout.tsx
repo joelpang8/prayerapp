@@ -7,6 +7,7 @@ import { Centered, fontAssets, fonts, navigationFonts, palettes, useColors } fro
 import * as Linking from "expo-linking";
 import { loadAppearance } from "../lib/appearance";
 import { loadPrayingPrefs } from "../lib/prayingPrefs";
+import { justFinishedProfile } from "../lib/tutorial";
 import { loadTextSize } from "../lib/textSize";
 import { usernameFromLink } from "../lib/invite";
 import { configureNotifications } from "../lib/notifications";
@@ -22,6 +23,7 @@ function RootNavigator() {
   // tab, rather than whichever tab is first or was open at sign-out.
   const wasReady = useRef<boolean | null>(null);
   const ready = session.status === "ready";
+  const previousStatus = useRef<typeof session.status | null>(null);
   // An invite link opened while signed out is remembered and opened once
   // they've signed in (when signed in, the router opens it by itself).
   const url = Linking.useLinkingURL();
@@ -37,8 +39,11 @@ function RootNavigator() {
       const name = pendingInvite.current;
       pendingInvite.current = null;
       if (name) router.push(`/u/${name}`);
+      // A brand-new account sees "How PrayAlong works" once, over Today.
+      if (justFinishedProfile(previousStatus.current, session.status)) router.push("/welcome");
     }
     wasReady.current = ready;
+    previousStatus.current = session.status;
   }, [ready, session.status]);
   if (session.status === "loading") return <Centered />;
   // Pushed screens (profile, post) show a header with a back button.
@@ -67,6 +72,7 @@ function RootNavigator() {
         <Stack.Screen name="activity" options={{ ...pushed, title: "Activity" }} />
         <Stack.Screen name="u/[username]" options={{ ...pushed, title: "Invite" }} />
         <Stack.Screen name="read/[ref]" options={{ ...pushed, title: "Read" }} />
+        <Stack.Screen name="welcome" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
         <Stack.Screen name="delete-account" options={{ ...pushed, title: "Delete account" }} />
       </Stack.Protected>
     </Stack>

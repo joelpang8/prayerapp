@@ -114,6 +114,12 @@ export default function SettingsScreen() {
 
       <BlockedPeople />
 
+      <SectionTitle>Help</SectionTitle>
+      <View style={styles.card}>
+        <Button title="How PrayAlong works" kind="secondary" onPress={() => router.push("/welcome")} />
+        <Muted>The daily moment, who sees your prayers, and private prayers, in three short pages.</Muted>
+      </View>
+
       <View style={styles.spacer} />
       <Button title="Sign out" kind="secondary" onPress={() => signOut()} />
       <Button title="Delete account…" kind="danger" onPress={() => router.push("/delete-account")} />
