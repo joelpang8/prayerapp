@@ -5,6 +5,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { CountdownPill } from "../components/PromptCountdown";
 import { PrayerHelper } from "../components/PrayerHelper";
+import { VerseBlock } from "../components/VerseBlock";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db } from "../firebase";
 import { pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
@@ -138,12 +139,20 @@ function Composer({
   }
 
   const previewUri = editing ? existingUri : photo?.previewUri ?? null;
+  // The day's verse, to pray with while writing: the post's own when editing.
+  const verseRef = editing ? editing.verseRef : prompt?.verseRef;
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{editing ? "Edit post" : "Pray now"}</Text>
         {!editing && prompt && <CountdownPill firedAt={prompt.firedAt} />}
+        {verseRef && (
+          <View style={styles.verse}>
+            <Text style={styles.verseLabel} accessibilityRole="header">{editing ? "That day's verse" : "Today's verse"}</Text>
+            <VerseBlock refId={verseRef} readMore={false} />
+          </View>
+        )}
         <View style={styles.photo}>
           {previewUri ? (
             <Image source={{ uri: previewUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="none" />
@@ -250,6 +259,8 @@ const useStyles = makeStyles((colors) => ({
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   title: { fontSize: 32, fontFamily: fonts.displayBold, color: colors.text },
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  verse: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
+  verseLabel: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
   label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
   placeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   answerBox: { gap: 8, marginTop: 8 },

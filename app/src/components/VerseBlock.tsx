@@ -42,8 +42,10 @@ function Verses({ passage, limit }: { passage: Passage; limit: number }) {
 /**
  * A verse reference rendered in the viewer's translation.
  * collapsed: show just the reference; tap to show the text.
+ * readMore: false hides "Read more" (e.g. while posting, so the countdown
+ * screen isn't left for the chapter).
  */
-export function VerseBlock({ refId, collapsed = false }: { refId: string; collapsed?: boolean }) {
+export function VerseBlock({ refId, collapsed = false, readMore = true }: { refId: string; collapsed?: boolean; readMore?: boolean }) {
   const styles = useStyles();
   const [open, setOpen] = useState(!collapsed);
   const [all, setAll] = useState(false);
@@ -75,7 +77,7 @@ export function VerseBlock({ refId, collapsed = false }: { refId: string; collap
         </Text>
         {passage && <ListenButton speaking={speaking} reference={reference} onPress={() => toggle(spokenPassage(passage))} />}
       </View>
-      {passage && (
+      {passage && readMore && (
         <Pressable
           onPress={() => router.push({ pathname: "/read/[ref]", params: { ref: refId } })}
           accessibilityRole="link"
