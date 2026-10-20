@@ -160,9 +160,8 @@ function Composer({
             <Muted>No photo yet</Muted>
           )}
         </View>
-        {editing ? (
-          <Muted>The photo stays as it was taken. To use a different one, delete this prayer.</Muted>
-        ) : (
+        {/* Not when editing: the photo can't be changed after posting. */}
+        {!editing && (
           <Button title={previewUri ? "Retake photo" : "Take photo"} kind="secondary" onPress={() => capture(takePhoto)} disabled={busy} />
         )}
         {__DEV__ && !editing && (
