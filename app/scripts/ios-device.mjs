@@ -163,7 +163,8 @@ function run(cmd, args, onFail = () => {}) {
 const firstPaidBuildTip = () => {
   if (!paid) return;
   console.error(`
-  If the error says "No profiles for '${bundleId}' were found", or that the
+  If the error says "No profiles for '${bundleId}' (or '${bundleId}.LiveActivity')
+  were found", or that the
   provisioning profile "does not support" a capability (after turning on push
   or Apple sign-in), let Xcode create or update the profile once (it can't
   from the command line with a team preset):
@@ -173,6 +174,8 @@ const firstPaidBuildTip = () => {
     3. Tick "Automatically manage signing" and choose Team: ${teamId}.
        Wait until "Provisioning Profile: Xcode Managed Profile" shows, no red errors
        (click "Try Again" if offered).
+       Do this for every target listed: PrayAlong and LiveActivity (the lock
+       screen countdown).
     4. Quit Xcode and run npm run ios:device again.
 `);
 };
