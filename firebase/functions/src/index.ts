@@ -2,12 +2,15 @@ import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getFunctions } from "firebase-admin/functions";
 import { getMessaging } from "firebase-admin/messaging";
+import { getAuth } from "firebase-admin/auth";
 import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onTaskDispatched } from "firebase-functions/v2/tasks";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
+import { deleteAccountData, isRecentSignIn } from "./accountDeletion";
 import { buildPromptMessage, dateKeyIn, pickFireTime, PROMPT_WINDOW, verseForDate, windowEnd } from "./dailyPrompt";
 import { buildVerseIndex, staleTaps } from "./prayers";
 import { ownedAvatarPath, ownedPhotoPath, revokeFileToken, revokeUserPhotoTokens, type FileLike } from "./photos";
@@ -143,8 +146,14 @@ export const updateVerseIndex = onDocumentWritten("posts/{postId}", async (event
   const post = after ?? before;
   if (!post?.verseRef || typeof post.authorId !== "string") return;
   const db = getFirestore();
+  const indexRef = db.doc(`users/${post.authorId}/private/verseIndex`);
+  // An account being deleted: don't recreate its index.
+  if (!(await db.doc(`users/${post.authorId}`).get()).exists) {
+    await indexRef.delete();
+    return;
+  }
   const posts = await db.collection("posts").where("authorId", "==", post.authorId).select("verseRef").get();
-  await db.doc(`users/${post.authorId}/private/verseIndex`).set(buildVerseIndex(posts.docs.map((d) => d.get("verseRef"))));
+  await indexRef.set(buildVerseIndex(posts.docs.map((d) => d.get("verseRef"))));
 });
 
 /*
@@ -243,3 +252,27 @@ export const firePrompt = onTaskDispatched<{ dateKey: string }>(
     logger.info("daily prompt sent", { dateKey: req.data.dateKey, messageId });
   },
 );
+
+/**
+ * "Delete my account" (Settings). Only for the signed-in person themselves,
+ * and only right after signing in again, so a phone left unlocked can't be
+ * used to delete someone's account. See accountDeletion.ts for what goes.
+ */
+export const deleteAccount = onCall({ timeoutSeconds: 300 }, async (req) => {
+  const uid = req.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
+  if (!isRecentSignIn(req.auth?.token.auth_time)) {
+    throw new HttpsError("failed-precondition", "Please sign in again, then delete within 5 minutes.");
+  }
+  const bucket = getStorage().bucket();
+  const summary = await deleteAccountData(uid, {
+    db: getFirestore(),
+    deleteFiles: (prefix) => bucket.deleteFiles({ prefix }),
+    deleteAuthUser: (id) => getAuth().deleteUser(id).catch((err) => {
+      if (err?.code !== "auth/user-not-found") throw err;
+    }),
+  });
+  // Counts only: nothing about what was deleted.
+  logger.info("account deleted", { summary });
+  return { deleted: true };
+});
