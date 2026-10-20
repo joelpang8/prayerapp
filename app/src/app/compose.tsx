@@ -1,14 +1,16 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { usePreventRemove } from "expo-router/react-navigation";
+import { useEffect, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { CountdownPill } from "../components/PromptCountdown";
 import { PrayerHelper } from "../components/PrayerHelper";
 import { VerseBlock } from "../components/VerseBlock";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db } from "../firebase";
 import { pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/capture";
+import { clearDraft, loadDraft, saveDraft } from "../lib/draft";
 import { currentPlaceName, LocationUnavailableError } from "../lib/location";
 import { editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, postIdFor, setAnswered } from "../lib/posts";
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
@@ -93,6 +95,50 @@ function Composer({
     }
   }
 
+  // A new prayer's words are kept on the phone while writing (lib/draft.ts),
+  // so closing the app doesn't lose them. Restored when coming back.
+  const draftPromptId = editing ? null : prompt?.id ?? null;
+  useEffect(() => {
+    if (!draftPromptId) return;
+    let live = true;
+    loadDraft(uid, draftPromptId).then((saved) => {
+      if (live && saved) setNotes((current) => (current.trim() ? current : saved));
+    });
+    return () => { live = false; };
+  }, [uid, draftPromptId]);
+  useEffect(() => {
+    if (!draftPromptId) return;
+    const timer = setTimeout(() => { void saveDraft(uid, draftPromptId, notes); }, 400);
+    return () => clearTimeout(timer);
+  }, [uid, draftPromptId, notes]);
+
+  // Leaving with unsaved words or a photo (Cancel, or swiping the screen
+  // down) asks first. After posting or saving, it just closes.
+  const [leaving, setLeaving] = useState(false);
+  useEffect(() => { if (leaving) router.back(); }, [leaving]);
+  const unsaved = editing
+    ? notes.trim() !== editing.notes
+      || answered !== !!editing.answeredAt
+      || (answered && answerNote.trim() !== (editing.answerNote ?? ""))
+      || (!!editing.place && !showPlace)
+    : !!notes.trim() || !!photo;
+  const navigation = useNavigation();
+  usePreventRemove(unsaved && !leaving && !busy, ({ data }) => {
+    const leave = () => navigation.dispatch(data.action);
+    if (editing) {
+      Alert.alert(t("compose.discardEditTitle"), undefined, [
+        { text: t("compose.keepEditing"), style: "cancel" },
+        { text: t("compose.discardChanges"), style: "destructive", onPress: leave },
+      ]);
+      return;
+    }
+    Alert.alert(t("compose.discardTitle"), t(notes.trim() ? "compose.discardBodyDraft" : "compose.discardBody"), [
+      { text: t("compose.keepWriting"), style: "cancel" },
+      ...(notes.trim() ? [{ text: t("compose.saveDraft"), onPress: leave }] : []),
+      { text: t("compose.discard"), style: "destructive" as const, onPress: () => { void clearDraft(uid); leave(); } },
+    ]);
+  });
+
   async function submit() {
     const problem = notesProblem(notes);
     if (problem) return setError(problem);
@@ -126,7 +172,8 @@ function Composer({
           takenAt: photo.takenAt,
         });
       }
-      router.back();
+      if (!editing) void clearDraft(uid);
+      setLeaving(true);
     } catch (err) {
       console.warn("post failed", err);
       setError(
