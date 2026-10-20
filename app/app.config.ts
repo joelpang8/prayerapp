@@ -88,6 +88,13 @@ const config: ExpoConfig = {
     "expo-router",
     ...(appleSignIn ? ["expo-apple-authentication"] : []),
     "expo-image",
+    // The lock-screen countdown (a Live Activity) while the prompt is open.
+    // Started on the phone only: no push-to-start or update tokens (the
+    // plugin's enablePushNotifications stays off). Its candle image is
+    // assets/liveActivity/candle.png (iOS allows at most 4 KB).
+    // Before expo-live-activity: signs its widget extension with the same team.
+    "./plugins/withTeamForAllTargets",
+    "expo-live-activity",
     // Launch screen: the candle and "PrayAlong" on the app's own background,
     // light or dark with the phone. It stays up until the first screen is
     // ready, then fades (app/src/app/_layout.tsx).

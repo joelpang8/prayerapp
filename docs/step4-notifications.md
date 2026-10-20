@@ -31,6 +31,14 @@ Code: `firebase/functions/src/dailyPrompt.ts` (pure parts) and the three functio
 - **Countdown:** Today shows 2:00 to pray, then the 5-minute grace period, then "it will be marked late", with the candle. Measured from the prompt's `firedAt`.
 - **Push builds only:** React Native Firebase is linked only when `REMOTE_PUSH=1` (`app/react-native.config.js`). Simulator builds don't include it and need no plist.
 
+### Lock screen countdown (Live Activity)
+
+- `app/src/lib/liveActivity.ts` decides (tested); `app/src/session/useLiveActivity.ts` starts and ends it with `expo-live-activity`, only while the app is in front.
+- Starts when the app is open during the on-time window and there's no post (or queued post) for the prompt; one per prompt, remembered across restarts. Ends on posting, at the window's end while the app is open, or when switched off in Settings.
+- Nothing from the server: no push-to-start or activity push tokens.
+- The widget extension (`LiveActivity` target) is generated at prebuild. `plugins/withTeamForAllTargets.js` gives it your team. The first device or TestFlight build after adding it may need the one-time Xcode Signing step for the **LiveActivity** target too (`ios-device-build.md`, part C).
+- The Simulator shows Live Activities on its lock screen (Device → Lock), so it can be tried without a phone.
+
 ### Setup for a push build
 
 1. APNs key (Apple Developer → Keys, "Apple Push Notifications service") uploaded in Firebase → Project settings → Cloud Messaging, for the iOS app with the app's bundle id (development and production).

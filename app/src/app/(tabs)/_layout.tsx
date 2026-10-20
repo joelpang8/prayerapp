@@ -9,6 +9,7 @@ import { useNotificationPermission, useNotificationsEnabled, useNotificationTaps
 import { usePromptSubscription, usePushTaps } from "../../lib/push";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph } from "../../session/SessionProvider";
+import { useLiveActivity } from "../../session/useLiveActivity";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -54,6 +55,8 @@ export default function TabsLayout() {
   const openToday = useCallback(() => router.navigate("/"), []);
   useNotificationTaps(openToday);
   usePushTaps(openToday);
+  // The lock-screen countdown while the prompt is open (iPhone only).
+  useLiveActivity();
   // Push builds: this phone gets the daily "Time to pray" push only while the
   // app's notifications switch is on and the phone allows notifications.
   const permission = useNotificationPermission();

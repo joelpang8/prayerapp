@@ -1,10 +1,11 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Switch, View } from "react-native";
+import { Platform, Pressable, ScrollView, Switch, View } from "react-native";
 import { signOut } from "../../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { db } from "../../firebase";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
+import { setLiveActivityEnabled, useLiveActivityEnabled } from "../../lib/liveActivity";
 import { setShowPrayingNames, useShowPrayingNames } from "../../lib/prayingPrefs";
 import { setTextSize, TEXT_SIZES, useTextSize } from "../../lib/textSize";
 import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
@@ -29,6 +30,7 @@ export default function SettingsScreen() {
   const notifications = useNotificationPermission();
   const notificationsOn = useNotificationsEnabled();
   const colors = useColors();
+  const liveActivity = useLiveActivityEnabled();
 
   async function toggleNotifications(on: boolean) {
     setNotificationsEnabled(on);
@@ -69,6 +71,24 @@ export default function SettingsScreen() {
         </Muted>
         {notifications.status === "denied" && notificationsOn && (
           <Button title="Open phone Settings" kind="secondary" onPress={openPhoneSettings} />
+        )}
+        {Platform.OS === "ios" && (
+          <>
+            <View style={styles.option}>
+              <Text style={styles.optionText}>Lock screen countdown</Text>
+              <Switch
+                value={liveActivity}
+                onValueChange={setLiveActivityEnabled}
+                trackColor={{ true: colors.accent, false: colors.border }}
+                accessibilityLabel="Lock screen countdown"
+              />
+            </View>
+            <Muted>
+              {liveActivity
+                ? "On: when you open the app at the moment to pray, the countdown also shows on your lock screen until you post."
+                : "Off: the countdown shows only in the app."}
+            </Muted>
+          </>
         )}
       </View>
 
