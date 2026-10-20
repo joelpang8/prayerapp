@@ -1,17 +1,18 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { EmptyState } from "../../components/EmptyState";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { PromptCountdown } from "../../components/PromptCountdown";
 import { QueuedPostCard } from "../../components/QueuedPostCard";
-import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
+import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
 import { setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useHidden, useLatestPrompt, useMyPosts, useNow, useOutbox } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
+import { usePullToRefresh } from "../../session/usePullToRefresh";
 import { useProfiles } from "../../session/useProfiles";
 import { locale, t } from "../../i18n";
 
@@ -21,6 +22,8 @@ const time = (d: Date) => d.toLocaleTimeString(locale(), { hour: "numeric", minu
 
 export default function TodayScreen() {
   const styles = useStyles();
+  const colors = useColors();
+  const pull = usePullToRefresh({ feed: true });
   const { profile } = useReadySession();
   const { prompt, loaded } = useLatestPrompt();
   const { posts: mine } = useMyPosts();
@@ -52,7 +55,9 @@ export default function TodayScreen() {
   const promptVerseShown = !!prompt?.verseRef && (!!myPost || !!open);
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.root} contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
+    >
       {queued.filter((q) => q !== queuedForPrompt || !myPost).map((q) => (
         <View key={q.postId} style={styles.queued}><QueuedPostCard item={q} /></View>
       ))}

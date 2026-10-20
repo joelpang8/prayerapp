@@ -43,6 +43,25 @@ function startFeed(uid: string, chunkSize?: number) {
 }
 
 describe("friend feed", () => {
+  test("pull to refresh keeps the posts on screen and stays live", async () => {
+    await befriend("bob", "alice");
+    await befriend("bob", "carol");
+    const f = startFeed("bob");
+    try {
+      await until(() => f.authors().length === 2);
+      const seen: number[] = [];
+      const off = f.feed.subscribe((p) => { seen.push(p.length); });
+      f.feed.refresh();
+      await seedPost(env, "20260930_alice", "alice", new Date());
+      await until(() => f.authors().length === 3);
+      off();
+      // Never emptied while refreshing.
+      expect(Math.min(...seen)).toBeGreaterThanOrEqual(2);
+    } finally {
+      f.stop();
+    }
+  });
+
   test("shows friends' posts only, newest first; not pending requests or strangers", async () => {
     await befriend("bob", "alice");
     await befriend("bob", "carol");

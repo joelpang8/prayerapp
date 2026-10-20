@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { EmptyState } from "../../components/EmptyState";
 import { MonthCalendar } from "../../components/MonthCalendar";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { SavedVerses } from "../../components/SavedVerses";
 import { SelectField } from "../../components/SelectField";
-import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
+import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { db } from "../../firebase";
 import { t, tn } from "../../i18n";
 import { addMonths, monthTitle, type YearMonth } from "../../lib/calendar";
@@ -21,6 +21,7 @@ import { BOOKS } from "../../lib/scripture/books";
 import { bookName as nameOfBook, formatReference, parseRefId } from "../../lib/scripture/reference";
 import { useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
+import { usePullToRefresh } from "../../session/usePullToRefresh";
 
 /**
  * My prayers: "On this day" from earlier years, a calendar to browse month
@@ -29,6 +30,8 @@ import { useReadySession } from "../../session/SessionProvider";
  */
 export default function PrayersScreen() {
   const styles = useStyles();
+  const colors = useColors();
+  const pull = usePullToRefresh();
   const { profile } = useReadySession();
   // The app's months (prompt days, America/New_York), like the recap.
   const [month, setMonth] = useState<YearMonth>(() => appMonthOf(new Date()));
@@ -62,7 +65,9 @@ export default function PrayersScreen() {
   const filtered = isFiltered(filter);
 
   return (
-    <ScrollView ref={scroll} style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView ref={scroll} style={styles.root} contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
+    >
       <OnThisDay uid={profile.uid} />
       <SavedVerses />
       {loaded && <MonthInPrayer month={month} posts={posts} />}

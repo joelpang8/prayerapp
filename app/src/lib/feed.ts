@@ -48,6 +48,14 @@ export class FeedStore implements FriendScopedCache {
     this.clear();
   }
 
+  /**
+   * Pull to refresh: re-open every friend query (fresh from the server),
+   * keeping the posts on screen until the new results arrive.
+   */
+  refresh(): void {
+    for (const chunk of [...this.chunks]) this.resubscribe(chunk);
+  }
+
   get posts(): Post[] {
     return this.snapshot;
   }
