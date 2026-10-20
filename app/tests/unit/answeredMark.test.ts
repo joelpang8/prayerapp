@@ -35,3 +35,9 @@ describe("answered prayers' gold mark", () => {
     expect(readFileSync("src/components/MonthCalendar.tsx", "utf8")).toContain("borderColor: colors.gold");
   });
 });
+
+test("my own posts can be marked answered in one tap (not friends' posts)", () => {
+  const own = readFileSync("src/components/OwnPostActions.tsx", "utf8");
+  expect(own).toContain("await setAnswered(db, post, true);");
+  expect(own).toMatch(/\{!post\.answeredAt && \(/);
+});
