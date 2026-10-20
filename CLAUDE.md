@@ -17,7 +17,7 @@
 - **Days and months** in the Prayers tab ("On this day", the calendar, "Your month in prayer") are the app's (prompt ids, America/New_York), never the phone's local date.
 - **"Your month in prayer"** is counts only, from my own posts, worked out on the phone and never stored: no streaks, goals, comparisons or "missed" language, and never on-time/late.
 - **Prayer helper (ACTS)** only shows hints while writing. It never writes into the notes or adds fields to posts.
-- **Listen (text-to-speech)** plays only from a tap, reads only the verse text and reference, and stops when its screen closes or the app leaves the foreground. `expo-audio` is only for the silent-mode session switch: keep its plugin options (no microphone permission, no background audio).
+- **Listen (text-to-speech)** plays only from a tap (including Settings' sample, which is a verse), reads only the verse text and reference, uses the voice and speed from Settings (kept on the phone, `app/src/lib/voicePrefs.ts`), and stops when its screen closes or the app leaves the foreground. `expo-audio` is only for the silent-mode session switch: keep its plugin options (no microphone permission, no background audio).
 - **Build order and open decisions** are in `README.md` and `docs/decisions.md`. Ask before building anything that depends on an open decision.
 - **Deploy the app's functions with `functions:default`.** The daily prompt lives in `firebase/functions/src/dailyPrompt.ts` (server) and `app/src/lib/push.ts` (app); the step 4 prototype it came from has been removed.
 - **Daily prompt schedule is secret:** `promptSchedule/` is server-only (clients denied); never log or expose the day's moment before it fires. Push is one FCM topic (`prompt`); never store per-user push tokens.

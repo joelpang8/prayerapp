@@ -3,6 +3,7 @@ import * as Speech from "expo-speech";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { VerseSpeaker } from "../lib/verseSpeech";
+import { getVoicePrefs, speechOptions } from "../lib/voicePrefs";
 
 /**
  * The app's one VerseSpeaker, on the phone's built-in voice.
@@ -13,8 +14,19 @@ import { VerseSpeaker } from "../lib/verseSpeech";
  * other audio pauses. Afterwards it goes back to "ambient" and other apps
  * are told they can resume.
  */
+// The phone's voices, looked up once (null until then: any saved voice is tried).
+let installed: Set<string> | null = null;
+export function phoneVoices(): Promise<Speech.Voice[]> {
+  return Speech.getAvailableVoicesAsync().then((voices) => {
+    installed = new Set(voices.map((v) => v.identifier));
+    return voices;
+  });
+}
+void phoneVoices().catch(() => {});
+
 const speaker = new VerseSpeaker({
-  speak: (text, cb) => Speech.speak(text, { language: "en-US", useApplicationAudioSession: true, ...cb }),
+  // The voice and speed chosen in Settings (lib/voicePrefs.ts).
+  speak: (text, cb) => Speech.speak(text, { ...speechOptions(getVoicePrefs(), installed), useApplicationAudioSession: true, ...cb }),
   stop: () => Speech.stop(),
   beginAudio: () => setAudioModeAsync({ playsInSilentMode: true, interruptionMode: "doNotMix", shouldPlayInBackground: false, allowsRecording: false }),
   endAudio: async () => {

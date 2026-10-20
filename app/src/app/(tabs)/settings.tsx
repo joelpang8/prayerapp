@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Switch, View } from "react-native";
 import { signOut } from "../../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
@@ -11,7 +11,11 @@ import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, 
 import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
 import { setBibleVersion } from "../../lib/settings";
 import { unblockUser } from "../../lib/moderation";
-import { useBlocked, useSettings } from "../../session/hooks";
+import { SelectField } from "../../components/SelectField";
+import { spokenPassage } from "../../lib/verseSpeech";
+import { englishVoices, SAMPLE_REF, setVoicePrefs, SPEEDS, useVoicePrefs, type VoiceChoice } from "../../lib/voicePrefs";
+import { useBlocked, usePassage, useSettings } from "../../session/hooks";
+import { phoneVoices, useVerseSpeech } from "../../session/useVerseSpeech";
 import { useProfiles } from "../../session/useProfiles";
 import { useReadySession } from "../../session/SessionProvider";
 
@@ -87,6 +91,8 @@ export default function SettingsScreen() {
         </Muted>
       </View>
 
+      <ListenSettings />
+
       <SectionTitle>Appearance</SectionTitle>
       <View style={styles.card}>
         {APPEARANCE_OPTIONS.map((o) => (
@@ -124,6 +130,54 @@ export default function SettingsScreen() {
       <Button title="Sign out" kind="secondary" onPress={() => signOut()} />
       <Button title="Delete account…" kind="danger" onPress={() => router.push("/delete-account")} />
     </ScrollView>
+  );
+}
+
+/** Listen: the phone voice and speed used to read verses aloud, with a sample. */
+function ListenSettings() {
+  const styles = useStyles();
+  const prefs = useVoicePrefs();
+  const [voices, setVoices] = useState<VoiceChoice[]>([]);
+  useEffect(() => {
+    let live = true;
+    phoneVoices().then((v) => { if (live) setVoices(englishVoices(v)); }, () => {});
+    return () => { live = false; };
+  }, []);
+  const { passage } = usePassage(SAMPLE_REF);
+  const { speaking, toggle } = useVerseSpeech("settings-sample");
+  return (
+    <>
+      <SectionTitle>Listen</SectionTitle>
+      <View style={styles.card}>
+        <Text style={styles.optionText}>Voice</Text>
+        <SelectField
+          title="Voice"
+          value={prefs.voice ?? ""}
+          onChange={(id) => {
+            const v = voices.find((x) => x.identifier === id);
+            setVoicePrefs({ voice: v?.identifier ?? null, language: v?.language ?? null });
+          }}
+          options={voices.map((v) => ({ value: v.identifier, label: v.label }))}
+          placeholder="Phone's default voice"
+          noneLabel="Phone's default voice"
+        />
+        <Text style={styles.optionText}>Speed</Text>
+        {SPEEDS.map((sp) => (
+          <Option key={sp.id} label={sp.label} selected={prefs.speed === sp.id} onPress={() => setVoicePrefs({ speed: sp.id })} />
+        ))}
+        {passage && (
+          <Button
+            title={speaking ? "Stop" : `Play a sample (${passage.reference})`}
+            kind="secondary"
+            onPress={() => toggle(spokenPassage(passage))}
+          />
+        )}
+        <Muted>
+          Used when you tap Listen on a verse. Kept on this phone. For more natural voices, download an Enhanced or Premium one in your
+          phone&apos;s Settings &gt; Accessibility &gt; Spoken Content &gt; Voices &gt; English.
+        </Muted>
+      </View>
+    </>
   );
 }
 

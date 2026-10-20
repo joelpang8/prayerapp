@@ -10,6 +10,7 @@ import { loadAppearance } from "../lib/appearance";
 import { loadPrayingPrefs } from "../lib/prayingPrefs";
 import { justFinishedProfile } from "../lib/tutorial";
 import { loadTextSize } from "../lib/textSize";
+import { loadVoicePrefs } from "../lib/voicePrefs";
 import { usernameFromLink } from "../lib/invite";
 import { configureNotifications } from "../lib/notifications";
 import { SessionProvider, useSession } from "../session/SessionProvider";
@@ -115,7 +116,7 @@ export default function RootLayout() {
   // The icon font loads with the text fonts, so tab icons don't pop in late.
   const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
-  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs()]).finally(() => setAppearanceLoaded(true)); }, []);
+  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs(), loadVoicePrefs()]).finally(() => setAppearanceLoaded(true)); }, []);
   useEffect(() => {
     const t = setTimeout(hideSplash, SPLASH_MAX_MS);
     return () => clearTimeout(t);
