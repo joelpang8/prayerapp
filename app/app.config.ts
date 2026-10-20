@@ -52,6 +52,9 @@ const config: ExpoConfig = {
   // "automatic" lets night mode follow the phone; the in-app setting can override it.
   userInterfaceStyle: "automatic",
   ios: {
+    // Home-screen icon styles (iOS 18+): the candle on its own for Dark, and
+    // in grays for Tinted (the phone adds the tint).
+    icon: { light: "./assets/icon.png", dark: "./assets/icon-dark.png", tinted: "./assets/icon-tinted.png" },
     bundleIdentifier: bundleId,
     ...(appleTeamId ? { appleTeamId } : {}),
     supportsTablet: false,
