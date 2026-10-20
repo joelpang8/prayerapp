@@ -1,10 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useId, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Share, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
 import { spokenLanguage, spokenPassage } from "../lib/verseSpeech";
+import { verseShareText } from "../lib/verseShare";
 import { db } from "../firebase";
 import { t } from "../i18n";
 import { saveVerse, unsaveVerse } from "../lib/savedVerses";
@@ -86,16 +87,21 @@ export function VerseBlock({ refId, collapsed = false, readMore = true }: { refI
           </View>
         )}
       </View>
-      {passage && readMore && (
-        <Pressable
-          onPress={() => router.push({ pathname: "/read/[ref]", params: { ref: refId } })}
-          accessibilityRole="link"
-          accessibilityLabel={t("verse.readMoreA11y", { ref: reference })}
-          hitSlop={8}
-          style={styles.readMore}
-        >
-          <Text style={styles.more}>{t("verse.readMore")}</Text>
-        </Pressable>
+      {passage && (
+        <View style={styles.bottomRow}>
+          {readMore ? (
+            <Pressable
+              onPress={() => router.push({ pathname: "/read/[ref]", params: { ref: refId } })}
+              accessibilityRole="link"
+              accessibilityLabel={t("verse.readMoreA11y", { ref: reference })}
+              hitSlop={8}
+              style={styles.readMore}
+            >
+              <Text style={styles.more}>{t("verse.readMore")}</Text>
+            </Pressable>
+          ) : <View />}
+          <ShareButton passage={passage} reference={reference} />
+        </View>
       )}
     </View>
   );
@@ -140,6 +146,25 @@ function SaveButton({ refId, reference }: { refId: string; reference: string }) 
   );
 }
 
+/** Share or copy the verse (text and reference only) through the iPhone's share sheet. */
+function ShareButton({ passage, reference }: { passage: Passage; reference: string }) {
+  const styles = useStyles();
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={() => { Share.share({ message: verseShareText(passage) }).catch(() => {}); }}
+      accessibilityRole="button"
+      accessibilityLabel={t("verse.shareA11y", { ref: reference })}
+      accessibilityHint={t("verse.shareHint")}
+      hitSlop={8}
+      style={styles.listen}
+    >
+      <Ionicons name="share-outline" size={20} color={colors.accent} />
+      <Text style={styles.listenText}>{t("verse.share")}</Text>
+    </Pressable>
+  );
+}
+
 /** Reads the verse aloud with the phone's voice, only when tapped. */
 function ListenButton({ speaking, reference, onPress }: { speaking: boolean; reference: string; onPress: () => void }) {
   const styles = useStyles();
@@ -173,5 +198,6 @@ const useStyles = makeStyles((colors) => ({
   refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
   more: { fontSize: 15, color: colors.accent },
   readMore: { alignSelf: "flex-start", paddingVertical: 4 },
+  bottomRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   muted: { fontSize: 15, color: colors.muted },
 }));
