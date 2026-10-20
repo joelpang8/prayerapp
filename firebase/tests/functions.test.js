@@ -180,6 +180,8 @@ describe("Cloud Functions against the emulators", () => {
     });
   });
 
+  // Clients can't change a post's photo any more (firestore.rules); the
+  // function stays as a safety net for a change made with admin rights.
   e2e("replacing a post's photo deletes the old one and keeps the new one", async () => {
     const storage = storageAs(env, "alice");
     const oldRef = storage.ref("postPhotos/alice/old1.jpg");
@@ -190,9 +192,9 @@ describe("Cloud Functions against the emulators", () => {
       authorId: "alice", promptId: "20260929", promptFiredAt: Timestamp.now(), createdAt: Timestamp.now(),
       notes: "x", photoPath: "postPhotos/alice/old1.jpg",
     }));
-    await updateDoc(doc(signedInAs(env, "alice"), "posts", "20260929_alice"), {
+    await seed(env, (db) => updateDoc(doc(db, "posts", "20260929_alice"), {
       photoPath: "postPhotos/alice/new1.jpg", editedAt: serverTimestamp(),
-    });
+    }));
     await eventually(async () => (await errorCode(oldRef.getMetadata())) === "storage/object-not-found");
     await expect(newRef.getMetadata()).resolves.toBeTruthy();
   });
