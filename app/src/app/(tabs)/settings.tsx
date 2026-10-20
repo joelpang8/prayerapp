@@ -8,6 +8,7 @@ import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useCol
 import { db } from "../../firebase";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
 import { setLiveActivityEnabled, useLiveActivityEnabled } from "../../lib/liveActivity";
+import { setReminderEnabled, useReminderEnabled } from "../../lib/reminder";
 import { setShowPrayingNames, useShowPrayingNames } from "../../lib/prayingPrefs";
 import { setTextSize, TEXT_SIZES, useTextSize } from "../../lib/textSize";
 import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
   const notificationsOn = useNotificationsEnabled();
   const colors = useColors();
   const liveActivity = useLiveActivityEnabled();
+  const reminder = useReminderEnabled();
 
   async function toggleNotifications(on: boolean) {
     setNotificationsEnabled(on);
@@ -92,6 +94,16 @@ export default function SettingsScreen() {
             </Muted>
           </>
         )}
+        <View style={styles.option}>
+          <Text style={styles.optionText}>{t("settings.reminder")}</Text>
+          <Switch
+            value={reminder}
+            onValueChange={setReminderEnabled}
+            trackColor={{ true: colors.accent, false: colors.border }}
+            accessibilityLabel={t("settings.reminder")}
+          />
+        </View>
+        <Muted>{reminder ? t("settings.reminderOn") : t("settings.reminderOff")}</Muted>
       </View>
 
       <SectionTitle>{t("settings.prayerRequests")}</SectionTitle>

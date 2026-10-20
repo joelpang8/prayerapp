@@ -1,5 +1,6 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
+import * as Notifications from "expo-notifications";
 import { GoogleSignin, isSuccessResponse } from "@react-native-google-signin/google-signin";
 import {
   GoogleAuthProvider,
@@ -11,6 +12,7 @@ import {
   type UserCredential,
 } from "firebase/auth";
 import { auth, usingEmulators } from "../firebase";
+import { REMINDER_ID } from "../lib/reminder";
 
 // Only set up Google Sign-In once it's configured (app/.env). Configuring
 // without a client id makes the native module reject, which shows up as an
@@ -125,6 +127,8 @@ export async function revokeAppleToken(authorizationCode: string): Promise<void>
 }
 
 export async function signOut(): Promise<void> {
+  // A reminder scheduled for this account shouldn't fire after signing out.
+  await Notifications.cancelScheduledNotificationAsync(REMINDER_ID).catch(() => {});
   try {
     if (googleConfigured && GoogleSignin.hasPreviousSignIn()) await GoogleSignin.signOut();
   } finally {

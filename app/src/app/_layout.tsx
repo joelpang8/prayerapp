@@ -12,6 +12,7 @@ import { justFinishedProfile } from "../lib/tutorial";
 import { loadTextSize } from "../lib/textSize";
 import { loadVoicePrefs } from "../lib/voicePrefs";
 import { loadLiveActivityPref } from "../lib/liveActivity";
+import { loadReminderPref } from "../lib/reminder";
 import { loadLangPref, useLang } from "../i18n/prefs";
 import { t } from "../i18n";
 import { usernameFromLink } from "../lib/invite";
@@ -119,7 +120,7 @@ export default function RootLayout() {
   // The icon font loads with the text fonts, so tab icons don't pop in late.
   const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
-  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs(), loadVoicePrefs(), loadLiveActivityPref(), loadLangPref()]).finally(() => setAppearanceLoaded(true)); }, []);
+  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs(), loadVoicePrefs(), loadLiveActivityPref(), loadLangPref(), loadReminderPref()]).finally(() => setAppearanceLoaded(true)); }, []);
   useEffect(() => {
     const t = setTimeout(hideSplash, SPLASH_MAX_MS);
     return () => clearTimeout(t);

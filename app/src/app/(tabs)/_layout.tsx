@@ -10,6 +10,7 @@ import { usePromptSubscription, usePushTaps } from "../../lib/push";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph } from "../../session/SessionProvider";
 import { useLiveActivity } from "../../session/useLiveActivity";
+import { useReminder } from "../../session/useReminder";
 import { t } from "../../i18n";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -58,6 +59,8 @@ export default function TabsLayout() {
   usePushTaps(openToday);
   // The lock-screen countdown while the prompt is open (iPhone only).
   useLiveActivity();
+  // The opt-in "haven't prayed yet" reminder, scheduled on this phone.
+  useReminder();
   // Push builds: this phone gets the daily "Time to pray" push only while the
   // app's notifications switch is on and the phone allows notifications.
   const permission = useNotificationPermission();
