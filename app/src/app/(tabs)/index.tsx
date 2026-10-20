@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { BirthdayCard } from "../../components/BirthdayCard";
 import { EmptyState } from "../../components/EmptyState";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
@@ -95,6 +96,8 @@ export default function TodayScreen() {
           <Button title={t("today.notNow")} kind="secondary" onPress={() => setNotificationsEnabled(false)} />
         </View>
       )}
+
+      <BirthdayCard now={now} />
 
       <View style={styles.friendsHeader}>
         <SectionTitle>{t("today.friends")}</SectionTitle>
