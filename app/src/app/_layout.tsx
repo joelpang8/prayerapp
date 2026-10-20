@@ -12,6 +12,7 @@ import { justFinishedProfile } from "../lib/tutorial";
 import { loadTextSize } from "../lib/textSize";
 import { loadVoicePrefs } from "../lib/voicePrefs";
 import { loadLiveActivityPref } from "../lib/liveActivity";
+import { loadLangPref, useLang } from "../i18n/prefs";
 import { usernameFromLink } from "../lib/invite";
 import { configureNotifications } from "../lib/notifications";
 import { SessionProvider, useSession } from "../session/SessionProvider";
@@ -117,19 +118,21 @@ export default function RootLayout() {
   // The icon font loads with the text fonts, so tab icons don't pop in late.
   const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
-  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs(), loadVoicePrefs(), loadLiveActivityPref()]).finally(() => setAppearanceLoaded(true)); }, []);
+  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs(), loadVoicePrefs(), loadLiveActivityPref(), loadLangPref()]).finally(() => setAppearanceLoaded(true)); }, []);
   useEffect(() => {
     const t = setTimeout(hideSplash, SPLASH_MAX_MS);
     return () => clearTimeout(t);
   }, []);
   const theme = useNavigationTheme();
+  const lang = useLang();
   if ((!fontsLoaded && !fontError) || !appearanceLoaded) return <Centered />;
   return (
     <ThemeProvider value={theme}>
       <SessionProvider>
         {/* "auto" follows the app's appearance, including a forced Light/Dark. */}
         <StatusBar style="auto" />
-        <RootNavigator />
+        {/* Keyed on the language, so changing it redraws every screen. */}
+        <RootNavigator key={lang} />
       </SessionProvider>
     </ThemeProvider>
   );
