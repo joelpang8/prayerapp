@@ -14,6 +14,7 @@ import {
 import { ref, uploadBytes, type FirebaseStorage } from "firebase/storage";
 import type { PhotoData } from "./posts";
 import { assignRequestIds, joinRequests, MAX_REQUESTS, requestItems, splitRequests, type PrayerRequest } from "./prayerRequests";
+import { locale, t } from "../i18n";
 
 /**
  * Public profile: visible to any signed-in user who knows the uid.
@@ -30,7 +31,7 @@ export type Profile = {
 export const BIO_MAX = 160; // must match firestore.rules
 
 export function bioProblem(bio: string): string | null {
-  return bio.trim().length > BIO_MAX ? `At most ${BIO_MAX} characters.` : null;
+  return bio.trim().length > BIO_MAX ? t("profileCheck.atMost", { max: BIO_MAX }) : null;
 }
 
 export function avatarPathFor(uid: string, avatarId: string): string {
@@ -62,16 +63,16 @@ export function normalizeUsername(input: string): string {
 }
 
 export function usernameProblem(username: string): string | null {
-  if (username.length < 3) return "At least 3 characters.";
-  if (username.length > 20) return "At most 20 characters.";
-  if (!USERNAME_PATTERN.test(username)) return "Only lowercase letters, numbers and underscores.";
+  if (username.length < 3) return t("profileCheck.atLeast3");
+  if (username.length > 20) return t("profileCheck.atMost", { max: 20 });
+  if (!USERNAME_PATTERN.test(username)) return t("profileCheck.usernameChars");
   return null;
 }
 
 export function displayNameProblem(name: string): string | null {
   const trimmed = name.trim();
-  if (trimmed.length < 1) return "Enter a name.";
-  if (trimmed.length > 50) return "At most 50 characters.";
+  if (trimmed.length < 1) return t("profileCheck.enterName");
+  if (trimmed.length > 50) return t("profileCheck.atMost", { max: 50 });
   return null;
 }
 
@@ -162,8 +163,8 @@ export const ABOUT_LIMITS: Record<Exclude<keyof About, "birthday">, number> = {
   church: 80,
 };
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-export const monthName = (m: number) => MONTHS[m - 1];
+/** "March" / "marzo", in the app's language. */
+export const monthName = (m: number) => new Date(Date.UTC(2000, m - 1, 1)).toLocaleDateString(locale(), { month: "long", timeZone: "UTC" });
 
 /** Days in a month; February allows the 29th, since the year is optional. */
 export function daysInMonth(month: number, year?: number): number {
@@ -186,22 +187,23 @@ export function parseBirthday(value: string): { month: number; day: number; year
   return { year: m[1] ? Number(m[1]) : undefined, month: Number(m[2]), day: Number(m[3]) };
 }
 
-/** "March 14" or "March 14, 1990". */
+/** "March 14" or "March 14, 1990" ("14 de marzo de 1990"). */
 export function formatBirthday(value: string): string {
   const b = parseBirthday(value);
   if (!b) return "";
-  return `${monthName(b.month)} ${b.day}${b.year ? `, ${b.year}` : ""}`;
+  const parts = { month: monthName(b.month), day: b.day, year: b.year ?? "" };
+  return b.year ? t("profileCheck.birthdayWithYear", parts) : t("profileCheck.birthday", parts);
 }
 
 export function aboutProblem(a: About): string | null {
   for (const [key, max] of Object.entries(ABOUT_LIMITS) as [keyof typeof ABOUT_LIMITS, number][]) {
     // Requests count as saved: blank rows left in the editor don't count.
     const value = key === "prayerRequests" ? joinRequests(splitRequests(a[key])) : a[key].trim();
-    if (value.length > max) return `At most ${max} characters.`;
+    if (value.length > max) return t("profileCheck.atMost", { max });
   }
-  if (splitRequests(a.prayerRequests).length > MAX_REQUESTS) return `At most ${MAX_REQUESTS} prayer requests, one per line.`;
+  if (splitRequests(a.prayerRequests).length > MAX_REQUESTS) return t("profileCheck.tooManyRequests", { max: MAX_REQUESTS });
   const b = a.birthday && parseBirthday(a.birthday);
-  if (a.birthday && (!b || !birthdayValue(b.month, b.day, b.year))) return "That birthday isn't a real date.";
+  if (a.birthday && (!b || !birthdayValue(b.month, b.day, b.year))) return t("profileCheck.badBirthday");
   return null;
 }
 

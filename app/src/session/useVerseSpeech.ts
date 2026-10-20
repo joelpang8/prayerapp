@@ -25,15 +25,16 @@ export function phoneVoices(): Promise<Speech.Voice[]> {
 void phoneVoices().catch(() => {});
 
 /**
- * English verses: the voice and speed from Settings. Spanish verses (the
- * Reina-Valera): the chosen voice only if it's Spanish, else the phone's
- * Spanish voice, at the chosen speed.
+ * The voice from Settings when it speaks the verse's language (English for
+ * the KJV, Spanish for the Reina-Valera); otherwise the phone's own voice
+ * for that language. Always at the chosen speed.
  */
 function voiceFor(lang: "en" | "es"): { language: string; voice?: string; rate: number } {
   const prefs = getVoicePrefs();
   const chosen = speechOptions(prefs, installed);
-  if (lang === "en") return chosen;
-  return chosen.voice && /^es/i.test(chosen.language) ? chosen : { language: "es-MX", rate: chosen.rate };
+  const sameLanguage = !!chosen.voice && chosen.language.toLowerCase().startsWith(lang);
+  if (sameLanguage) return chosen;
+  return { language: lang === "es" ? "es-MX" : "en-US", rate: chosen.rate };
 }
 
 const speaker = new VerseSpeaker({

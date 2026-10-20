@@ -10,6 +10,7 @@ import { usePromptSubscription, usePushTaps } from "../../lib/push";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph } from "../../session/SessionProvider";
 import { useLiveActivity } from "../../session/useLiveActivity";
+import { t } from "../../i18n";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -74,20 +75,20 @@ export default function TabsLayout() {
       {/* Today sits in the middle, the app's main place. */}
       <Tabs.Screen
         name="friends"
-        options={{ title: "Friends", tabBarIcon: tabIcon("people-outline", "people"), tabBarBadge: requests || undefined }}
+        options={{ title: t("tabs.friends"), tabBarIcon: tabIcon("people-outline", "people"), tabBarBadge: requests || undefined }}
       />
-      <Tabs.Screen name="prayers" options={{ title: "Prayers", tabBarIcon: tabIcon("journal-outline", "journal") }} />
+      <Tabs.Screen name="prayers" options={{ title: t("tabs.prayers"), tabBarIcon: tabIcon("journal-outline", "journal") }} />
       <Tabs.Screen
         name="index"
         options={{
-          title: "Today",
+          title: t("tabs.today"),
           tabBarIcon: ({ focused }) => <TodayIcon focused={focused} />,
-          tabBarAccessibilityLabel: "Today",
+          tabBarAccessibilityLabel: t("tabs.today"),
           headerRight: () => <ActivityBell />,
         }}
       />
-      <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: tabIcon("person-circle-outline", "person-circle") }} />
-      <Tabs.Screen name="settings" options={{ title: "Settings", tabBarIcon: tabIcon("settings-outline", "settings") }} />
+      <Tabs.Screen name="profile" options={{ title: t("tabs.profile"), tabBarIcon: tabIcon("person-circle-outline", "person-circle") }} />
+      <Tabs.Screen name="settings" options={{ title: t("tabs.settings"), tabBarIcon: tabIcon("settings-outline", "settings") }} />
     </Tabs>
   );
 }

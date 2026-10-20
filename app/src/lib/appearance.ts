@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { Appearance } from "react-native";
+import { t } from "../i18n";
 
 /**
  * Night mode. "system" follows the phone's own light/dark setting. Applied
@@ -10,9 +11,9 @@ import { Appearance } from "react-native";
  */
 export type AppearancePref = "system" | "light" | "dark";
 export const APPEARANCE_OPTIONS: { id: AppearancePref; label: string }[] = [
-  { id: "system", label: "Match phone" },
-  { id: "light", label: "Light" },
-  { id: "dark", label: "Dark" },
+  { id: "system", get label() { return t("appearance.system"); } },
+  { id: "light", get label() { return t("appearance.light"); } },
+  { id: "dark", get label() { return t("appearance.dark"); } },
 ];
 
 const KEY = "ui.appearance";

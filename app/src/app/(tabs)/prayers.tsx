@@ -18,7 +18,7 @@ import { appDayId, onThisDayIds, yearsAgoText } from "../../lib/onThisDay";
 import { appMonthOf, buildRecap, dayKeyOfPromptId, markedDays, prayersText, watchMyPostsInMonth } from "../../lib/monthRecap";
 import { type Post } from "../../lib/posts";
 import { BOOKS } from "../../lib/scripture/books";
-import { bookById, formatReference, parseRefId } from "../../lib/scripture/reference";
+import { bookName as nameOfBook, formatReference, parseRefId } from "../../lib/scripture/reference";
 import { useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 
@@ -134,7 +134,7 @@ function OnThisDay({ uid }: { uid: string }) {
   );
 }
 
-const bookName = (code: string) => bookById(code)?.name ?? code;
+const bookName = (code: string) => nameOfBook(code);
 function refLabel(id: string): string {
   try {
     return formatReference(parseRefId(id));

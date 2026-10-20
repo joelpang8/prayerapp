@@ -2,6 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { FlatList, Modal, Pressable, View } from "react-native";
 import { Button, fonts, makeStyles, Muted, Text, TextInput, useColors } from "./ui";
+import { t } from "../i18n";
 
 export type SelectOption = { value: string; label: string };
 
@@ -18,7 +19,7 @@ export function SelectField({
   placeholder,
   otherMaxLength,
   otherPlaceholder,
-  noneLabel = "None",
+  noneLabel = t("common.none"),
 }: {
   value: string;
   options: SelectOption[];
@@ -53,7 +54,7 @@ export function SelectField({
 
   return (
     <>
-      <Pressable onPress={show} accessibilityRole="button" accessibilityLabel={`${title}: ${known?.label ?? (value || "not set")}`} style={styles.field}>
+      <Pressable onPress={show} accessibilityRole="button" accessibilityLabel={`${title}: ${known?.label ?? (value || t("select.notSet"))}`} style={styles.field}>
         <Text style={[styles.value, !value && styles.placeholder]} numberOfLines={1}>
           {known?.label ?? (value || placeholder)}
         </Text>
@@ -65,12 +66,12 @@ export function SelectField({
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <Pressable onPress={() => setOpen(false)} hitSlop={12} accessibilityRole="button">
-              <Text style={styles.done}>Close</Text>
+              <Text style={styles.done}>{t("select.close")}</Text>
             </Pressable>
           </View>
           {typing ? (
             <View style={styles.otherBox}>
-              <Muted>Not in the list? Type it here.</Muted>
+              <Muted>{t("select.notInList")}</Muted>
               <TextInput
                 value={other}
                 onChangeText={setOther}
@@ -79,15 +80,15 @@ export function SelectField({
                 autoFocus
                 style={styles.input}
               />
-              <Button title="Use this" onPress={() => pick(other.trim())} disabled={!other.trim()} />
-              <Button title="Back to the list" kind="secondary" onPress={() => setTyping(false)} />
+              <Button title={t("select.useThis")} onPress={() => pick(other.trim())} disabled={!other.trim()} />
+              <Button title={t("select.backToList")} kind="secondary" onPress={() => setTyping(false)} />
             </View>
           ) : (
             <FlatList
               data={[
                 { value: "", label: noneLabel },
                 ...options,
-                ...(otherMaxLength ? [{ value: "\u0000other", label: isOther ? `Other: ${value}` : "Other…" }] : []),
+                ...(otherMaxLength ? [{ value: "\u0000other", label: isOther ? t("select.otherValue", { value }) : t("select.other") }] : []),
               ]}
               keyExtractor={(o) => o.value || "none"}
               renderItem={({ item }) => {

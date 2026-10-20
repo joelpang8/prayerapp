@@ -18,6 +18,7 @@ export function whatIsDeleted(): string[] {
     t("account.item.comments"),
     t("account.item.friends"),
     t("account.item.profile"),
+    t("account.item.savedVerses"),
     t("account.item.settings"),
     t("account.item.signIn"),
   ];

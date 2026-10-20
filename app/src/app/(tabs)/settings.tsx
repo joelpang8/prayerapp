@@ -1,4 +1,6 @@
 import { router } from "expo-router";
+import { SPANISH_REVIEWED, t } from "../../i18n";
+import { setLangPref, useLangPref, type LangPref } from "../../i18n/prefs";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, ScrollView, Switch, View } from "react-native";
 import { signOut } from "../../auth/signIn";
@@ -13,7 +15,7 @@ import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translatio
 import { setBibleVersion } from "../../lib/settings";
 import { unblockUser } from "../../lib/moderation";
 import { SelectField } from "../../components/SelectField";
-import { spokenPassage } from "../../lib/verseSpeech";
+import { spokenLanguage, spokenPassage } from "../../lib/verseSpeech";
 import { englishVoices, SAMPLE_REF, setVoicePrefs, SPEEDS, useVoicePrefs, type VoiceChoice } from "../../lib/voicePrefs";
 import { useBlocked, usePassage, useSettings } from "../../session/hooks";
 import { phoneVoices, useVerseSpeech } from "../../session/useVerseSpeech";
@@ -45,110 +47,112 @@ export default function SettingsScreen() {
     try {
       await setBibleVersion(db, profile.uid, id);
     } catch {
-      setError("Couldn't save. Please try again.");
+      setError(t("settings.couldntSave"));
     }
   }
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <SectionTitle>Notifications</SectionTitle>
+      <SectionTitle>{t("settings.notifications")}</SectionTitle>
       <View style={styles.card}>
         <View style={styles.option}>
-          <Text style={styles.optionText}>Prompt notifications</Text>
+          <Text style={styles.optionText}>{t("settings.promptNotifications")}</Text>
           <Switch
             value={notificationsOn && notifications.status === "granted"}
             onValueChange={toggleNotifications}
             trackColor={{ true: colors.accent, false: colors.border }}
-            accessibilityLabel="Prompt notifications"
+            accessibilityLabel={t("settings.promptNotifications")}
           />
         </View>
         <Muted>
           {notifications.status === "denied" && notificationsOn
-            ? "Blocked in your phone's Settings. Turn them on there to be notified."
+            ? t("settings.notifBlocked")
             : notificationsOn && notifications.status === "granted"
-              ? "On: you'll be notified when it's time to pray."
-              : "Off: turn on to be notified at the daily moment to pray."}
+              ? t("settings.notifOn")
+              : t("settings.notifOff")}
         </Muted>
         {notifications.status === "denied" && notificationsOn && (
-          <Button title="Open phone Settings" kind="secondary" onPress={openPhoneSettings} />
+          <Button title={t("settings.openPhoneSettings")} kind="secondary" onPress={openPhoneSettings} />
         )}
         {Platform.OS === "ios" && (
           <>
             <View style={styles.option}>
-              <Text style={styles.optionText}>Lock screen countdown</Text>
+              <Text style={styles.optionText}>{t("settings.lockScreen")}</Text>
               <Switch
                 value={liveActivity}
                 onValueChange={setLiveActivityEnabled}
                 trackColor={{ true: colors.accent, false: colors.border }}
-                accessibilityLabel="Lock screen countdown"
+                accessibilityLabel={t("settings.lockScreen")}
               />
             </View>
             <Muted>
               {liveActivity
-                ? "On: when you open the app at the moment to pray, the countdown also shows on your lock screen until you post."
-                : "Off: the countdown shows only in the app."}
+                ? t("settings.lockScreenOn")
+                : t("settings.lockScreenOff")}
             </Muted>
           </>
         )}
       </View>
 
-      <SectionTitle>Prayer requests</SectionTitle>
+      <SectionTitle>{t("settings.prayerRequests")}</SectionTitle>
       <View style={styles.card}>
         <View style={styles.option}>
-          <Text style={styles.optionText}>Show who&apos;s praying</Text>
+          <Text style={styles.optionText}>{t("settings.showPraying")}</Text>
           <Switch
             value={showPrayingNames}
             onValueChange={setShowPrayingNames}
             trackColor={{ true: colors.accent, false: colors.border }}
-            accessibilityLabel="Show who's praying for my requests"
+            accessibilityLabel={t("settings.showPrayingA11y")}
           />
         </View>
         <Muted>
           {showPrayingNames
-            ? "On: your profile shows the names of friends praying for each request."
-            : "Off: your profile shows how many friends are praying for each request, not who."}{" "}
-          You&apos;re never sent a notification about it.
+            ? t("settings.showPrayingOn")
+            : t("settings.showPrayingOff")}{" "}
+          {t("settings.neverNotified")}
         </Muted>
       </View>
 
       <ListenSettings />
 
-      <SectionTitle>Appearance</SectionTitle>
+      <LanguageSettings />
+
+      <SectionTitle>{t("settings.appearance")}</SectionTitle>
       <View style={styles.card}>
         {APPEARANCE_OPTIONS.map((o) => (
           <Option key={o.id} label={o.label} selected={appearance === o.id} onPress={() => setAppearance(o.id)} />
         ))}
-        <Muted>Dark is easier on the eyes for evening prayer. &quot;Match phone&quot; follows your phone&apos;s setting.</Muted>
+        <Muted>{t("settings.appearanceNote")}</Muted>
       </View>
 
-      <SectionTitle>Text size</SectionTitle>
+      <SectionTitle>{t("settings.textSize")}</SectionTitle>
       <View style={styles.card}>
-        {TEXT_SIZES.map((t) => (
-          <Option key={t.id} label={t.label} selected={textSize === t.id} onPress={() => setTextSize(t.id)} />
+        {TEXT_SIZES.map((size) => (
+          <Option key={size.id} label={size.label} selected={textSize === size.id} onPress={() => setTextSize(size.id)} />
         ))}
-        <Muted>Makes all text in the app bigger. The app also follows your phone&apos;s own text size (Settings &gt; Display &amp; Brightness &gt; Text Size).</Muted>
+        <Muted>{t("settings.textSizeNote")}</Muted>
       </View>
 
-      <SectionTitle>Bible translation</SectionTitle>
+      <SectionTitle>{t("settings.bibleTranslation")}</SectionTitle>
       <View style={styles.card}>
-        {TRANSLATIONS.map((t) => (
-          <Option key={t.id} label={`${t.name} (${t.id})`} selected={settings.bibleVersion === t.id} onPress={() => choose(t.id)} />
+        {TRANSLATIONS.map((tr) => (
+          <Option key={tr.id} label={`${tr.name} (${tr.id})`} selected={settings.bibleVersion === tr.id} onPress={() => choose(tr.id)} />
         ))}
-        <Muted>Verses with each day&apos;s prompt are shown in this translation. More translations will come later.</Muted>
+        <Muted>{t("settings.bibleTranslationNote")}</Muted>
       </View>
       {error && <ErrorText>{error}</ErrorText>}
 
       <BlockedPeople />
 
-      <SectionTitle>Help</SectionTitle>
+      <SectionTitle>{t("settings.help")}</SectionTitle>
       <View style={styles.card}>
-        <Button title="How PrayAlong works" kind="secondary" onPress={() => router.push("/welcome")} />
-        <Muted>The daily moment, who sees your prayers, and private prayers, in three short pages.</Muted>
+        <Button title={t("settings.howItWorks")} kind="secondary" onPress={() => router.push("/welcome")} />
+        <Muted>{t("settings.howItWorksNote")}</Muted>
       </View>
 
       <View style={styles.spacer} />
-      <Button title="Sign out" kind="secondary" onPress={() => signOut()} />
-      <Button title="Delete account…" kind="danger" onPress={() => router.push("/delete-account")} />
+      <Button title={t("settings.signOut")} kind="secondary" onPress={() => signOut()} />
+      <Button title={t("settings.deleteAccount")} kind="danger" onPress={() => router.push("/delete-account")} />
     </ScrollView>
   );
 }
@@ -167,35 +171,57 @@ function ListenSettings() {
   const { speaking, toggle } = useVerseSpeech("settings-sample");
   return (
     <>
-      <SectionTitle>Listen</SectionTitle>
+      <SectionTitle>{t("settings.listen")}</SectionTitle>
       <View style={styles.card}>
-        <Text style={styles.optionText}>Voice</Text>
+        <Text style={styles.optionText}>{t("settings.voice")}</Text>
         <SelectField
-          title="Voice"
+          title={t("settings.voice")}
           value={prefs.voice ?? ""}
           onChange={(id) => {
             const v = voices.find((x) => x.identifier === id);
             setVoicePrefs({ voice: v?.identifier ?? null, language: v?.language ?? null });
           }}
           options={voices.map((v) => ({ value: v.identifier, label: v.label }))}
-          placeholder="Phone's default voice"
-          noneLabel="Phone's default voice"
+          placeholder={t("settings.defaultVoice")}
+          noneLabel={t("settings.defaultVoice")}
         />
-        <Text style={styles.optionText}>Speed</Text>
+        <Text style={styles.optionText}>{t("settings.speed")}</Text>
         {SPEEDS.map((sp) => (
           <Option key={sp.id} label={sp.label} selected={prefs.speed === sp.id} onPress={() => setVoicePrefs({ speed: sp.id })} />
         ))}
         {passage && (
           <Button
-            title={speaking ? "Stop" : `Play a sample (${passage.reference})`}
+            title={speaking ? t("settings.stop") : t("settings.playSample", { reference: passage.reference })}
             kind="secondary"
-            onPress={() => toggle(spokenPassage(passage))}
+            onPress={() => toggle(spokenPassage(passage), spokenLanguage(passage))}
           />
         )}
-        <Muted>
-          Used when you tap Listen on a verse. Kept on this phone. For more natural voices, download an Enhanced or Premium one in your
-          phone&apos;s Settings &gt; Accessibility &gt; Spoken Content &gt; Voices &gt; English.
-        </Muted>
+        <Muted>{t("settings.listenNote")}</Muted>
+      </View>
+    </>
+  );
+}
+
+/**
+ * Language: follow the phone, or English / Español. Each language is named
+ * in its own language. Spanish says it's under review until it has been.
+ */
+function LanguageSettings() {
+  const styles = useStyles();
+  const pref = useLangPref();
+  const options: { id: LangPref; label: string }[] = [
+    { id: "system", label: t("settings.matchPhone") },
+    { id: "en", label: "English" },
+    { id: "es", label: SPANISH_REVIEWED ? "Español" : "Español (en revisión)" },
+  ];
+  return (
+    <>
+      <SectionTitle>{t("settings.language")}</SectionTitle>
+      <View style={styles.card}>
+        {options.map((o) => (
+          <Option key={o.id} label={o.label} selected={pref === o.id} onPress={() => setLangPref(o.id)} />
+        ))}
+        <Muted>{SPANISH_REVIEWED ? t("settings.languageNoteReviewed") : t("settings.languageNote")}</Muted>
       </View>
     </>
   );
@@ -210,15 +236,15 @@ function BlockedPeople() {
   if (blocked.size === 0) return null;
   return (
     <>
-      <SectionTitle>Blocked people</SectionTitle>
+      <SectionTitle>{t("settings.blockedPeople")}</SectionTitle>
       <View style={styles.card}>
         {[...blocked].map((uid) => (
           <View key={uid} style={styles.option}>
             <Text style={styles.optionText}>{names.get(uid)?.displayName ?? "…"}</Text>
-            <Button title="Unblock" kind="secondary" onPress={() => unblockUser(db, profile.uid, uid).catch(() => {})} />
+            <Button title={t("settings.unblock")} kind="secondary" onPress={() => unblockUser(db, profile.uid, uid).catch(() => {})} />
           </View>
         ))}
-        <Muted>They don&apos;t know they&apos;re blocked. Unblocking doesn&apos;t make you friends again; either of you can send a new request.</Muted>
+        <Muted>{t("settings.blockedNote")}</Muted>
       </View>
     </>
   );

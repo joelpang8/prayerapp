@@ -47,7 +47,7 @@ describe("Listen voices", () => {
   test("the Settings sample is a verse, read through the same Listen path", () => {
     expect(SAMPLE_REF).toMatch(/^[1-3]?[A-Z]{2,3}\.\d+\.\d+$/);
     const settings = readFileSync("src/app/(tabs)/settings.tsx", "utf8");
-    expect(settings).toContain("toggle(spokenPassage(passage))");
+    expect(settings).toContain("toggle(spokenPassage(passage), spokenLanguage(passage))");
     expect(settings).toContain('useVerseSpeech("settings-sample")');
   });
 });

@@ -3,8 +3,18 @@ import { useState } from "react";
 import { FlatList, Modal, Pressable, View } from "react-native";
 import { birthdayValue, daysInMonth, formatBirthday, monthName, parseBirthday } from "../lib/profile";
 import { fonts, makeStyles, Muted, Text, useColors } from "./ui";
+import { locale, t } from "../i18n";
 
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+/** "S M T W T F S" / "D L M M J V S", from the language's own weekday names. */
+function weekdayInitials(): string[] {
+  // 2 January 2000 was a Sunday.
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(Date.UTC(2000, 0, 2 + i)).toLocaleDateString(locale(), { weekday: "narrow", timeZone: "UTC" }).toUpperCase(),
+  );
+}
+
+/** A month name as a heading: "March" / "Marzo". */
+const heading = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
  * Birthday as a drop-down calendar: pick the month with the arrows, the year
@@ -46,33 +56,33 @@ export function BirthdayField({ value, onChange }: { value: string; onChange: (v
 
   return (
     <>
-      <Pressable onPress={show} accessibilityRole="button" accessibilityLabel={`Birthday: ${value ? formatBirthday(value) : "not set"}`} style={styles.field}>
+      <Pressable onPress={show} accessibilityRole="button" accessibilityLabel={t("birthday.a11y", { value: value ? formatBirthday(value) : t("birthday.notSet") })} style={styles.field}>
         <Ionicons name="calendar-outline" size={20} color={colors.accent} />
-        <Text style={[styles.value, !value && styles.placeholder]}>{value ? formatBirthday(value) : "Add your birthday"}</Text>
+        <Text style={[styles.value, !value && styles.placeholder]}>{value ? formatBirthday(value) : t("birthday.add")}</Text>
         <Ionicons name="chevron-down" size={20} color={colors.muted} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>Birthday</Text>
+            <Text style={styles.title}>{t("birthday.title")}</Text>
             <Pressable onPress={() => setOpen(false)} hitSlop={12} accessibilityRole="button">
-              <Text style={styles.link}>Close</Text>
+              <Text style={styles.link}>{t("birthday.close")}</Text>
             </Pressable>
           </View>
 
           <View style={styles.controls}>
             <View style={styles.monthRow}>
-              <Pressable onPress={() => setMonth(month === 1 ? 12 : month - 1)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Previous month">
+              <Pressable onPress={() => setMonth(month === 1 ? 12 : month - 1)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("birthday.prevMonth")}>
                 <Ionicons name="chevron-back" size={26} color={colors.accent} />
               </Pressable>
-              <Text style={styles.monthName}>{monthName(month)}</Text>
-              <Pressable onPress={() => setMonth(month === 12 ? 1 : month + 1)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Next month">
+              <Text style={styles.monthName}>{heading(monthName(month))}</Text>
+              <Pressable onPress={() => setMonth(month === 12 ? 1 : month + 1)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("birthday.nextMonth")}>
                 <Ionicons name="chevron-forward" size={26} color={colors.accent} />
               </Pressable>
             </View>
             <Pressable onPress={() => setChoosingYear(!choosingYear)} style={styles.yearButton} accessibilityRole="button">
-              <Text style={styles.yearText}>{year ?? "Year (optional)"}</Text>
+              <Text style={styles.yearText}>{year ?? t("birthday.yearOptional")}</Text>
               <Ionicons name={choosingYear ? "chevron-up" : "chevron-down"} size={18} color={colors.muted} />
             </Pressable>
           </View>
@@ -89,7 +99,7 @@ export function BirthdayField({ value, onChange }: { value: string; onChange: (v
                   accessibilityRole="radio"
                   accessibilityState={{ selected: item === year }}
                 >
-                  <Text style={[styles.yearRowText, item === null && styles.placeholder]}>{item ?? "Don't show year"}</Text>
+                  <Text style={[styles.yearRowText, item === null && styles.placeholder]}>{item ?? t("birthday.noYear")}</Text>
                   {item === year && <Ionicons name="checkmark" size={22} color={colors.accent} />}
                 </Pressable>
               )}
@@ -98,7 +108,7 @@ export function BirthdayField({ value, onChange }: { value: string; onChange: (v
             <View style={styles.grid}>
               {year !== null && (
                 <View style={styles.week}>
-                  {WEEKDAYS.map((d, i) => <Text key={i} style={styles.weekday}>{d}</Text>)}
+                  {weekdayInitials().map((d, i) => <Text key={i} style={styles.weekday}>{d}</Text>)}
                 </View>
               )}
               {weeks.map((week, w) => (
@@ -107,7 +117,7 @@ export function BirthdayField({ value, onChange }: { value: string; onChange: (v
                     if (!day) return <View key={i} style={styles.cell} />;
                     const selected = current?.month === month && current?.day === day && (current?.year ?? null) === year;
                     return (
-                      <Pressable key={i} onPress={() => pickDay(day)} style={styles.cell} accessibilityRole="button" accessibilityLabel={`${monthName(month)} ${day}`}>
+                      <Pressable key={i} onPress={() => pickDay(day)} style={styles.cell} accessibilityRole="button" accessibilityLabel={formatBirthday(birthdayValue(month, day) ?? "")}>
                         <View style={[styles.day, selected && styles.daySelected]}>
                           <Text style={[styles.dayText, selected && styles.dayTextSelected]}>{day}</Text>
                         </View>
@@ -116,10 +126,10 @@ export function BirthdayField({ value, onChange }: { value: string; onChange: (v
                   })}
                 </View>
               ))}
-              <Muted>Tap a day. The year is optional: leave it out if you&apos;d rather not share your age.</Muted>
+              <Muted>{t("birthday.tapDay")}</Muted>
               {value !== "" && (
                 <Pressable onPress={() => { onChange(""); setOpen(false); }} style={styles.remove} accessibilityRole="button">
-                  <Text style={styles.removeText}>Remove birthday</Text>
+                  <Text style={styles.removeText}>{t("birthday.remove")}</Text>
                 </Pressable>
               )}
             </View>

@@ -13,6 +13,7 @@ import { findByUsername, type Profile } from "../../lib/profile";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
+import { t } from "../../i18n";
 
 export default function FriendsScreen() {
   const styles = useStyles();
@@ -32,7 +33,7 @@ export default function FriendsScreen() {
       await fn();
     } catch (err) {
       console.warn(err);
-      setError("That didn't work. Please try again.");
+      setError(t("friends.didntWork"));
     } finally {
       setPending(null);
     }
@@ -40,11 +41,11 @@ export default function FriendsScreen() {
 
   function confirmRemove(p: Profile) {
     Alert.alert(
-      `Remove ${p.displayName}?`,
-      "You'll stop seeing each other's posts right away. You can send a new request later.",
+      t("friends.removeTitle", { name: p.displayName }),
+      t("friends.removeMessage"),
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Remove", style: "destructive", onPress: () => act(p.uid, () => removeFriend(db, me.uid, p.uid)) },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("friends.remove"), style: "destructive", onPress: () => act(p.uid, () => removeFriend(db, me.uid, p.uid)) },
       ],
     );
   }
@@ -61,31 +62,31 @@ export default function FriendsScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Button title="Invite friends" onPress={() => shareInvite(me.username).catch(() => {})} />
-      <Muted>Send a link with your username. Friends who have the app can open it to add you.</Muted>
+      <Button title={t("profile.invite")} onPress={() => shareInvite(me.username).catch(() => {})} />
+      <Muted>{t("friends.inviteNote")}</Muted>
       <View style={styles.spacer} />
       <FindFriend me={me.uid} graph={graph} />
       {error && <ErrorText>{error}</ErrorText>}
 
-      {incoming.length > 0 && <SectionTitle>Requests</SectionTitle>}
+      {incoming.length > 0 && <SectionTitle>{t("friends.requests")}</SectionTitle>}
       {incoming.map((uid) =>
         row(uid, (
           <>
-            <Button title="Accept" onPress={() => act(uid, () => acceptRequest(db, me.uid, uid))} busy={pending === uid} />
-            <Button title="Decline" kind="secondary" onPress={() => act(uid, () => declineRequest(db, me.uid, uid))} disabled={pending === uid} />
+            <Button title={t("friends.accept")} onPress={() => act(uid, () => acceptRequest(db, me.uid, uid))} busy={pending === uid} />
+            <Button title={t("friends.decline")} kind="secondary" onPress={() => act(uid, () => declineRequest(db, me.uid, uid))} disabled={pending === uid} />
           </>
         )),
       )}
 
-      <SectionTitle>Friends</SectionTitle>
-      {!loaded && <Muted>Loading…</Muted>}
+      <SectionTitle>{t("friends.friends")}</SectionTitle>
+      {!loaded && <Muted>{t("friends.loading")}</Muted>}
       {loaded && graph.friends.size === 0 && (
-        <EmptyState icon="people-circle-outline" title="Pray together" message="Find a friend by their username above, or invite someone you pray with." />
+        <EmptyState icon="people-circle-outline" title={t("friends.emptyTitle")} message={t("friends.emptyMessage")} />
       )}
       {[...graph.friends].map((uid) =>
         row(uid, (
           <Button
-            title="Remove"
+            title={t("friends.remove")}
             kind="danger"
             busy={pending === uid}
             onPress={() => { const p = profiles.get(uid); if (p) confirmRemove(p); }}
@@ -93,9 +94,9 @@ export default function FriendsScreen() {
         )),
       )}
 
-      {graph.outgoing.size > 0 && <SectionTitle>Sent</SectionTitle>}
+      {graph.outgoing.size > 0 && <SectionTitle>{t("friends.sent")}</SectionTitle>}
       {[...graph.outgoing].map((uid) =>
-        row(uid, <Button title="Cancel" kind="secondary" busy={pending === uid} onPress={() => act(uid, () => cancelRequest(db, me.uid, uid))} />),
+        row(uid, <Button title={t("common.cancel")} kind="secondary" busy={pending === uid} onPress={() => act(uid, () => cancelRequest(db, me.uid, uid))} />),
       )}
     </ScrollView>
   );
@@ -128,7 +129,7 @@ function FindFriend({ me, graph }: { me: string; graph: ReturnType<typeof useFri
     try {
       setResult((await findByUsername(db, text)) ?? "none");
     } catch {
-      setError("Search failed. Please try again.");
+      setError(t("friends.searchFailed"));
     } finally {
       setBusy(false);
     }
@@ -139,7 +140,7 @@ function FindFriend({ me, graph }: { me: string; graph: ReturnType<typeof useFri
     try {
       await follow(db, me, p.uid);
     } catch {
-      setError("Couldn't send the request.");
+      setError(t("friends.couldntSend"));
     } finally {
       setBusy(false);
     }
@@ -152,25 +153,25 @@ function FindFriend({ me, graph }: { me: string; graph: ReturnType<typeof useFri
       <View style={styles.searchRow}>
         <TextInput
           value={text}
-          onChangeText={(t) => { setText(t); setResult(null); }}
+          onChangeText={(value) => { setText(value); setResult(null); }}
           onSubmitEditing={search}
-          placeholder="Find by username"
+          placeholder={t("friends.findPlaceholder")}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
           style={styles.input}
         />
-        <Button title="Find" kind="secondary" onPress={search} busy={busy && !result} disabled={!text.trim()} />
+        <Button title={t("friends.find")} kind="secondary" onPress={search} busy={busy && !result} disabled={!text.trim()} />
       </View>
-      {result === "none" && <Muted>Nobody with that username.</Muted>}
+      {result === "none" && <Muted>{t("friends.nobody")}</Muted>}
       {result && result !== "none" && (
         <View style={styles.row}>
           <Who profile={result} uid={result.uid} />
-          {rel === "none" && <Button title="Add friend" onPress={() => send(result)} busy={busy} />}
-          {rel === "incoming" && <Button title="Accept" onPress={() => send(result)} busy={busy} />}
-          {rel === "outgoing" && <Muted>Request sent</Muted>}
-          {rel === "friend" && <Muted>Friends</Muted>}
-          {rel === "self" && <Muted>That&apos;s you</Muted>}
+          {rel === "none" && <Button title={t("friends.addFriend")} onPress={() => send(result)} busy={busy} />}
+          {rel === "incoming" && <Button title={t("friends.accept")} onPress={() => send(result)} busy={busy} />}
+          {rel === "outgoing" && <Muted>{t("friends.requestSent")}</Muted>}
+          {rel === "friend" && <Muted>{t("friends.isFriend")}</Muted>}
+          {rel === "self" && <Muted>{t("friends.thatsYou")}</Muted>}
         </View>
       )}
       {error && <ErrorText>{error}</ErrorText>}

@@ -1,6 +1,7 @@
 import * as Linking from "expo-linking";
 import { Share } from "react-native";
 import { normalizeUsername, usernameProblem } from "./profile";
+import { t } from "../i18n";
 
 /**
  * Invites: a link that opens the inviter's profile in the app (with Add
@@ -14,7 +15,7 @@ export function inviteLink(username: string): string {
 }
 
 export function inviteMessage(username: string): string {
-  return `Pray with me on PrayAlong 🙏\nAdd me as a friend: @${username}\n${inviteLink(username)}`;
+  return t("invite.message", { username, link: inviteLink(username) });
 }
 
 export async function shareInvite(username: string): Promise<void> {

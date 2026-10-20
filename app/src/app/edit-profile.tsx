@@ -9,9 +9,10 @@ import { BirthdayField } from "../components/BirthdayField";
 import { RequestListEditor } from "../components/RequestListEditor";
 import { SelectField } from "../components/SelectField";
 import { joinRequests, MAX_REQUESTS, splitRequests } from "../lib/prayerRequests";
-import { BIBLE_VERSIONS, DENOMINATIONS } from "../lib/faith";
+import { BIBLE_VERSIONS, DENOMINATIONS, denominationLabel } from "../lib/faith";
 import { ABOUT_LIMITS, aboutFields, aboutProblem, removeAvatar, saveAbout, setAvatar, watchAbout, type About, type AboutDoc } from "../lib/profile";
 import { useReadySession } from "../session/SessionProvider";
+import { t } from "../i18n";
 
 /** Profile photo (camera or library) and the friends-only details. Opened from the Profile tab. */
 export default function EditProfileScreen() {
@@ -36,7 +37,7 @@ export default function EditProfileScreen() {
         filled.current = true;
         setForm(aboutFields(about));
       }
-    }, () => setError("Couldn't load your profile.")),
+    }, () => setError(t("editProfile.couldntLoad"))),
     [profile.uid],
   );
 
@@ -50,7 +51,7 @@ export default function EditProfileScreen() {
       await setAvatar(db, storage, profile.uid, await photoBlob(photo.previewUri), photo.photoId);
     } catch (err) {
       console.warn("profile photo upload failed", err);
-      setError("Couldn't update your photo. Please try again.");
+      setError(t("editProfile.couldntUpdatePhoto"));
     } finally {
       setPreview(null);
       setPhotoBusy(false);
@@ -63,7 +64,7 @@ export default function EditProfileScreen() {
     try {
       await removeAvatar(db, profile.uid);
     } catch {
-      setError("Couldn't remove your photo. Please try again.");
+      setError(t("editProfile.couldntRemovePhoto"));
     } finally {
       setPhotoBusy(false);
     }
@@ -83,7 +84,7 @@ export default function EditProfileScreen() {
       await saveAbout(db, profile.uid, next, saved);
       setSavedNote(true);
     } catch {
-      setError("Couldn't save. Please try again.");
+      setError(t("editProfile.couldntSave"));
     } finally {
       setBusy(false);
     }
@@ -118,7 +119,7 @@ export default function EditProfileScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Edit profile</Text>
+      <Text style={styles.title}>{t("editProfile.title")}</Text>
       <View style={styles.card}>
         <View style={styles.identity}>
           <Avatar path={profile.avatarPath} name={profile.displayName} size={72} previewUri={preview} />
@@ -128,66 +129,63 @@ export default function EditProfileScreen() {
           </View>
         </View>
         <View style={styles.photoActions}>
-          <Button title="Take photo" kind="secondary" onPress={() => changePhoto("camera")} disabled={photoBusy} />
-          <Button title="Choose photo" kind="secondary" onPress={() => changePhoto("library")} busy={photoBusy} />
-          {profile.avatarPath && <Button title="Remove" kind="danger" onPress={deletePhoto} disabled={photoBusy} />}
+          <Button title={t("editProfile.takePhoto")} kind="secondary" onPress={() => changePhoto("camera")} disabled={photoBusy} />
+          <Button title={t("editProfile.choosePhoto")} kind="secondary" onPress={() => changePhoto("library")} busy={photoBusy} />
+          {profile.avatarPath && <Button title={t("editProfile.remove")} kind="danger" onPress={deletePhoto} disabled={photoBusy} />}
         </View>
-        <Muted>Anyone signed in can see your photo, name and username.</Muted>
+        <Muted>{t("editProfile.publicNote")}</Muted>
       </View>
 
       <View style={styles.card}>
-        <Muted>Only your friends can see these. Fill in as much or as little as you like.</Muted>
-        {field("bio", "Bio", "A line or two about yourself", true)}
+        <Muted>{t("editProfile.friendsOnlyNote")}</Muted>
+        {field("bio", t("editProfile.bio"), t("editProfile.bioPlaceholder"), true)}
 
         <View style={styles.field}>
-          <Text style={styles.label}>Birthday</Text>
+          <Text style={styles.label}>{t("editProfile.birthday")}</Text>
           <BirthdayField value={form?.birthday ?? ""} onChange={set("birthday")} />
         </View>
-        {field("hometown", "Where I'm from", "e.g. Lagos, Nigeria")}
+        {field("hometown", t("editProfile.hometown"), t("editProfile.hometownPlaceholder"))}
 
         <View style={styles.field}>
           <View style={styles.fieldHeader}>
-            <Text style={styles.label} accessibilityRole="header">Prayer requests</Text>
+            <Text style={styles.label} accessibilityRole="header">{t("editProfile.prayerRequests")}</Text>
             {requestsLeft < 40 && <Text style={[styles.counter, requestsLeft < 0 && { color: colors.danger }]}>{requestsLeft}</Text>}
           </View>
-          <Muted>What would you like your friends to pray for?</Muted>
+          <Muted>{t("editProfile.requestsPrompt")}</Muted>
           {form && <RequestListEditor initial={form.prayerRequests} onChange={set("prayerRequests")} />}
         </View>
-        <Muted>
-          Up to {MAX_REQUESTS}. Friends can tap &ldquo;I&apos;ll pray for this&rdquo; on each one, and only you see how many
-          are praying. Rewording a request starts its count again.
-        </Muted>
+        <Muted>{t("editProfile.requestsNote", { max: MAX_REQUESTS })}</Muted>
         <View style={styles.field}>
-          <Text style={styles.label}>Bible version I read</Text>
+          <Text style={styles.label}>{t("editProfile.bibleVersionRead")}</Text>
           <SelectField
-            title="Bible version"
+            title={t("editProfile.bibleVersion")}
             value={form?.bibleVersion ?? ""}
             onChange={set("bibleVersion")}
             options={BIBLE_VERSIONS.map((v) => ({ value: v.abbr, label: `${v.name} (${v.abbr})` }))}
-            placeholder="Choose a version"
+            placeholder={t("editProfile.chooseVersion")}
             otherMaxLength={ABOUT_LIMITS.bibleVersion}
-            otherPlaceholder="Your Bible version"
+            otherPlaceholder={t("editProfile.yourVersion")}
           />
         </View>
         <View style={styles.field}>
-          <Text style={styles.label}>Denomination</Text>
+          <Text style={styles.label}>{t("editProfile.denomination")}</Text>
           <SelectField
-            title="Denomination"
+            title={t("editProfile.denomination")}
             value={form?.denomination ?? ""}
             onChange={set("denomination")}
-            options={DENOMINATIONS.map((d) => ({ value: d, label: d }))}
-            placeholder="Choose a denomination"
+            options={DENOMINATIONS.map((d) => ({ value: d, label: denominationLabel(d) }))}
+            placeholder={t("editProfile.chooseDenomination")}
             otherMaxLength={ABOUT_LIMITS.denomination}
-            otherPlaceholder="Your denomination"
+            otherPlaceholder={t("editProfile.yourDenomination")}
           />
         </View>
-        {field("church", "My church", "Church name and city")}
+        {field("church", t("editProfile.church"), t("editProfile.churchPlaceholder"))}
 
         {problem && <ErrorText>{problem}</ErrorText>}
         {error && <ErrorText>{error}</ErrorText>}
-        <Button title={savedNote && !changed ? "Saved" : "Save"} onPress={submit} busy={busy} disabled={!changed || !!problem} />
+        <Button title={savedNote && !changed ? t("editProfile.saved") : t("editProfile.save")} onPress={submit} busy={busy} disabled={!changed || !!problem} />
       </View>
-      <Button title="Done" kind="secondary" onPress={() => router.back()} disabled={photoBusy || busy} />
+      <Button title={t("editProfile.done")} kind="secondary" onPress={() => router.back()} disabled={photoBusy || busy} />
     </ScrollView>
   );
 }

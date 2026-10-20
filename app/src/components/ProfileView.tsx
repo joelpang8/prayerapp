@@ -4,7 +4,7 @@ import { db } from "../firebase";
 import { follow, relationshipTo } from "../lib/friends";
 import { unblockUser } from "../lib/moderation";
 import { useBlocked } from "../session/hooks";
-import { bibleVersionLabel } from "../lib/faith";
+import { bibleVersionLabel, denominationLabel } from "../lib/faith";
 import { formatBirthday, watchAbout, type AboutDoc } from "../lib/profile";
 import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
@@ -12,6 +12,7 @@ import { Avatar } from "./Avatar";
 import { MoreMenu } from "./MoreMenu";
 import { PrayerRequests } from "./PrayerRequests";
 import { Button, fonts, makeStyles, Muted, Text } from "./ui";
+import { t } from "../i18n";
 
 /**
  * Someone's profile: photo, name, username, and the friends-only details
@@ -34,7 +35,7 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
   const relation = relationshipTo(graph, me.uid, uid);
   // Tags from their friends-only details: the Bible they read, their tradition.
   const tags = about
-    ? [about.bibleVersion && `📖 ${about.bibleVersion}`, about.denomination && `⛪ ${about.denomination}`].filter((t): t is string => !!t)
+    ? [about.bibleVersion && `📖 ${about.bibleVersion}`, about.denomination && `⛪ ${denominationLabel(about.denomination)}`].filter((t): t is string => !!t)
     : [];
 
   async function act(fn: () => Promise<void>) {
@@ -42,18 +43,18 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
     try {
       await fn();
     } catch {
-      Alert.alert("That didn't work", "Please try again.");
+      Alert.alert(t("common.didntWork"), t("common.tryAgain"));
     } finally {
       setBusy(false);
     }
   }
   const details: [string, string][] = about
     ? ([
-        ["From", about.hometown],
-        ["Birthday", about.birthday ? formatBirthday(about.birthday) : ""],
-        ["Bible version", about.bibleVersion ? bibleVersionLabel(about.bibleVersion) : ""],
-        ["Denomination", about.denomination],
-        ["Church", about.church],
+        [t("profile.from"), about.hometown],
+        [t("profile.birthday"), about.birthday ? formatBirthday(about.birthday) : ""],
+        [t("profile.bibleVersion"), about.bibleVersion ? bibleVersionLabel(about.bibleVersion) : ""],
+        [t("profile.denomination"), about.denomination ? denominationLabel(about.denomination) : ""],
+        [t("profile.church"), about.church],
       ] as [string, string][]).filter(([, v]) => v)
     : [];
 
@@ -72,14 +73,14 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
       {!isMe && profile && (
         <View style={styles.relationRow}>
           {blocked.has(uid) ? (
-            <Button title="Unblock" kind="secondary" busy={busy} onPress={() => act(() => unblockUser(db, me.uid, uid))} />
+            <Button title={t("profile.unblock")} kind="secondary" busy={busy} onPress={() => act(() => unblockUser(db, me.uid, uid))} />
           ) : relation === "friend" ? (
-            <Text style={styles.relation}>✓ Friends</Text>
+            <Text style={styles.relation}>{t("profile.friends")}</Text>
           ) : relation === "outgoing" ? (
-            <Text style={styles.relation}>Request sent</Text>
+            <Text style={styles.relation}>{t("profile.requestSent")}</Text>
           ) : (
             <Button
-              title={relation === "incoming" ? "Accept friend request" : "Add friend"}
+              title={relation === "incoming" ? t("profile.acceptRequest") : t("profile.addFriend")}
               busy={busy}
               onPress={() => act(() => follow(db, me.uid, uid))}
             />
@@ -89,11 +90,11 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
       )}
       <View style={styles.bio}>
         {!canSeeBio ? (
-          <Muted>Only friends can see {profile?.displayName ?? "their"}&apos;s bio and details.</Muted>
+          <Muted>{profile ? t("profile.onlyFriendsSee", { name: profile.displayName }) : t("profile.onlyFriendsSeeTheir")}</Muted>
         ) : about === null ? null : about.bio ? (
           <Text style={styles.bioText}>{about.bio}</Text>
         ) : (
-          <Muted>{isMe ? "You haven't written a bio yet." : "No bio yet."}</Muted>
+          <Muted>{isMe ? t("profile.noBioMine") : t("profile.noBio")}</Muted>
         )}
       </View>
       {details.length > 0 && (

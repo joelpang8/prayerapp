@@ -5,9 +5,10 @@ import { t } from "../../i18n";
 import { fonts, makeStyles, Muted, Span, Text, useColors } from "../../components/ui";
 import { chapterTitle, parseRefId } from "../../lib/scripture/reference";
 import { getChapter, plainText, versesInChapter, type Chapter } from "../../lib/scripture/text";
+import { useSettings } from "../../session/hooks";
 
 /**
- * "Read more": the whole chapter around a verse, from the bundled KJV (no
+ * "Read more": the whole chapter around a verse, in my Bible translation (no
  * network), with the verse that was shown highlighted and scrolled to.
  * Previous/next chapter stay inside the book. Scripture only: nothing here
  * is anyone's content.
@@ -21,13 +22,15 @@ export default function ReadScreen() {
   const [state, setState] = useState<{ key: string; chapter: Chapter | null } | null>(null);
   const scroll = useRef<ScrollView>(null);
   const book = start?.book ?? null;
-  const key = `${book}:${chapter}`;
+  const { bibleVersion } = useSettings();
+  const key = `${bibleVersion}:${book}:${chapter}`;
 
   useEffect(() => {
     if (!book) return;
-    const k = `${book}:${chapter}`;
+    const k = `${bibleVersion}:${book}:${chapter}`;
     let live = true;
-    getChapter(book, chapter, "KJV").then(
+    // My translation; a chapter it numbers differently comes back as the KJV.
+    getChapter(book, chapter, bibleVersion).then(
       (c) => { if (live) setState({ key: k, chapter: c }); },
       (err) => {
         console.warn("chapter unavailable", err);
@@ -35,7 +38,7 @@ export default function ReadScreen() {
       },
     );
     return () => { live = false; };
-  }, [book, chapter]);
+  }, [book, chapter, bibleVersion]);
 
   const current = state?.key === key ? state.chapter : undefined;
   const highlight = refId && start ? versesInChapter(refId, chapter) : null;
@@ -76,7 +79,7 @@ export default function ReadScreen() {
       {current && (
         <>
           <Text style={styles.title} accessibilityRole="header">{current.title}</Text>
-          <Muted>{t("read.kjvNote")}</Muted>
+          <Muted>{t(current?.translation === "RV1909" ? "read.rvNote" : "read.kjvNote")}</Muted>
           <View style={styles.rule} />
           {nav}
           {current.verses.map((v) => {

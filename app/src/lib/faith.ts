@@ -1,3 +1,5 @@
+import { t, type StringKey } from "../i18n";
+
 /**
  * Choices for the profile's "Bible version I read" and "Denomination".
  * Both also allow "Other" with the person's own words. These are just labels
@@ -40,6 +42,14 @@ export const BIBLE_VERSIONS: { abbr: string; name: string }[] = [
 export function bibleVersionLabel(value: string): string {
   const v = BIBLE_VERSIONS.find((b) => b.abbr === value);
   return v ? `${v.name} (${v.abbr})` : value;
+}
+
+/**
+ * A denomination as shown: translated when it's one from the list. The
+ * stored value is always the English one; anything typed in shows as typed.
+ */
+export function denominationLabel(value: string): string {
+  return DENOMINATIONS.includes(value) ? t(`denom.${value}` as StringKey) : value;
 }
 
 /** Common Christian traditions, roughly grouped; "Other" covers the rest. */

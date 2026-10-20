@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import type { FriendScope, FriendScopedCache } from "./friendScope";
 import type { PrayerRequest } from "./prayerRequests";
+import { t, tn } from "../i18n";
 
 /**
  * "I'll pray for this": a friend taps one of my prayer requests to say
@@ -56,14 +57,14 @@ export function prayingByRequest(
 
 /** "1 friend is praying for this", "3 friends are praying for this". */
 export function prayingCountText(n: number): string {
-  return n === 1 ? "1 friend is praying for this" : `${n} friends are praying for this`;
+  return tn("praying.count", n);
 }
 
 /** "Ana is praying for this", "Ana and Ben are…", "Ana, Ben and Cy are…". */
 export function prayingNamesText(names: readonly string[]): string {
   if (names.length === 0) return "";
-  const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return `${who} ${names.length === 1 ? "is" : "are"} praying for this`;
+  const who = names.length === 1 ? names[0] : t("praying.and", { list: names.slice(0, -1).join(", "), last: names[names.length - 1] });
+  return tn("praying.names", names.length, { who });
 }
 
 abstract class TapListener implements FriendScopedCache {

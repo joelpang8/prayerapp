@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { Pressable, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
-import { spokenPassage } from "../lib/verseSpeech";
+import { spokenLanguage, spokenPassage } from "../lib/verseSpeech";
 import { db } from "../firebase";
 import { t } from "../i18n";
 import { saveVerse, unsaveVerse } from "../lib/savedVerses";
@@ -82,7 +82,7 @@ export function VerseBlock({ refId, collapsed = false, readMore = true }: { refI
         {passage && (
           <View style={styles.actions}>
             <SaveButton refId={refId} reference={reference} />
-            <ListenButton speaking={speaking} reference={reference} onPress={() => toggle(spokenPassage(passage))} />
+            <ListenButton speaking={speaking} reference={reference} onPress={() => toggle(spokenPassage(passage), spokenLanguage(passage))} />
           </View>
         )}
       </View>

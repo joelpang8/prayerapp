@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSyncExternalStore } from "react";
+import { t } from "../i18n";
 
 /**
  * In-app text size, on top of the phone's own larger-text setting (which
@@ -7,9 +8,9 @@ import { useSyncExternalStore } from "react";
  */
 export type TextSize = "standard" | "large" | "larger";
 export const TEXT_SIZES: { id: TextSize; label: string; scale: number }[] = [
-  { id: "standard", label: "Standard", scale: 1 },
-  { id: "large", label: "Large", scale: 1.15 },
-  { id: "larger", label: "Larger", scale: 1.3 },
+  { id: "standard", get label() { return t("textSize.standard"); }, scale: 1 },
+  { id: "large", get label() { return t("textSize.large"); }, scale: 1.15 },
+  { id: "larger", get label() { return t("textSize.larger"); }, scale: 1.3 },
 ];
 
 const KEY = "ui.textSize";

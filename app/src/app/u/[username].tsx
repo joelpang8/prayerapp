@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { Button, Centered, makeStyles, Muted } from "../../components/ui";
 import { db } from "../../firebase";
 import { findByUsername } from "../../lib/profile";
+import { t } from "../../i18n";
 
 /** Where an invite link lands: finds the person and opens their profile. */
 export default function InviteScreen() {
@@ -25,8 +26,8 @@ export default function InviteScreen() {
   if (!missing) return <Centered />;
   return (
     <View style={styles.root}>
-      <Muted>Nobody has the username @{username}. Ask your friend to send the invite again.</Muted>
-      <Button title="Go to Friends" kind="secondary" onPress={() => router.replace("/friends")} />
+      <Muted>{t("invite.missing", { username: username ?? "" })}</Muted>
+      <Button title={t("invite.goToFriends")} kind="secondary" onPress={() => router.replace("/friends")} />
     </View>
   );
 }

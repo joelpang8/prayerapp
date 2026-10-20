@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { canAddRow, cleanRow, editorRows, joinRequests, MAX_REQUESTS } from "../lib/prayerRequests";
 import { fonts, makeStyles, Text, TextInput, useColors } from "./ui";
+import { t } from "../i18n";
 
 // Stable row keys, so removing a row doesn't move focus or text to another.
 let lastKey = 0;
@@ -52,8 +53,8 @@ export function RequestListEditor({ initial, onChange, editable = true }: { init
             }}
             value={r.text}
             onChangeText={(t) => update(rows.map((x) => (x.key === r.key ? { ...x, text: cleanRow(t) } : x)))}
-            placeholder={i === 0 ? "e.g. My mum's health" : "Another request"}
-            accessibilityLabel={`Prayer request ${i + 1}`}
+            placeholder={i === 0 ? t("requests.firstPlaceholder") : t("requests.anotherPlaceholder")}
+            accessibilityLabel={t("requests.rowA11y", { n: i + 1 })}
             returnKeyType={canAddRow(rows.map((x) => x.text)) ? "next" : "done"}
             submitBehavior={canAddRow(rows.map((x) => x.text)) ? "submit" : "blurAndSubmit"}
             onSubmitEditing={() => add(i)}
@@ -64,7 +65,7 @@ export function RequestListEditor({ initial, onChange, editable = true }: { init
             <Pressable
               onPress={() => remove(i)}
               accessibilityRole="button"
-              accessibilityLabel={r.text ? `Remove request: ${r.text}` : "Remove this empty request"}
+              accessibilityLabel={r.text ? t("requests.removeA11y", { text: r.text }) : t("requests.removeEmptyA11y")}
               hitSlop={8}
               style={styles.remove}
               disabled={!editable}
@@ -77,7 +78,7 @@ export function RequestListEditor({ initial, onChange, editable = true }: { init
       {rows.length < MAX_REQUESTS && (
         <Pressable onPress={() => add()} disabled={!canAdd} accessibilityRole="button" accessibilityState={{ disabled: !canAdd }} style={[styles.add, !canAdd && styles.addOff]}>
           <Ionicons name="add-circle-outline" size={22} color={colors.accent} />
-          <Text style={styles.addText}>Add a request</Text>
+          <Text style={styles.addText}>{t("requests.add")}</Text>
         </Pressable>
       )}
     </View>

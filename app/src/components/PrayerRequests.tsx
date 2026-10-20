@@ -8,6 +8,7 @@ import { useMyPrayersFor, usePrayingForMe } from "../session/hooks";
 import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
 import { fonts, makeStyles, Muted, Text } from "./ui";
+import { t } from "../i18n";
 
 const BULLET_WIDTH = 12;
 
@@ -24,7 +25,7 @@ export function PrayerRequests({ uid, name, requests }: { uid: string; name: str
   if (requests.length === 0) return null;
   return (
     <View style={styles.card}>
-      <Text style={styles.label} accessibilityRole="header">Prayer requests</Text>
+      <Text style={styles.label} accessibilityRole="header">{t("requests.title")}</Text>
       {uid === me.uid ? <MyRequests requests={requests} /> : <FriendRequests uid={uid} name={name} requests={requests} />}
     </View>
   );
@@ -51,9 +52,9 @@ function MyRequests({ requests }: { requests: PrayerRequest[] }) {
         );
       })}
       {requests.some((r) => !r.id) && (
-        <Muted>Save your profile once to let friends pray for each request separately.</Muted>
+        <Muted>{t("requests.saveOnce")}</Muted>
       )}
-      <Muted>Only you see this. Friends aren&apos;t shown who else is praying.</Muted>
+      <Muted>{t("requests.onlyYou")}</Muted>
     </>
   );
 }
@@ -73,7 +74,7 @@ function FriendRequests({ uid, name, requests }: { uid: string; name: string; re
       else await prayFor(db, uid, me.uid, itemId);
     } catch (err) {
       console.warn("pray tap failed", err);
-      Alert.alert("That didn't work", "Please try again.");
+      Alert.alert(t("requests.didntWork"), t("requests.tryAgain"));
     } finally {
       setBusy(null);
     }
@@ -92,19 +93,19 @@ function FriendRequests({ uid, name, requests }: { uid: string; name: string; re
                 disabled={busy === r.id}
                 accessibilityRole="button"
                 accessibilityState={{ selected: praying, busy: busy === r.id }}
-                accessibilityLabel={praying ? `Praying for: ${r.text}` : `I'll pray for: ${r.text}`}
-                accessibilityHint={praying ? "Double-tap to stop" : `${name} may see that you're praying for this`}
+                accessibilityLabel={praying ? t("requests.prayingA11y", { text: r.text }) : t("requests.willPrayA11y", { text: r.text })}
+                accessibilityHint={praying ? t("requests.stopHint") : t("requests.mayseeHint", { name })}
                 style={[styles.pray, styles.indent, praying && styles.prayOn]}
                 hitSlop={6}
               >
-                <Text style={styles.prayText}>{praying ? "✓ Praying" : "🙏 I'll pray for this"}</Text>
+                <Text style={styles.prayText}>{praying ? t("requests.praying") : t("requests.willPray")}</Text>
               </Pressable>
             )}
           </View>
         );
       })}
       {isFriend && requests.some((r) => r.id) && (
-        <Muted>{name} may see that you&apos;re praying. Other friends won&apos;t. Tap again to undo.</Muted>
+        <Muted>{t("requests.friendNote", { name })}</Muted>
       )}
     </>
   );
