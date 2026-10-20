@@ -10,9 +10,10 @@ import { QueuedPostCard } from "../../components/QueuedPostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
 import { setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
+import { shareInvite } from "../../lib/invite";
 import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useHidden, useLatestPrompt, useMyPosts, useNow, useOutbox } from "../../session/hooks";
-import { useReadySession } from "../../session/SessionProvider";
+import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
 import { usePullToRefresh } from "../../session/usePullToRefresh";
 import { useProfiles } from "../../session/useProfiles";
 import { locale, t } from "../../i18n";
@@ -26,6 +27,7 @@ export default function TodayScreen() {
   const colors = useColors();
   const pull = usePullToRefresh({ feed: true });
   const { profile } = useReadySession();
+  const { graph, loaded: friendsLoaded } = useFriendGraph();
   const { prompt, loaded } = useLatestPrompt();
   const { posts: mine } = useMyPosts();
   const { isHidden } = useHidden();
@@ -111,9 +113,16 @@ export default function TodayScreen() {
           </Pressable>
         )}
       </View>
-      {feed.length === 0 && (
+      {feed.length === 0 && (friendsLoaded && graph.friends.size === 0 ? (
+        // No friends yet: help them find some, right where the feed would be.
+        <View style={styles.noFriends}>
+          <EmptyState icon="people-outline" title={t("today.noFriendsTitle")} message={t("today.noFriendsBody")} />
+          <Button title={t("profile.invite")} onPress={() => shareInvite(profile.username).catch(() => {})} />
+          <Button title={t("today.findFriends")} kind="secondary" onPress={() => router.navigate("/friends")} />
+        </View>
+      ) : (
         <EmptyState icon="people-outline" title={t("today.emptyTitle")} message={t("today.emptyBody")} />
-      )}
+      ))}
       {feed.map((post) => (
         <PostCard
           key={post.id}
@@ -130,6 +139,7 @@ export default function TodayScreen() {
 }
 
 const useStyles = makeStyles((colors) => ({
+  noFriends: { gap: 10, marginBottom: 8 },
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
   wordOfTheDay: { marginTop: 16 },
