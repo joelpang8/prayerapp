@@ -8,7 +8,7 @@ import { fonts, makeStyles, Text, useColors } from "./ui";
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 /**
- * A month of days. Days with a prayer get a dot (filled ring if it was
+ * A month of days. Days with a prayer get a dot (a gold ring if it was
  * answered) and can be tapped; the rest are plain.
  */
 export function MonthCalendar({
@@ -100,5 +100,6 @@ const useStyles = makeStyles((colors) => ({
   dayTextSelected: { color: colors.onAccent },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, marginTop: 2 },
   noDot: { backgroundColor: "transparent" },
-  dotAnswered: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  // Answered: the same quiet gold as on the post.
+  dotAnswered: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: colors.gold, backgroundColor: colors.goldSoft },
 }));

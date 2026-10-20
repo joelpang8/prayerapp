@@ -41,6 +41,9 @@ const light = {
   flame: "#E39B32",
   flameCore: "#FFE7A6",
   wax: "#F1EADF",
+  /** Answered prayers: a quiet gold mark (text and borders) and its soft fill. */
+  gold: "#8A5F0E",
+  goldSoft: "#FBF3DF",
   /** Reading mode (the chapter screen): warmer paper and its hairlines. */
   paper: "#F4ECDD",
   paperRule: "#E2D6C2",
@@ -61,6 +64,8 @@ const dark: typeof light = {
   flame: "#EDA548",
   flameCore: "#FFE3A0",
   wax: "#CDC2B1",
+  gold: "#E2BE6A",
+  goldSoft: "#2E2717",
   paper: "#1B1813",
   paperRule: "#3A342B",
 };

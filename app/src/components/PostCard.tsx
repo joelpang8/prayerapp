@@ -8,7 +8,7 @@ import { usePhoto } from "../session/hooks";
 import { Avatar } from "./Avatar";
 import { MoreMenu } from "./MoreMenu";
 import { ReactionBar } from "./ReactionBar";
-import { fonts, makeStyles, Text, useColors } from "./ui";
+import { fonts, makeStyles, Span, Text, useColors } from "./ui";
 import { VerseBlock } from "./VerseBlock";
 
 const day = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -45,7 +45,7 @@ export function PostCard({
   const uri = usePhoto(collapsed ? null : post.photoPath, post.authorId);
   const late = isLate(post);
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, !!post.answeredAt && styles.answeredCard]}>
       <View style={styles.header}>
         <Pressable
           accessibilityRole="link"
@@ -77,7 +77,7 @@ export function PostCard({
       {collapsed && (
         <Pressable onPress={onToggleCollapsed} accessibilityRole="button" accessibilityLabel="Show this prayer">
           <Text style={styles.preview} numberOfLines={1}>
-            {post.answeredAt ? "Answered · " : ""}{post.notes}
+            {post.answeredAt ? <Span style={styles.goldText}>✦ Answered · </Span> : ""}{post.notes}
           </Text>
         </Pressable>
       )}
@@ -92,8 +92,8 @@ export function PostCard({
       <>
       {post.place && <Text style={styles.place}>📍 {post.place}</Text>}
       <View style={styles.labels}>
-        {post.visibility === "private" && <Text style={[styles.label, styles.answered]}>🔒 Private</Text>}
-        {post.answeredAt && <Text style={[styles.label, styles.answered]}>Answered</Text>}
+        {post.visibility === "private" && <Text style={[styles.label, styles.private]}>🔒 Private</Text>}
+        {post.answeredAt && <Text style={[styles.label, styles.answered]} accessibilityLabel="Answered">✦ Answered</Text>}
         {late && <Text style={[styles.label, styles.late]}>Late</Text>}
         {/* Sent later from the offline queue: show when it was really taken. */}
         {post.takenAt && post.createdAt.getTime() - post.takenAt.getTime() > 60_000 && (
@@ -113,7 +113,7 @@ export function PostCard({
       <Text style={styles.notes}>{post.notes}</Text>
       {post.answeredAt && (
         <View style={styles.answer}>
-          <Text style={styles.answerTitle}>Answered · {day(post.answeredAt)}</Text>
+          <Text style={styles.answerTitle} accessibilityLabel={`Answered, ${day(post.answeredAt)}`}>✦ Answered · {day(post.answeredAt)}</Text>
           {post.answerNote && <Text style={styles.answerNote}>{post.answerNote}</Text>}
         </View>
       )}
@@ -143,9 +143,13 @@ const useStyles = makeStyles((colors) => ({
   labels: { flexDirection: "row", gap: 6 },
   label: { fontSize: 13, color: colors.muted, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: "hidden" },
   late: { color: colors.muted },
-  answered: { color: colors.accent, borderColor: colors.accent },
-  answer: { backgroundColor: colors.accentSoft, borderRadius: 12, padding: 12, gap: 4 },
-  answerTitle: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent },
+  private: { color: colors.accent, borderColor: colors.accent },
+  // Answered prayers carry a quiet gold mark: the label, the card's edge and the answer box.
+  answered: { color: colors.gold, borderColor: colors.gold },
+  answeredCard: { borderColor: colors.gold },
+  goldText: { color: colors.gold },
+  answer: { backgroundColor: colors.goldSoft, borderRadius: 12, padding: 12, gap: 4, borderLeftWidth: 3, borderLeftColor: colors.gold },
+  answerTitle: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.gold },
   answerNote: { fontSize: 17, lineHeight: 24, fontFamily: fonts.serifItalic, color: colors.text },
   preview: { fontSize: 16, color: colors.muted },
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.bg, overflow: "hidden", alignItems: "center", justifyContent: "center" },
