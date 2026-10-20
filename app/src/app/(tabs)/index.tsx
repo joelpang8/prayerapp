@@ -13,10 +13,11 @@ import { ON_TIME_WINDOW_MS } from "../../lib/posts";
 import { useFeed, useHidden, useLatestPrompt, useMyPosts, useNow, useOutbox } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
+import { locale, t } from "../../i18n";
 
 const OPEN_FOR_MS = 24 * 60 * 60 * 1000; // must match firestore.rules
 
-const time = (d: Date) => d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+const time = (d: Date) => d.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
 
 export default function TodayScreen() {
   const styles = useStyles();
@@ -57,23 +58,23 @@ export default function TodayScreen() {
       ))}
       {!loaded ? null : myPost ? (
         <>
-          <SectionTitle>Your prayer today</SectionTitle>
+          <SectionTitle>{t("today.yourPrayer")}</SectionTitle>
           <PostCard post={myPost} author={profile} footer={<OwnPostActions post={myPost} />} showVerse={false} />
         </>
       ) : queuedForPrompt ? null : open && onTimeUntil ? (
         <View style={styles.prompt}>
-          <PromptCountdown firedAt={prompt!.firedAt} whenLate={<Text style={styles.promptTitle}>Time to pray</Text>} />
+          <PromptCountdown firedAt={prompt!.firedAt} whenLate={<Text style={styles.promptTitle}>{t("today.timeToPray")}</Text>} />
           <Muted>
             {now <= onTimeUntil.getTime()
-              ? `The prompt went out at ${time(prompt!.firedAt)}. Post by ${time(onTimeUntil)} to be on time.`
-              : `The prompt went out at ${time(prompt!.firedAt)}. You can still post; it will be marked late.`}
+              ? t("today.wentOutOnTime", { sent: time(prompt!.firedAt), until: time(onTimeUntil) })
+              : t("today.wentOutLate", { sent: time(prompt!.firedAt) })}
           </Muted>
-          <Button title="Pray now" size="large" onPress={() => router.push("/compose")} />
+          <Button title={t("today.prayNow")} size="large" onPress={() => router.push("/compose")} />
         </View>
       ) : (
         <View style={styles.prompt}>
-          <Text style={styles.promptTitle}>No prompt yet</Text>
-          <Muted>Once a day, at a random moment, everyone is asked to pray right then.</Muted>
+          <Text style={styles.promptTitle}>{t("today.noPrompt")}</Text>
+          <Muted>{t("today.noPromptBody")}</Muted>
         </View>
       )}
       {promptVerseShown && (
@@ -83,27 +84,27 @@ export default function TodayScreen() {
       )}
       {notifications.status === "undetermined" && notificationsOn && (
         <View style={styles.notice}>
-          <Text style={styles.noticeTitle}>Know when it&apos;s time to pray</Text>
-          <Muted>Once a day, at a random moment, you&apos;ll get a notification. You&apos;ll have 2 minutes to pause and pray.</Muted>
-          <Button title="Turn on notifications" onPress={notifications.request} />
-          <Button title="Not now" kind="secondary" onPress={() => setNotificationsEnabled(false)} />
+          <Text style={styles.noticeTitle}>{t("today.notifyTitle")}</Text>
+          <Muted>{t("today.notifyBody")}</Muted>
+          <Button title={t("today.turnOnNotifications")} onPress={notifications.request} />
+          <Button title={t("today.notNow")} kind="secondary" onPress={() => setNotificationsEnabled(false)} />
         </View>
       )}
 
       <View style={styles.friendsHeader}>
-        <SectionTitle>Friends</SectionTitle>
+        <SectionTitle>{t("today.friends")}</SectionTitle>
         {feed.length > 0 && (
           <Pressable
             onPress={() => setCollapsed(allCollapsed ? new Set() : new Set(feed.map((p) => p.id)))}
             accessibilityRole="button"
             hitSlop={8}
           >
-            <Text style={styles.collapseAll}>{allCollapsed ? "Show all" : "Minimize all"}</Text>
+            <Text style={styles.collapseAll}>{allCollapsed ? t("today.showAll") : t("today.minimizeAll")}</Text>
           </Pressable>
         )}
       </View>
       {feed.length === 0 && (
-        <EmptyState icon="people-outline" title="Your friends' prayers gather here" message="When a friend prays, their post shows up on this page." />
+        <EmptyState icon="people-outline" title={t("today.emptyTitle")} message={t("today.emptyBody")} />
       )}
       {feed.map((post) => (
         <PostCard

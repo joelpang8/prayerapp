@@ -12,14 +12,16 @@ import {
   type Firestore,
   type Unsubscribe,
 } from "firebase/firestore";
+import { t } from "../i18n";
 
 /** Must match firestore.rules (reports). */
 export const REPORT_REASONS = [
-  { id: "spam", label: "Spam" },
-  { id: "harassment", label: "Harassment or bullying" },
-  { id: "inappropriate", label: "Inappropriate content" },
-  { id: "harm", label: "Someone may be at risk of harm" },
-  { id: "other", label: "Something else" },
+  // Labels in the app's language; only the id is stored.
+  { id: "spam", get label() { return t("report.spam"); } },
+  { id: "harassment", get label() { return t("report.harassment"); } },
+  { id: "inappropriate", get label() { return t("report.inappropriate"); } },
+  { id: "harm", get label() { return t("report.harm"); } },
+  { id: "other", get label() { return t("report.other"); } },
 ] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number]["id"];
 

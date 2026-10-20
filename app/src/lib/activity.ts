@@ -5,6 +5,7 @@ import type { FeedStore } from "./feed";
 import type { FriendScope, FriendScopedCache } from "./friendScope";
 import { watchMyPostsBetween, type Post } from "./posts";
 import { ReactionThread, type Reaction, type ReactionKind } from "./reactions";
+import { t } from "../i18n";
 
 /** How far back the Activity list goes. */
 export const ACTIVITY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -61,10 +62,10 @@ export function buildActivity(input: {
 /** "now", "5m", "3h", "2d". */
 export function timeAgo(at: Date, now = new Date()): string {
   const s = Math.max(0, (now.getTime() - at.getTime()) / 1000);
-  if (s < 60) return "now";
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d`;
+  if (s < 60) return t("time.now");
+  if (s < 3600) return t("time.minutes", { n: Math.floor(s / 60) });
+  if (s < 86400) return t("time.hours", { n: Math.floor(s / 3600) });
+  return t("time.days", { n: Math.floor(s / 86400) });
 }
 
 type Threads = { comments: CommentThread; reactions: ReactionThread; items: { comments: Comment[]; reactions: Reaction[] }; stop: () => void };

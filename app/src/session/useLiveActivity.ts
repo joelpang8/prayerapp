@@ -4,6 +4,7 @@ import { AppState, Platform } from "react-native";
 import { palettes } from "../components/ui";
 import { loadRunning, nextCheckIn, planLiveActivity, saveRunning, useLiveActivityEnabled, type Running } from "../lib/liveActivity";
 import { useLatestPrompt, useMyPosts, useOutbox } from "./hooks";
+import { locale, t } from "../i18n";
 
 // The lock screen is dark, so the night palette (the same colors as the app).
 const night = palettes.dark;
@@ -21,11 +22,11 @@ const CONFIG: LiveActivity.LiveActivityConfig = {
   contentFit: "contain",
 };
 
-function state(countdownTo: number, onTimeUntil: number, title = "Time to pray"): LiveActivity.LiveActivityState {
-  const until = new Date(onTimeUntil).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+function state(countdownTo: number, onTimeUntil: number, title = t("today.timeToPray")): LiveActivity.LiveActivityState {
+  const until = new Date(onTimeUntil).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
   return {
     title,
-    subtitle: `Still on time until ${until}`,
+    subtitle: t("live.onTimeUntil", { time: until }),
     progressBar: { date: countdownTo },
     imageName: "candle",
     dynamicIslandImageName: "candle",
@@ -34,7 +35,7 @@ function state(countdownTo: number, onTimeUntil: number, title = "Time to pray")
 
 function stop(r: Running) {
   try {
-    LiveActivity.stopActivity(r.activityId, { title: "Time to pray", subtitle: "" });
+    LiveActivity.stopActivity(r.activityId, { title: t("today.timeToPray"), subtitle: "" });
   } catch (err) {
     console.warn("live activity stop failed", err);
   }

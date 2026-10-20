@@ -4,6 +4,7 @@ import { LayoutAnimation, Pressable, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { fonts, makeStyles, Text } from "./ui";
 import { VerseBlock } from "./VerseBlock";
+import { t } from "../i18n";
 
 // A display preference only (no one's content), so it's fine to keep on disk.
 const COLLAPSED_KEY = "ui.wordOfTheDay.collapsed";
@@ -44,14 +45,14 @@ export function WordOfTheDay({ refId }: { refId: string }) {
       <Pressable
         onPress={toggle}
         accessibilityRole="button"
-        accessibilityLabel={`Word of the day, ${displayRef(refId)}`}
+        accessibilityLabel={t("word.label", { ref: displayRef(refId) })}
         accessibilityState={{ expanded: !collapsed }}
-        accessibilityHint={collapsed ? "Shows the verse" : "Hides the verse"}
+        accessibilityHint={collapsed ? t("word.shows") : t("word.hides")}
         hitSlop={8}
         style={styles.header}
       >
         <View style={styles.headerText}>
-          <Text style={styles.label}>Word of the day</Text>
+          <Text style={styles.label}>{t("word.title")}</Text>
           {collapsed && <Text style={styles.reference}>{displayRef(refId)}</Text>}
         </View>
         <Text style={[styles.chevron, { transform: [{ rotate: collapsed ? "90deg" : "-90deg" }] }]}>›</Text>

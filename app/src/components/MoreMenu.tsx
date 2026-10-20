@@ -5,8 +5,15 @@ import { db } from "../firebase";
 import { blockUser, fileReport, REPORT_REASONS, type ReportReason, type ReportTarget } from "../lib/moderation";
 import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "./ui";
+import { t } from "../i18n";
 
-const NOUN = { user: "person", post: "prayer", comment: "comment" } as const;
+type Kind = ReportTarget["kind"];
+// Whole phrases per kind (Spanish nouns have genders, so no word swapping).
+const thisThing = (kind: Exclude<Kind, "user">) => t(kind === "post" ? "more.thisPrayer" : "more.thisComment");
+const optionsFor = (kind: Kind, name: string) =>
+  kind === "user" ? t("more.optionsForPerson", { name }) : t(kind === "post" ? "more.optionsForPrayer" : "more.optionsForComment");
+const reportTitle = (kind: Kind, name: string) =>
+  kind === "user" ? t("more.reportPerson", { name }) : t(kind === "post" ? "more.reportThisPrayer" : "more.reportThisComment");
 
 /** Block someone after confirming; ends the friendship. Returns a function to call. */
 export function useBlock() {
@@ -14,18 +21,18 @@ export function useBlock() {
   const { graph } = useFriendGraph();
   return (uid: string, name: string, after?: () => void) =>
     Alert.alert(
-      `Block ${name}?`,
-      "You'll stop being friends and won't see each other's prayers, comments or reactions. They won't be told. You can unblock them in Settings.",
+      t("more.blockTitle", { name }),
+      t("more.blockBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Block",
+          text: t("more.blockButton"),
           style: "destructive",
           onPress: () =>
             blockUser(db, me.uid, uid, {
               iFollowThem: graph.friends.has(uid) || graph.outgoing.has(uid),
               theyFollowMe: graph.friends.has(uid) || graph.incoming.has(uid),
-            }).then(after, () => Alert.alert("Couldn't block", "Please try again.")),
+            }).then(after, () => Alert.alert(t("more.couldntBlock"), t("common.tryAgain"))),
         },
       ],
     );
@@ -43,15 +50,15 @@ export function MoreMenu({ target, name }: { target: ReportTarget; name: string 
   if (target.targetUid === me.uid) return null;
 
   const open = () =>
-    Alert.alert(target.kind === "user" ? name : `This ${NOUN[target.kind]}`, undefined, [
-      { text: `Report ${NOUN[target.kind]}…`, onPress: () => setReporting(true) },
-      { text: `Block ${name}`, style: "destructive", onPress: () => block(target.targetUid, name) },
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(target.kind === "user" ? name : thisThing(target.kind), undefined, [
+      { text: t(target.kind === "user" ? "more.reportPersonAction" : target.kind === "post" ? "more.reportPrayerAction" : "more.reportCommentAction"), onPress: () => setReporting(true) },
+      { text: t("more.blockName", { name }), style: "destructive", onPress: () => block(target.targetUid, name) },
+      { text: t("common.cancel"), style: "cancel" },
     ]);
 
   return (
     <>
-      <Pressable onPress={open} hitSlop={12} accessibilityRole="button" accessibilityLabel={`More options for ${target.kind === "user" ? name : `this ${NOUN[target.kind]}`}`}>
+      <Pressable onPress={open} hitSlop={12} accessibilityRole="button" accessibilityLabel={optionsFor(target.kind, name)}>
         <Ionicons name="ellipsis-horizontal" size={22} color={colors.muted} />
       </Pressable>
       {reporting && <ReportSheet target={target} name={name} onClose={() => setReporting(false)} />}
@@ -84,17 +91,17 @@ function ReportSheet({ target, name, onClose }: { target: ReportTarget; name: st
       }
       onClose();
       Alert.alert(
-        "Thank you for telling us",
+        t("more.thanksTitle"),
         [
-          "We'll review it.",
-          target.kind !== "user" ? `You won't see this ${NOUN[target.kind]} again.` : "",
-          alsoBlock ? `${name} is blocked.` : "",
-          reason === "harm" ? "\n\nIf someone is in immediate danger, please contact local emergency services." : "",
+          t("more.willReview"),
+          target.kind !== "user" ? t(target.kind === "post" ? "more.wontSeePrayer" : "more.wontSeeComment") : "",
+          alsoBlock ? t("more.isBlocked", { name }) : "",
+          reason === "harm" ? `\n\n${t("more.emergency")}` : "",
         ].filter(Boolean).join(" "),
       );
     } catch (err) {
       console.warn("report failed", err);
-      setError("Couldn't send the report. Please try again.");
+      setError(t("more.reportFailed"));
     } finally {
       setBusy(false);
     }
@@ -104,13 +111,13 @@ function ReportSheet({ target, name, onClose }: { target: ReportTarget; name: st
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={styles.sheet}>
         <View style={styles.header}>
-          <Text style={styles.title}>Report {target.kind === "user" ? name : `this ${NOUN[target.kind]}`}</Text>
+          <Text style={styles.title}>{reportTitle(target.kind, name)}</Text>
           <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button">
-            <Text style={styles.link}>Cancel</Text>
+            <Text style={styles.link}>{t("common.cancel")}</Text>
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Muted>What&apos;s wrong? Reports are private: {name} won&apos;t know who reported them.</Muted>
+          <Muted>{t("more.whatsWrong", { name })}</Muted>
           {REPORT_REASONS.map((r) => (
             <Pressable
               key={r.id}
@@ -126,17 +133,17 @@ function ReportSheet({ target, name, onClose }: { target: ReportTarget; name: st
           <TextInput
             value={note}
             onChangeText={setNote}
-            placeholder="Anything else we should know? (optional)"
+            placeholder={t("more.notePlaceholder")}
             multiline
             maxLength={500}
             style={styles.input}
           />
           <View style={styles.row}>
-            <Text style={styles.rowText}>Also block {name}</Text>
+            <Text style={styles.rowText}>{t("more.alsoBlock", { name })}</Text>
             <Switch value={alsoBlock} onValueChange={setAlsoBlock} trackColor={{ true: colors.accent, false: colors.border }} />
           </View>
           {error && <ErrorText>{error}</ErrorText>}
-          <Button title="Send report" onPress={submit} busy={busy} disabled={!reason} />
+          <Button title={t("more.sendReport")} onPress={submit} busy={busy} disabled={!reason} />
         </ScrollView>
       </View>
     </Modal>

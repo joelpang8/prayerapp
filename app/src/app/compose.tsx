@@ -13,6 +13,7 @@ import { currentPlaceName, LocationUnavailableError } from "../lib/location";
 import { editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, postIdFor, setAnswered } from "../lib/posts";
 import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
+import { t } from "../i18n";
 
 export default function ComposeScreen() {
   const styles = useStyles();
@@ -26,7 +27,7 @@ export default function ComposeScreen() {
   if (postId && !editing) {
     return (
       <View style={styles.root}>
-        <Muted>That post no longer exists.</Muted>
+        <Muted>{t("compose.gone")}</Muted>
       </View>
     );
   }
@@ -73,8 +74,8 @@ function Composer({
       setShowPlace(false);
       setPlaceNote(
         err instanceof LocationUnavailableError && err.reason === "permission"
-          ? "Location access is off for this app. You can turn it on in your phone's Settings."
-          : "Couldn't find where you are right now.",
+          ? t("compose.locationOff")
+          : t("compose.locationFailed"),
       );
     } finally {
       setPlaceBusy(false);
@@ -88,7 +89,7 @@ function Composer({
       if (p) setPhoto(p);
     } catch (err) {
       console.warn(err);
-      setError("Couldn't use that photo.");
+      setError(t("compose.photoFailed"));
     }
   }
 
@@ -110,7 +111,7 @@ function Composer({
         if (answerChanged) await setAnswered(db, editing, answered, answerNote);
       } else {
         if (!prompt) throw new Error("no prompt");
-        if (!photo) return setError("Take a photo first.");
+        if (!photo) return setError(t("compose.photoFirst"));
         // Through the outbox: it sends now if it can, and otherwise keeps the
         // post on the phone and sends it when the connection is back.
         await outbox.enqueue({
@@ -129,7 +130,7 @@ function Composer({
     } catch (err) {
       console.warn("post failed", err);
       setError(
-        "Couldn't save your post. Check your connection and try again." +
+        t("compose.saveFailed") +
           // Development builds show the real error, to make problems easy to report.
           (__DEV__ ? `\n\n[dev] ${(err as { code?: string }).code ?? ""} ${(err as Error).message ?? err}` : ""),
       );
@@ -145,11 +146,11 @@ function Composer({
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{editing ? "Edit post" : "Pray now"}</Text>
+        <Text style={styles.title}>{editing ? t("compose.editTitle") : t("today.prayNow")}</Text>
         {!editing && prompt && <CountdownPill firedAt={prompt.firedAt} />}
         {verseRef && (
           <View style={styles.verse}>
-            <Text style={styles.verseLabel} accessibilityRole="header">{editing ? "That day's verse" : "Today's verse"}</Text>
+            <Text style={styles.verseLabel} accessibilityRole="header">{editing ? t("compose.thatDaysVerse") : t("compose.todaysVerse")}</Text>
             <VerseBlock refId={verseRef} readMore={false} />
           </View>
         )}
@@ -157,17 +158,17 @@ function Composer({
           {previewUri ? (
             <Image source={{ uri: previewUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="none" />
           ) : (
-            <Muted>No photo yet</Muted>
+            <Muted>{t("compose.noPhoto")}</Muted>
           )}
         </View>
         {/* Not when editing: the photo can't be changed after posting. */}
         {!editing && (
-          <Button title={previewUri ? "Retake photo" : "Take photo"} kind="secondary" onPress={() => capture(takePhoto)} disabled={busy} />
+          <Button title={previewUri ? t("compose.retakePhoto") : t("compose.takePhoto")} kind="secondary" onPress={() => capture(takePhoto)} disabled={busy} />
         )}
         {__DEV__ && !editing && (
           <Button title="Choose photo (development)" kind="secondary" onPress={() => capture(pickPhotoForDevelopment)} disabled={busy} />
         )}
-        <Text style={styles.label}>What did you pray for?</Text>
+        <Text style={styles.label}>{t("compose.whatFor")}</Text>
         <PrayerHelper notes={notes} />
         <TextInput
           value={notes}
@@ -175,19 +176,19 @@ function Composer({
           multiline
           maxLength={MAX_NOTES}
           style={styles.input}
-          placeholder="A few words for your friends"
+          placeholder={t("compose.notesPlaceholder")}
           textAlignVertical="top"
         />
         {(!editing || editing.place) && (
           <View style={styles.placeRow}>
             <View style={styles.placeText}>
-              <Text style={styles.label}>{editing ? "Show location" : "Show where I prayed"}</Text>
+              <Text style={styles.label}>{editing ? t("compose.showLocation") : t("compose.showWhere")}</Text>
               <Muted>
                 {placeBusy
-                  ? "Finding your town…"
+                  ? t("compose.findingTown")
                   : showPlace && place
                     ? `📍 ${place}`
-                    : "Only your town or city is shared, never your exact location."}
+                    : t("compose.townOnly")}
               </Muted>
             </View>
             <Switch
@@ -195,7 +196,7 @@ function Composer({
               onValueChange={togglePlace}
               disabled={busy || placeBusy}
               trackColor={{ true: colors.accent, false: colors.border }}
-              accessibilityLabel="Show where I prayed"
+              accessibilityLabel={t("compose.showWhere")}
             />
           </View>
         )}
@@ -203,11 +204,11 @@ function Composer({
         {!editing && (
           <View style={styles.placeRow}>
             <View style={styles.placeText}>
-              <Text style={styles.label}>Private</Text>
+              <Text style={styles.label}>{t("compose.private")}</Text>
               <Muted>
                 {isPrivate
-                  ? "Only you will see this prayer. It won't appear in your friends' feed."
-                  : "Off: your friends will see this prayer."}
+                  ? t("compose.privateOn")
+                  : t("compose.privateOff")}
               </Muted>
             </View>
             <Switch
@@ -215,7 +216,7 @@ function Composer({
               onValueChange={setIsPrivate}
               disabled={busy}
               trackColor={{ true: colors.accent, false: colors.border }}
-              accessibilityLabel="Keep this prayer private"
+              accessibilityLabel={t("compose.keepPrivate")}
             />
           </View>
         )}
@@ -229,7 +230,7 @@ function Composer({
               disabled={busy}
             >
               <Ionicons name={answered ? "checkbox" : "square-outline"} size={28} color={colors.accent} />
-              <Text style={styles.checkLabel}>This prayer was answered</Text>
+              <Text style={styles.checkLabel}>{t("compose.wasAnswered")}</Text>
             </Pressable>
             {answered && (
               <TextInput
@@ -238,16 +239,16 @@ function Composer({
                 multiline
                 maxLength={MAX_ANSWER_NOTE}
                 style={styles.input}
-                placeholder="How was it answered? (optional)"
+                placeholder={t("compose.howAnswered")}
                 textAlignVertical="top"
               />
             )}
-            <Muted>Your friends will see it marked Answered{answered && answerNote.trim() ? ", with your note" : ""}.</Muted>
+            <Muted>{answered && answerNote.trim() ? t("compose.answeredSeenWithNote") : t("compose.answeredSeen")}</Muted>
           </View>
         )}
         {error && <ErrorText>{error}</ErrorText>}
-        <Button title={editing ? "Save changes" : "Post"} onPress={submit} busy={busy} disabled={!notes.trim() || (!editing && !photo) || placeBusy} />
-        <Button title="Cancel" kind="secondary" onPress={() => router.back()} disabled={busy} />
+        <Button title={editing ? t("compose.saveChanges") : t("compose.post")} onPress={submit} busy={busy} disabled={!notes.trim() || (!editing && !photo) || placeBusy} />
+        <Button title={t("common.cancel")} kind="secondary" onPress={() => router.back()} disabled={busy} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

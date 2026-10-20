@@ -15,9 +15,10 @@ import { reactionInfo } from "../../lib/reactions";
 import { useComments, useFeed, useHidden, useMyPosts, useReactions } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
+import { locale, t } from "../../i18n";
 
 function when(d: Date): string {
-  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return d.toLocaleString(locale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 /**
@@ -53,7 +54,7 @@ export default function PostScreen() {
   if (!post) {
     return (
       <View style={styles.root}>
-        <View style={styles.content}>{loaded && <EmptyState icon="leaf-outline" title="This prayer isn't available" message="It may have been removed." />}</View>
+        <View style={styles.content}>{loaded && <EmptyState icon="leaf-outline" title={t("post.unavailableTitle")} message={t("post.unavailableBody")} />}</View>
       </View>
     );
   }
@@ -66,19 +67,19 @@ export default function PostScreen() {
       setText("");
     } catch (err) {
       console.warn("comment failed", err);
-      setError("Couldn't send your comment. Please try again.");
+      setError(t("post.commentFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   function confirmDelete(c: Comment) {
-    Alert.alert("Delete this comment?", "This can't be undone.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("post.deleteCommentTitle"), t("post.cantUndo"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
-        onPress: () => deleteComment(db, post!.id, c.id).catch(() => Alert.alert("Couldn't delete", "Please try again.")),
+        onPress: () => deleteComment(db, post!.id, c.id).catch(() => Alert.alert(t("post.couldntDelete"), t("common.tryAgain"))),
       },
     ]);
   }
@@ -91,7 +92,7 @@ export default function PostScreen() {
 
         {reactions.length > 0 && (
           <>
-            <SectionTitle>Reactions</SectionTitle>
+            <SectionTitle>{t("post.reactions")}</SectionTitle>
             {reactions.map((r) => {
               const who = profileOf(r.authorId);
               const info = reactionInfo(r.kind);
@@ -107,16 +108,16 @@ export default function PostScreen() {
         )}
 
         {post.visibility === "private" ? (
-          <Muted>This prayer is private: only you can see it.</Muted>
+          <Muted>{t("post.privateNote")}</Muted>
         ) : (
           <>
-          <SectionTitle>Comments</SectionTitle>
-          {shownComments.length === 0 && <Muted>No comments yet.</Muted>}
+          <SectionTitle>{t("post.comments")}</SectionTitle>
+          {shownComments.length === 0 && <Muted>{t("post.noComments")}</Muted>}
           {shownComments.map((c) => {
             const who = profileOf(c.authorId);
             return (
               <View key={c.id} style={styles.comment}>
-                <Pressable onPress={() => router.push(`/profile/${c.authorId}`)} accessibilityRole="link" accessibilityLabel={`${who?.displayName ?? ""}'s profile`}>
+                <Pressable onPress={() => router.push(`/profile/${c.authorId}`)} accessibilityRole="link" accessibilityLabel={t("post.profileOf", { name: who?.displayName ?? "" })}>
                   <Avatar path={who?.avatarPath ?? null} name={who?.displayName ?? ""} size={32} />
                 </Pressable>
                 <View style={styles.commentBody}>
@@ -131,25 +132,25 @@ export default function PostScreen() {
                   <Text style={styles.commentText}>{c.text}</Text>
                   {canDeleteComment(me.uid, post.authorId, c) && (
                     <Pressable onPress={() => confirmDelete(c)} accessibilityRole="button" style={styles.deleteLink}>
-                      <Text style={styles.deleteText}>Delete</Text>
+                      <Text style={styles.deleteText}>{t("common.delete")}</Text>
                     </Pressable>
                   )}
                 </View>
               </View>
             );
           })}
-          <Muted>Each comment and reaction is shown only to people who are friends with the person who wrote it.</Muted>
+          <Muted>{t("post.visibilityNote")}</Muted>
   
           <View style={styles.composer}>
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="Write a comment"
+              placeholder={t("post.writeComment")}
               multiline
               maxLength={MAX_COMMENT}
               style={styles.input}
             />
-            <Button title="Send" onPress={send} busy={busy} disabled={!text.trim()} />
+            <Button title={t("post.send")} onPress={send} busy={busy} disabled={!text.trim()} />
           </View>
           {error && <ErrorText>{error}</ErrorText>}
           </>

@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { deleteObject, ref, uploadBytes, type FirebaseStorage } from "firebase/storage";
 import type { Prompt } from "./prompts";
+import { t } from "../i18n";
 
 /** 2-minute response window + 5-minute grace period. Must match firestore.rules. */
 export const RESPOND_WINDOW_MS = 2 * 60 * 1000; // "pray right now"
@@ -61,8 +62,8 @@ export function isLate(post: Pick<Post, "createdAt" | "promptFiredAt">): boolean
 
 export function notesProblem(notes: string): string | null {
   const trimmed = notes.trim();
-  if (!trimmed) return "Write a few words about what you prayed for.";
-  if (trimmed.length > MAX_NOTES) return `At most ${MAX_NOTES} characters.`;
+  if (!trimmed) return t("compose.notesEmpty");
+  if (trimmed.length > MAX_NOTES) return t("compose.atMost", { max: MAX_NOTES });
   return null;
 }
 

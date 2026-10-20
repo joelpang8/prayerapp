@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import type { FriendScope } from "./friendScope";
 import { PostThread } from "./postThread";
+import { t } from "../i18n";
 
 export const MAX_COMMENT = 500; // must match firestore.rules
 
@@ -23,8 +24,8 @@ export type Comment = {
 
 export function commentProblem(text: string): string | null {
   const trimmed = text.trim();
-  if (!trimmed) return "Write something first.";
-  if (trimmed.length > MAX_COMMENT) return `At most ${MAX_COMMENT} characters.`;
+  if (!trimmed) return t("post.commentEmpty");
+  if (trimmed.length > MAX_COMMENT) return t("compose.atMost", { max: MAX_COMMENT });
   return null;
 }
 

@@ -12,7 +12,7 @@ describe("posting screen", () => {
   });
 
   test("editing never offers a new photo", () => {
-    expect(compose).toMatch(/\{!editing && \(\s*<Button title=\{previewUri \? "Retake photo"/);
+    expect(compose).toMatch(/\{!editing && \(\s*<Button title=\{previewUri \? t\("compose.retakePhoto"\)/);
     expect(compose).not.toMatch(/newPhoto/);
   });
 });

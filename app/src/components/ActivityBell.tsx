@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useActivity } from "../session/hooks";
 import { fonts, makeStyles, Text, useColors } from "./ui";
+import { t } from "../i18n";
 
 /** The bell in Today's header: opens Activity, with a count of what's new. */
 export function ActivityBell() {
@@ -13,7 +14,7 @@ export function ActivityBell() {
     <Pressable
       onPress={() => router.push("/activity")}
       accessibilityRole="button"
-      accessibilityLabel={unseen ? `Activity, ${unseen} new` : "Activity"}
+      accessibilityLabel={unseen ? t("bell.new", { count: unseen }) : t("bell.activity")}
       hitSlop={10}
       style={styles.root}
     >

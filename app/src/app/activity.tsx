@@ -8,18 +8,19 @@ import { timeAgo, type Activity } from "../lib/activity";
 import { reactionInfo } from "../lib/reactions";
 import { useActivity, useNow } from "../session/hooks";
 import { useProfiles } from "../session/useProfiles";
+import { t } from "../i18n";
 
 function describe(a: Activity, name: string): string {
   switch (a.kind) {
     case "posted":
-      return `${name} prayed`;
+      return t("activity.prayed", { name });
     case "answered":
-      return `${name}'s prayer was answered${a.text ? `: “${a.text}”` : ""}`;
+      return a.text ? t("activity.answeredWithText", { name, text: a.text }) : t("activity.answered", { name });
     case "commented":
-      return `${name} commented on your prayer: “${a.text}”`;
+      return t("activity.commented", { name, text: a.text ?? "" });
     case "reacted": {
       const r = reactionInfo(a.reaction!);
-      return `${name} reacted ${r.emoji} ${r.label} to your prayer`;
+      return t("activity.reacted", { name, emoji: r.emoji, label: r.label });
     }
   }
 }
@@ -41,14 +42,14 @@ export default function ActivityScreen() {
       contentContainerStyle={styles.content}
       data={items}
       keyExtractor={(a) => a.id}
-      ListEmptyComponent={<EmptyState icon="leaf-outline" title="All quiet" message="When friends pray, comment or react, it shows up here." />}
+      ListEmptyComponent={<EmptyState icon="leaf-outline" title={t("activity.emptyTitle")} message={t("activity.emptyBody")} />}
       renderItem={({ item }) => {
         const who = names.get(item.actorId);
         return (
           <Pressable onPress={() => router.push(`/post/${item.postId}`)} style={styles.row} accessibilityRole="link">
             <Avatar path={who?.avatarPath ?? null} name={who?.displayName ?? ""} size={40} />
             <View style={styles.body}>
-              <Text style={styles.text} numberOfLines={3}>{describe(item, who?.displayName ?? "A friend")}</Text>
+              <Text style={styles.text} numberOfLines={3}>{describe(item, who?.displayName ?? t("activity.aFriend"))}</Text>
               <Text style={styles.time}>{timeAgo(item.at, new Date(now))}</Text>
             </View>
           </Pressable>

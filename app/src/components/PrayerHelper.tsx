@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { ACTS_STEPS, hintVisible, type ActsStep } from "../lib/acts";
 import { fonts, makeStyles, Muted, Text } from "./ui";
+import { t } from "../i18n";
 
 /**
  * "Help me start": four optional prompts (praise, sorry, thanks, asking).
@@ -20,11 +21,11 @@ export function PrayerHelper({ notes }: { notes: string }) {
         onPress={() => { setOpen((o) => !o); setShown(null); }}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityHint="Optional prompts to help you write"
+        accessibilityHint={t("helper.hint")}
         hitSlop={8}
         style={styles.toggle}
       >
-        <Text style={styles.toggleText}>{open ? "Hide prompts" : "Help me start"}</Text>
+        <Text style={styles.toggleText}>{open ? t("helper.hide") : t("helper.start")}</Text>
       </Pressable>
       {open && (
         <>
@@ -51,7 +52,7 @@ export function PrayerHelper({ notes }: { notes: string }) {
               <Text style={styles.hintText}>{shown.step.hint}</Text>
             </View>
           ) : (
-            <Muted>Optional. Tap one for a question to think about; it disappears as you type. (Sometimes called ACTS.)</Muted>
+            <Muted>{t("helper.note")}</Muted>
           )}
         </>
       )}

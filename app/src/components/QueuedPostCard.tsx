@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, View } from "react-native";
 import type { QueuedPost } from "../lib/outbox";
 import { useOutbox } from "../session/hooks";
 import { Button, fonts, makeStyles, Muted, Text, useColors } from "./ui";
+import { t } from "../i18n";
 
 /** My post that hasn't reached the server yet: waiting, or refused with Retry/Discard. */
 export function QueuedPostCard({ item }: { item: QueuedPost }) {
@@ -11,20 +12,20 @@ export function QueuedPostCard({ item }: { item: QueuedPost }) {
   const { retry, discard } = useOutbox();
   const failed = item.status === "failed";
   const confirmDiscard = () =>
-    Alert.alert("Discard this prayer?", "It hasn't been posted, so it will be gone.", [
-      { text: "Keep", style: "cancel" },
-      { text: "Discard", style: "destructive", onPress: () => discard(item.postId) },
+    Alert.alert(t("queued.discardTitle"), t("queued.discardBody"), [
+      { text: t("queued.keep"), style: "cancel" },
+      { text: t("queued.discard"), style: "destructive", onPress: () => discard(item.postId) },
     ]);
   return (
     <View style={styles.card}>
       <View style={styles.status}>
         {!failed && <ActivityIndicator color={colors.accent} />}
-        <Text style={styles.title}>{failed ? "Couldn't post" : "Waiting to send"}</Text>
+        <Text style={styles.title}>{failed ? t("queued.couldntPost") : t("queued.waiting")}</Text>
       </View>
       <Muted>
         {failed
-          ? item.problem ?? "Something went wrong."
-          : "No connection right now. Your prayer is saved on this phone and will post by itself as soon as you're back online."}
+          ? item.problem ?? t("queued.wentWrong")
+          : t("queued.offline")}
       </Muted>
       <View style={styles.row}>
         {/* My own photo, from this phone; never written to the image cache. */}
@@ -33,11 +34,11 @@ export function QueuedPostCard({ item }: { item: QueuedPost }) {
       </View>
       {failed ? (
         <View style={styles.actions}>
-          <View style={styles.flex}><Button title="Try again" onPress={() => retry(item.postId)} /></View>
-          <View style={styles.flex}><Button title="Discard" kind="danger" onPress={confirmDiscard} /></View>
+          <View style={styles.flex}><Button title={t("common.retry")} onPress={() => retry(item.postId)} /></View>
+          <View style={styles.flex}><Button title={t("queued.discard")} kind="danger" onPress={confirmDiscard} /></View>
         </View>
       ) : (
-        <Button title="Discard" kind="secondary" onPress={confirmDiscard} />
+        <Button title={t("queued.discard")} kind="secondary" onPress={confirmDiscard} />
       )}
     </View>
   );

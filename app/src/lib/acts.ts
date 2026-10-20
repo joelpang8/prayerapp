@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * An optional helper for writing a prayer, sometimes called ACTS:
  * adoration, confession, thanksgiving, supplication. Shown in plain words.
@@ -6,11 +7,12 @@
  */
 export type ActsStep = { id: "praise" | "sorry" | "thanks" | "asking"; label: string; hint: string };
 
+// Words in the app's language, read when shown.
 export const ACTS_STEPS: readonly ActsStep[] = [
-  { id: "praise", label: "Praise", hint: "What do you love about God today?" },
-  { id: "sorry", label: "Sorry", hint: "Is there anything you'd like to put right?" },
-  { id: "thanks", label: "Thanks", hint: "What are you grateful for?" },
-  { id: "asking", label: "Asking", hint: "What do you need, for yourself or someone else?" },
+  { id: "praise", get label() { return t("acts.praise"); }, get hint() { return t("acts.praiseHint"); } },
+  { id: "sorry", get label() { return t("acts.sorry"); }, get hint() { return t("acts.sorryHint"); } },
+  { id: "thanks", get label() { return t("acts.thanks"); }, get hint() { return t("acts.thanksHint"); } },
+  { id: "asking", get label() { return t("acts.asking"); }, get hint() { return t("acts.askingHint"); } },
 ];
 
 /** A hint shows from the tap until the notes change (they've started typing). */

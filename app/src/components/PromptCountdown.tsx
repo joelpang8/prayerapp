@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { candleLeft, mmss, windowState } from "../lib/promptWindow";
 import { Candle } from "./Candle";
 import { fonts, makeStyles, Text, useColors } from "./ui";
+import { t } from "../i18n";
 
 /** The current countdown, re-read twice a second until the post would be late. */
 function useWindow(firedAt: Date) {
@@ -29,10 +30,10 @@ export function PromptCountdown({ firedAt, whenLate = null }: { firedAt: Date; w
   if (w.phase === "late") return <>{whenLate}</>;
   const urgent = w.phase === "respond" && w.msLeft <= 10_000;
   return (
-    <View style={styles.root} accessible accessibilityLabel={`${mmss(w.msLeft)} left${w.phase === "grace" ? " in the grace period" : " to pray"}`}>
+    <View style={styles.root} accessible accessibilityLabel={t(w.phase === "grace" ? "countdown.leftGrace" : "countdown.leftToPray", { time: mmss(w.msLeft) })}>
       <Candle left={w.candle} />
       <Text style={[styles.time, urgent && { color: colors.danger }]}>{mmss(w.msLeft)}</Text>
-      <Text style={styles.label}>{w.phase === "respond" ? "Time to pray." : "Grace period: still on time"}</Text>
+      <Text style={styles.label}>{w.phase === "respond" ? t("countdown.timeToPray") : t("countdown.grace")}</Text>
       <View style={styles.track}>
         <View style={[styles.bar, { width: `${Math.round(w.fractionLeft * 100)}%` }, w.phase === "grace" && styles.barGrace]} />
       </View>
@@ -45,9 +46,9 @@ export function CountdownPill({ firedAt }: { firedAt: Date }) {
   const styles = useStyles();
   const w = useWindow(firedAt);
   const text =
-    w.phase === "respond" ? `${mmss(w.msLeft)} left to pray`
-      : w.phase === "grace" ? `On time for ${mmss(w.msLeft)}`
-        : "This will be marked late";
+    w.phase === "respond" ? t("countdown.leftToPray", { time: mmss(w.msLeft) })
+      : w.phase === "grace" ? t("countdown.onTimeFor", { time: mmss(w.msLeft) })
+        : t("countdown.willBeLate");
   return (
     <View style={[styles.pill, w.phase === "late" && styles.pillLate]}>
       <Text style={[styles.pillText, w.phase === "late" && styles.pillTextLate]}>{text}</Text>

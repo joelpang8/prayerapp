@@ -7,6 +7,7 @@ import { useReactions } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
 import { makeStyles, Text, useColors } from "./ui";
+import { t } from "../i18n";
 
 /**
  * Reactions on a post, BeReal-style: counts of each preset, and (on other
@@ -26,7 +27,7 @@ export function ReactionBar({ post }: { post: { id: string; authorId: string } }
   const whoReacted = (kind: ReactionKind) =>
     reactions
       .filter((r) => r.kind === kind)
-      .map((r) => (r.authorId === me.uid ? "You" : names.get(r.authorId)?.displayName ?? "…"))
+      .map((r) => (r.authorId === me.uid ? t("reaction.you") : names.get(r.authorId)?.displayName ?? "…"))
       .join(", ");
   const mine = reactions.find((r) => r.authorId === me.uid)?.kind ?? null;
   const canReact = post.authorId !== me.uid;
@@ -55,7 +56,7 @@ export function ReactionBar({ post }: { post: { id: string; authorId: string } }
             onLongPress={() => setShowing(c.kind)}
             accessibilityRole="button"
             accessibilityLabel={`${reactionInfo(c.kind).label}: ${whoReacted(c.kind)}`}
-            accessibilityHint="Shows who reacted"
+            accessibilityHint={t("reaction.showsWho")}
             style={[styles.chip, c.kind === mine && styles.chipMine, showing === c.kind && styles.chipShowing]}
           >
             <Text style={styles.emoji}>{c.emoji}</Text>
@@ -66,12 +67,12 @@ export function ReactionBar({ post }: { post: { id: string; authorId: string } }
           <Pressable
             onPress={() => setPicking(!picking)}
             accessibilityRole="button"
-            accessibilityLabel={picking ? "Close reactions" : "React"}
+            accessibilityLabel={picking ? t("reaction.close") : t("reaction.react")}
             style={[styles.chip, styles.add]}
             hitSlop={6}
           >
             <Ionicons name={picking ? "close" : "happy-outline"} size={20} color={colors.accent} />
-            {!picking && <Text style={styles.addText}>{mine ? "Change" : "React"}</Text>}
+            {!picking && <Text style={styles.addText}>{mine ? t("reaction.change") : t("reaction.react")}</Text>}
           </Pressable>
         )}
       </View>
@@ -87,7 +88,7 @@ export function ReactionBar({ post }: { post: { id: string; authorId: string } }
               key={r.kind}
               onPress={() => choose(r.kind)}
               accessibilityRole="button"
-              accessibilityLabel={r.kind === mine ? `Remove ${r.label}` : r.label}
+              accessibilityLabel={r.kind === mine ? t("reaction.remove", { label: r.label }) : r.label}
               accessibilityState={{ selected: r.kind === mine }}
               style={[styles.option, r.kind === mine && styles.optionMine]}
             >
@@ -97,7 +98,7 @@ export function ReactionBar({ post }: { post: { id: string; authorId: string } }
           ))}
         </View>
       )}
-      {error && <Text style={styles.error}>Couldn&apos;t save your reaction. Please try again.</Text>}
+      {error && <Text style={styles.error}>{t("reaction.failed")}</Text>}
     </View>
   );
 }

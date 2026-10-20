@@ -1,15 +1,19 @@
 import { deleteDoc, doc, serverTimestamp, setDoc, type DocumentData, type Firestore, type Timestamp } from "firebase/firestore";
 import type { FriendScope } from "./friendScope";
 import { PostThread } from "./postThread";
+import { t } from "../i18n";
 
-/** The preset reactions, in display order. Ids must match firestore.rules. */
+/**
+ * The preset reactions, in display order. Ids must match firestore.rules.
+ * Labels are in the app's language (read when shown).
+ */
 export const REACTIONS = [
-  { kind: "praying", emoji: "🙏", label: "Praying for you" },
-  { kind: "love", emoji: "❤️", label: "Love" },
-  { kind: "happy", emoji: "😊", label: "Happy" },
-  { kind: "amen", emoji: "🙌", label: "Amen" },
-  { kind: "cool", emoji: "😎", label: "Cool" },
-  { kind: "hug", emoji: "🤗", label: "Hugs" },
+  { kind: "praying", emoji: "🙏", get label() { return t("reaction.praying"); } },
+  { kind: "love", emoji: "❤️", get label() { return t("reaction.love"); } },
+  { kind: "happy", emoji: "😊", get label() { return t("reaction.happy"); } },
+  { kind: "amen", emoji: "🙌", get label() { return t("reaction.amen"); } },
+  { kind: "cool", emoji: "😎", get label() { return t("reaction.cool"); } },
+  { kind: "hug", emoji: "🤗", get label() { return t("reaction.hug"); } },
 ] as const;
 
 export type ReactionKind = (typeof REACTIONS)[number]["kind"];

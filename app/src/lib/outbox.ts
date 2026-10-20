@@ -6,6 +6,7 @@
  * records when the photo was taken (takenAt), shown as "Taken 3:02".
  */
 import type { Visibility } from "./posts";
+import { t } from "../i18n";
 
 export type QueuedPost = {
   /** posts/{promptId}_{uid}: one per prompt, so it also identifies the post. */
@@ -40,10 +41,10 @@ export function isPermanent(err: unknown): string | null {
   const code = String((err as { code?: string })?.code ?? "");
   const message = String((err as Error)?.message ?? "");
   if (code === "permission-denied" || code === "storage/unauthorized") {
-    return "The server didn't accept it. The prompt may have closed (posts are open for 24 hours).";
+    return t("outbox.notAccepted");
   }
-  if (code === "invalid-argument" || code === "storage/invalid-argument") return "Something about this post isn't valid.";
-  if (code === "photo-missing" || /photo is no longer/i.test(message)) return "The photo is no longer on this phone.";
+  if (code === "invalid-argument" || code === "storage/invalid-argument") return t("outbox.invalid");
+  if (code === "photo-missing" || /photo is no longer/i.test(message)) return t("outbox.photoGone");
   return null;
 }
 

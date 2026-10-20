@@ -10,11 +10,12 @@ import { MoreMenu } from "./MoreMenu";
 import { ReactionBar } from "./ReactionBar";
 import { fonts, makeStyles, Span, Text, useColors } from "./ui";
 import { VerseBlock } from "./VerseBlock";
+import { locale, t } from "../i18n";
 
-const day = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+const day = (d: Date) => d.toLocaleDateString(locale(), { month: "short", day: "numeric", year: "numeric" });
 
 function when(d: Date): string {
-  return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return d.toLocaleString(locale(), { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export function PostCard({
@@ -49,7 +50,7 @@ export function PostCard({
       <View style={styles.header}>
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel={author ? `${author.displayName}'s profile` : undefined}
+          accessibilityLabel={author ? t("post.profileOf", { name: author.displayName }) : undefined}
           onPress={() => router.push(`/profile/${post.authorId}`)}
           style={styles.who}
         >
@@ -60,14 +61,14 @@ export function PostCard({
         {post.visibility === "friends" && (
           <MoreMenu
             target={{ kind: "post", targetUid: post.authorId, postId: post.id, excerpt: post.notes }}
-            name={author?.displayName ?? "this person"}
+            name={author?.displayName ?? t("post.thisPerson")}
           />
         )}
         {onToggleCollapsed && (
           <Pressable
             onPress={onToggleCollapsed}
             accessibilityRole="button"
-            accessibilityLabel={collapsed ? "Show this prayer" : "Minimize this prayer"}
+            accessibilityLabel={collapsed ? t("post.showPrayer") : t("post.minimizePrayer")}
             hitSlop={10}
           >
             <Ionicons name={collapsed ? "chevron-down" : "chevron-up"} size={22} color={colors.muted} />
@@ -75,9 +76,9 @@ export function PostCard({
         )}
       </View>
       {collapsed && (
-        <Pressable onPress={onToggleCollapsed} accessibilityRole="button" accessibilityLabel="Show this prayer">
+        <Pressable onPress={onToggleCollapsed} accessibilityRole="button" accessibilityLabel={t("post.showPrayer")}>
           <Text style={styles.preview} numberOfLines={1}>
-            {post.answeredAt ? <Span style={styles.goldText}>✦ Answered · </Span> : ""}{post.notes}
+            {post.answeredAt ? <Span style={styles.goldText}>✦ {t("post.answered")} · </Span> : ""}{post.notes}
           </Text>
         </Pressable>
       )}
@@ -92,14 +93,14 @@ export function PostCard({
       <>
       {post.place && <Text style={styles.place}>📍 {post.place}</Text>}
       <View style={styles.labels}>
-        {post.visibility === "private" && <Text style={[styles.label, styles.private]}>🔒 Private</Text>}
-        {post.answeredAt && <Text style={[styles.label, styles.answered]} accessibilityLabel="Answered">✦ Answered</Text>}
-        {late && <Text style={[styles.label, styles.late]}>Late</Text>}
+        {post.visibility === "private" && <Text style={[styles.label, styles.private]}>🔒 {t("compose.private")}</Text>}
+        {post.answeredAt && <Text style={[styles.label, styles.answered]} accessibilityLabel={t("post.answered")}>✦ {t("post.answered")}</Text>}
+        {late && <Text style={[styles.label, styles.late]}>{t("post.late")}</Text>}
         {/* Sent later from the offline queue: show when it was really taken. */}
         {post.takenAt && post.createdAt.getTime() - post.takenAt.getTime() > 60_000 && (
-          <Text style={styles.label}>Taken {post.takenAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</Text>
+          <Text style={styles.label}>{t("post.taken", { time: post.takenAt.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" }) })}</Text>
         )}
-        {post.editedAt && <Text style={styles.label}>Edited</Text>}
+        {post.editedAt && <Text style={styles.label}>{t("post.edited")}</Text>}
       </View>
       <View style={styles.photo}>
         {uri ? (
@@ -113,7 +114,7 @@ export function PostCard({
       <Text style={styles.notes}>{post.notes}</Text>
       {post.answeredAt && (
         <View style={styles.answer}>
-          <Text style={styles.answerTitle} accessibilityLabel={`Answered, ${day(post.answeredAt)}`}>✦ Answered · {day(post.answeredAt)}</Text>
+          <Text style={styles.answerTitle} accessibilityLabel={t("post.answeredOn", { day: day(post.answeredAt) })}>✦ {t("post.answered")} · {day(post.answeredAt)}</Text>
           {post.answerNote && <Text style={styles.answerNote}>{post.answerNote}</Text>}
         </View>
       )}
@@ -122,7 +123,7 @@ export function PostCard({
       {post.visibility === "friends" && <ReactionBar post={post} />}
       {commentsLink && post.visibility === "friends" && (
         <Pressable accessibilityRole="link" onPress={() => router.push(`/post/${post.id}`)} style={styles.commentsLink}>
-          <Text style={styles.commentsText}>Comments</Text>
+          <Text style={styles.commentsText}>{t("post.comments")}</Text>
         </Pressable>
       )}
       {footer}
