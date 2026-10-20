@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { EmptyState } from "../../components/EmptyState";
@@ -6,7 +7,7 @@ import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { SavedVerses } from "../../components/SavedVerses";
 import { SelectField } from "../../components/SelectField";
-import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
+import { Button, fonts, makeStyles, Muted, SectionTitle, Text, TextInput, useColors } from "../../components/ui";
 import { db } from "../../firebase";
 import { t, tn } from "../../i18n";
 import { addMonths, monthTitle, type YearMonth } from "../../lib/calendar";
@@ -17,6 +18,7 @@ import {
 import { appDayId, onThisDayIds, yearsAgoText } from "../../lib/onThisDay";
 import { appMonthOf, buildRecap, dayKeyOfPromptId, markedDays, prayersText, watchMyPostsInMonth } from "../../lib/monthRecap";
 import { type Post } from "../../lib/posts";
+import { matchesSearch, MIN_SEARCH, SEARCH_LIMIT } from "../../lib/prayerSearch";
 import { BOOKS } from "../../lib/scripture/books";
 import { bookName as nameOfBook, formatReference, parseRefId } from "../../lib/scripture/reference";
 import { useNow } from "../../session/hooks";
@@ -62,12 +64,20 @@ export default function PrayersScreen() {
   }
 
   const [filter, setFilter] = useState<PrayerFilter>(NO_FILTER);
+  // Search my prayers: replaces the tab's contents while there's a search.
+  const [search, setSearch] = useState("");
+  const searching = search.trim().length >= MIN_SEARCH;
   const filtered = isFiltered(filter);
 
   return (
     <ScrollView ref={scroll} style={styles.root} contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
     >
+      <SearchBox value={search} onChange={setSearch} />
+      {searching ? (
+        <SearchResults uid={profile.uid} search={search} />
+      ) : (
+      <>
       <OnThisDay uid={profile.uid} />
       <SavedVerses />
       {loaded && <MonthInPrayer month={month} posts={posts} />}
@@ -107,6 +117,8 @@ export default function PrayersScreen() {
           );
         })}
       </View>
+      )}
+      </>
       )}
     </ScrollView>
   );
@@ -225,6 +237,56 @@ function bookOrder(code: string): number {
   return BOOK_ORDER.get(code) ?? 999;
 }
 
+/** "Search my prayers": words in my notes, answered notes, places or verses. */
+function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const styles = useStyles();
+  const colors = useColors();
+  return (
+    <View style={styles.search}>
+      <Ionicons name="search" size={18} color={colors.muted} />
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={t("prayers.search.placeholder")}
+        accessibilityLabel={t("prayers.search.label")}
+        returnKeyType="search"
+        autoCorrect={false}
+        clearButtonMode="while-editing"
+        style={styles.searchInput}
+      />
+    </View>
+  );
+}
+
+/** My posts matching the search, newest first, PAGE_SIZE at a time. */
+function SearchResults({ uid, search }: { uid: string; search: string }) {
+  const styles = useStyles();
+  const { profile } = useReadySession();
+  const [all, setAll] = useState<{ posts: Post[]; capped: boolean } | null>(null);
+  // Same query as the unfiltered list (authorId == me), so no new index.
+  useEffect(() => watchFilteredPosts(db, uid, NO_FILTER, SEARCH_LIMIT, (page) => setAll({ posts: page.posts, capped: page.hasMore }), (err) => {
+    console.warn("search failed", err);
+    setAll({ posts: [], capped: false });
+  }), [uid]);
+  const [shown, setShown] = useState({ search, n: PAGE_SIZE });
+  const n = shown.search === search ? shown.n : PAGE_SIZE;
+  if (!all) return <View style={styles.list}><Muted>{t("prayers.search.loading")}</Muted></View>;
+  const found = all.posts.filter((p) => matchesSearch(p, search));
+  return (
+    <View style={styles.list}>
+      <Muted>{tn("prayers.search.found", found.length)}</Muted>
+      {found.length === 0 && <EmptyState icon="search-outline" title={t("prayers.search.none.title")} message={t("prayers.search.none.message")} />}
+      {found.slice(0, n).map((post) => (
+        <PostCard key={post.id} post={post} author={profile} footer={<OwnPostActions post={post} />} />
+      ))}
+      {found.length > n && (
+        <Button title={t("prayers.showMore")} kind="secondary" onPress={() => setShown({ search, n: n + PAGE_SIZE })} />
+      )}
+      {all.capped && <Muted>{t("prayers.search.capped", { count: SEARCH_LIMIT })}</Muted>}
+    </View>
+  );
+}
+
 /** The filtered prayers, PAGE_SIZE at a time. */
 function FilteredList({ uid, filter }: { uid: string; filter: PrayerFilter }) {
   const styles = useStyles();
@@ -304,6 +366,11 @@ function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
 }
 
 const useStyles = makeStyles((colors) => ({
+  search: {
+    flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.card, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, minHeight: 44, marginBottom: 16,
+  },
+  searchInput: { flex: 1, fontSize: 17, paddingVertical: 10 },
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 48 },
   backToNow: { alignSelf: "center", paddingVertical: 10 },
