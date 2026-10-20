@@ -8,6 +8,7 @@ import { SavedVerses } from "../../components/SavedVerses";
 import { SelectField } from "../../components/SelectField";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text } from "../../components/ui";
 import { db } from "../../firebase";
+import { t, tn } from "../../i18n";
 import { addMonths, monthTitle, type YearMonth } from "../../lib/calendar";
 import {
   EMPTY_VERSE_INDEX, isFiltered, NO_FILTER, PAGE_SIZE, refsInBook, watchFilteredPosts, watchPostsOnDays, watchVerseIndex,
@@ -75,7 +76,7 @@ export default function PrayersScreen() {
       />
       {!isThisMonth && (
         <Pressable onPress={() => { setSelected(null); offsets.current.clear(); setMonth(appMonthOf(new Date())); }} style={styles.backToNow} hitSlop={8}>
-          <Text style={styles.backToNowText}>Back to this month</Text>
+          <Text style={styles.backToNowText}>{t("prayers.backToThisMonth")}</Text>
         </Pressable>
       )}
       <Filters uid={profile.uid} filter={filter} onChange={setFilter} />
@@ -85,8 +86,8 @@ export default function PrayersScreen() {
       <View style={styles.list} onLayout={(e) => { listY.current = e.nativeEvent.layout.y; }}>
         {loaded && posts.length === 0 && (
           isThisMonth
-            ? <EmptyState icon="book-outline" title="Your prayers gather here" message="Each prayer you post this month appears below the calendar." />
-            : <EmptyState icon="book-outline" title={monthTitle(month)} message="No prayers were posted this month." />
+            ? <EmptyState icon="book-outline" title={t("prayers.emptyThisMonth.title")} message={t("prayers.emptyThisMonth.message")} />
+            : <EmptyState icon="book-outline" title={monthTitle(month)} message={t("prayers.emptyMonth.message")} />
         )}
         {posts.map((post, i) => {
           const key = dayKeyOfPromptId(post.promptId);
@@ -122,7 +123,7 @@ function OnThisDay({ uid }: { uid: string }) {
   if (posts.length === 0) return null;
   return (
     <View style={styles.onThisDay}>
-      <Text style={styles.onThisDayTitle} accessibilityRole="header">On this day</Text>
+      <Text style={styles.onThisDayTitle} accessibilityRole="header">{t("prayers.onThisDay")}</Text>
       {posts.map((post) => (
         <View key={post.id} style={styles.onThisDayItem}>
           <Text style={styles.yearsAgo}>{yearsAgoText(today, post.promptId)}</Text>
@@ -143,9 +144,8 @@ function refLabel(id: string): string {
 }
 
 function describeFilter(f: PrayerFilter): string {
-  const what = f.show === "answered" ? "answered prayers" : "prayers";
-  const verse = f.ref ? ` with ${refLabel(f.ref)}` : f.book ? ` with a verse from ${bookName(f.book)}` : "";
-  return `All your ${what}${verse}, ${f.show === "answered" ? "most recently answered first" : "newest first"}.`;
+  const verse = f.ref ? t("prayers.filter.withRef", { ref: refLabel(f.ref) }) : f.book ? t("prayers.filter.withBook", { book: bookName(f.book) }) : "";
+  return t(f.show === "answered" ? "prayers.filter.describeAnswered" : "prayers.filter.describeAll", { verse });
 }
 
 /** All / Answered, and a verse filter from the books and verses I've actually prayed with. */
@@ -155,14 +155,14 @@ function Filters({ uid, filter, onChange }: { uid: string; filter: PrayerFilter;
   useEffect(() => watchVerseIndex(db, uid, setIndex, (err) => console.warn("verse index failed", err)), [uid]);
   const books = Object.entries(index.books).sort(([a], [b]) => (bookOrder(a) - bookOrder(b)));
   const refs = filter.book ? refsInBook(index, filter.book) : [];
-  const chip = (show: PrayerFilter["show"], label: string) => {
+  const chip = (show: PrayerFilter["show"], label: string, a11y: string) => {
     const selected = filter.show === show;
     return (
       <Pressable
         onPress={() => onChange({ ...filter, show })}
         accessibilityRole="button"
         accessibilityState={{ selected }}
-        accessibilityLabel={`Show ${label.toLowerCase()} prayers`}
+        accessibilityLabel={a11y}
         style={[styles.chip, selected && styles.chipOn]}
         hitSlop={4}
       >
@@ -172,26 +172,26 @@ function Filters({ uid, filter, onChange }: { uid: string; filter: PrayerFilter;
   };
   return (
     <View style={styles.filters}>
-      <SectionTitle>Filter</SectionTitle>
+      <SectionTitle>{t("prayers.filter.title")}</SectionTitle>
       <View style={styles.chips}>
-        {chip("all", "All")}
-        {chip("answered", "Answered")}
+        {chip("all", t("prayers.filter.all"), t("prayers.filter.allA11y"))}
+        {chip("answered", t("prayers.filter.answered"), t("prayers.filter.answeredA11y"))}
       </View>
       {books.length > 0 ? (
         <>
           <SelectField
-            title="Verse book"
-            placeholder="Any verse"
-            noneLabel="Any verse"
+            title={t("prayers.filter.verseBook")}
+            placeholder={t("prayers.filter.anyVerse")}
+            noneLabel={t("prayers.filter.anyVerse")}
             value={filter.book ?? ""}
             onChange={(b) => onChange({ ...filter, book: b || null, ref: null })}
             options={books.map(([code, n]) => ({ value: code, label: `${bookName(code)} (${n})` }))}
           />
           {filter.book && refs.length > 1 && (
             <SelectField
-              title={`Verses in ${bookName(filter.book)}`}
-              placeholder={`Any verse in ${bookName(filter.book)}`}
-              noneLabel={`Any verse in ${bookName(filter.book)}`}
+              title={t("prayers.filter.versesIn", { book: bookName(filter.book) })}
+              placeholder={t("prayers.filter.anyVerseIn", { book: bookName(filter.book) })}
+              noneLabel={t("prayers.filter.anyVerseIn", { book: bookName(filter.book) })}
               value={filter.ref ?? ""}
               onChange={(r) => onChange({ ...filter, ref: r || null })}
               options={refs.map((r) => ({ value: r.id, label: `${refLabel(r.id)} (${r.count})` }))}
@@ -199,11 +199,11 @@ function Filters({ uid, filter, onChange }: { uid: string; filter: PrayerFilter;
           )}
         </>
       ) : (
-        <Muted>Once you&apos;ve prayed with a day&apos;s verse, you can filter by it here.</Muted>
+        <Muted>{t("prayers.filter.noVerses")}</Muted>
       )}
       {isFiltered(filter) && (
         <Pressable onPress={() => onChange(NO_FILTER)} accessibilityRole="button" style={styles.clear} hitSlop={8}>
-          <Text style={styles.backToNowText}>Clear filters</Text>
+          <Text style={styles.backToNowText}>{t("prayers.filter.clear")}</Text>
         </Pressable>
       )}
     </View>
@@ -237,13 +237,13 @@ function FilteredList({ uid, filter }: { uid: string; filter: PrayerFilter }) {
   return (
     <View style={styles.list}>
       <Muted>{describeFilter(filter)}</Muted>
-      {current && current.posts.length === 0 && <EmptyState icon="search-outline" title="No prayers match" message="Try another filter, or clear the filters." />}
+      {current && current.posts.length === 0 && <EmptyState icon="search-outline" title={t("prayers.filter.noMatch.title")} message={t("prayers.filter.noMatch.message")} />}
       {current?.posts.map((post) => (
         <PostCard key={post.id} post={post} author={profile} footer={<OwnPostActions post={post} />} />
       ))}
       {current?.hasMore && (
         <Button
-          title="Show more"
+          title={t("prayers.showMore")}
           kind="secondary"
           busy={current.n !== n}
           onPress={() => setMax({ key, n: n + PAGE_SIZE })}
@@ -279,20 +279,21 @@ function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
   if (recap.posted === 0) return null;
   const name = monthTitle(month);
   const lines = [
-    `You posted ${prayersText(recap.posted)}.`,
-    recap.answered > 0 ? `${recap.answered === 1 ? "1 is" : `${recap.answered} are`} marked answered.` : "",
+    t("prayers.recap.posted", { prayers: prayersText(recap.posted) }),
+    recap.answered > 0 ? tn("prayers.recap.answered", recap.answered) : "",
   ].filter(Boolean);
   const verses = recap.verses.map(refLabel);
+  const label = [t("prayers.recap.a11y", { month: name }), ...lines, verses.length ? t("prayers.recap.versesA11y", { list: verses.join(", ") }) : ""];
   return (
-    <View style={styles.recap} accessible accessibilityLabel={`Your month in prayer, ${name}. ${lines.join(" ")}${verses.length ? ` Verses: ${verses.join(", ")}.` : ""}`}>
-      <Text style={styles.recapTitle} accessibilityRole="header">{name} in prayer</Text>
+    <View style={styles.recap} accessible accessibilityLabel={label.filter(Boolean).join(" ")}>
+      <Text style={styles.recapTitle} accessibilityRole="header">{t("prayers.recap.title", { month: name })}</Text>
       {lines.map((l) => <Text key={l} style={styles.recapLine}>{l}</Text>)}
       {verses.length > 0 && (
         <Text style={styles.recapVerses}>
-          {verses.length === 1 ? "Verse" : "Verses"}: {verses.join(" · ")}
+          {tn("prayers.recap.verses", verses.length, { list: verses.join(" · ") })}
         </Text>
       )}
-      <Muted>Only you see this.</Muted>
+      <Muted>{t("prayers.recap.onlyYou")}</Muted>
     </View>
   );
 }

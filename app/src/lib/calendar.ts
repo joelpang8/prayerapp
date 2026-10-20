@@ -1,4 +1,5 @@
 /** Calendar helpers for the Prayers tab. Months are 1–12; days are the phone's local dates. */
+import { locale } from "../i18n";
 
 export type YearMonth = { year: number; month: number };
 
@@ -33,6 +34,16 @@ export function monthGrid(ym: YearMonth): (Date | null)[][] {
   return weeks;
 }
 
+/** "October 2026" / "Octubre de 2026", in the app's language. */
 export function monthTitle(ym: YearMonth): string {
-  return monthStart(ym).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const s = monthStart(ym).toLocaleDateString(locale(), { month: "long", year: "numeric" });
+  // Spanish writes months in lower case; as a title, start with a capital.
+  return s.charAt(0).toLocaleUpperCase(locale()) + s.slice(1);
+}
+
+/** The weekday initials, Sunday first ("S M T W T F S" / "D L M X J V S"). */
+export function weekdayLetters(): string[] {
+  // 4 January 2026 was a Sunday.
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(2026, 0, 4 + i).toLocaleDateString(locale(), { weekday: "narrow" }).toLocaleUpperCase(locale()));
 }

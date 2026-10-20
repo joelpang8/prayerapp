@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { RESPOND_WINDOW_MS } from "../../src/lib/posts";
-import { justFinishedProfile, TUTORIAL_PAGES } from "../../src/lib/tutorial";
+import { setCurrentLang } from "../../src/i18n";
+import { justFinishedProfile, tutorialPages } from "../../src/lib/tutorial";
+
+const TUTORIAL_PAGES = tutorialPages();
 
 describe("How PrayAlong works", () => {
   test("three short pages: the daily moment, friends only, private", () => {
@@ -15,6 +18,21 @@ describe("How PrayAlong works", () => {
 
   test("gentle wording: no scores, streaks or 'missed'", () => {
     for (const p of TUTORIAL_PAGES) expect(`${p.title} ${p.body}`).not.toMatch(/miss|streak|goal|score|fail/i);
+  });
+
+  test("in Spanish too: three pages, the real time, gentle wording", () => {
+    setCurrentLang("es");
+    try {
+      const pages = tutorialPages();
+      expect(pages.map((p) => p.title)).toEqual(["Un momento al día", "Solo tus amigos", "Algunas oraciones son solo para ti"]);
+      expect(pages[0].body).toContain(`${RESPOND_WINDOW_MS / 60_000} minutos`);
+      for (const p of pages) {
+        expect(p.body.length).toBeLessThan(340);
+        expect(`${p.title} ${p.body}`).not.toMatch(/perdiste|racha|meta|puntuaci|fallaste/i);
+      }
+    } finally {
+      setCurrentLang("en");
+    }
   });
 
   test("shown once, only to a brand-new account", () => {

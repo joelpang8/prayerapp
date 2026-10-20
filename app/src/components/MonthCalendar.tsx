@@ -1,14 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, View } from "react-native";
-import { dayKey, monthGrid, monthTitle, type YearMonth } from "../lib/calendar";
+import { dayKey, monthGrid, monthTitle, weekdayLetters, type YearMonth } from "../lib/calendar";
+import { locale, t } from "../i18n";
 import { dayKeyOfPromptId } from "../lib/monthRecap";
 import { appDayId } from "../lib/onThisDay";
 import { useReadySession } from "../session/SessionProvider";
 import { usePhoto } from "../session/hooks";
 import { fonts, makeStyles, Text, useColors } from "./ui";
-
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 /** A day with a prayer: its photo for the thumbnail, and whether it was answered. */
 export type MarkedDay = { answered: boolean; photoPath: string | null };
@@ -41,7 +40,7 @@ export function MonthCalendar({
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Pressable onPress={() => onChangeMonth(-1)} accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={12}>
+        <Pressable onPress={() => onChangeMonth(-1)} accessibilityRole="button" accessibilityLabel={t("prayers.cal.previousMonth")} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={colors.accent} />
         </Pressable>
         <Text style={styles.title}>{monthTitle(month)}</Text>
@@ -49,7 +48,7 @@ export function MonthCalendar({
           onPress={() => onChangeMonth(1)}
           disabled={!canGoForward}
           accessibilityRole="button"
-          accessibilityLabel="Next month"
+          accessibilityLabel={t("prayers.cal.nextMonth")}
           hitSlop={12}
           style={!canGoForward && styles.disabled}
         >
@@ -57,7 +56,7 @@ export function MonthCalendar({
         </Pressable>
       </View>
       <View style={styles.week}>
-        {WEEKDAYS.map((d, i) => (
+        {weekdayLetters().map((d, i) => (
           <Text key={i} style={styles.weekday}>{d}</Text>
         ))}
       </View>
@@ -77,7 +76,7 @@ export function MonthCalendar({
                 disabled={!has}
                 onPress={() => onSelect(key)}
                 accessibilityRole="button"
-                accessibilityLabel={`${date.toLocaleDateString(undefined, { month: "long", day: "numeric" })}${has ? ", prayer" : ""}${answered ? ", answered" : ""}`}
+                accessibilityLabel={`${date.toLocaleDateString(locale(), { month: "long", day: "numeric" })}${has ? t("prayers.cal.hasPrayer") : ""}${answered ? t("prayers.cal.answered") : ""}`}
               >
                 {mark?.photoPath ? (
                   <Thumb path={mark.photoPath} day={date.getDate()} answered={answered} selected={isSelected} />

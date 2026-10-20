@@ -8,6 +8,8 @@
  * another zone, or the clocks changing never moves a prayer to a different
  * day, and the query is a simple lookup by id.
  */
+import { tn } from "../i18n";
+
 
 export const APP_TIME_ZONE = "America/New_York";
 /** No prompts were sent before this year. */
@@ -49,6 +51,5 @@ export function onThisDayIds(todayId: string, firstYear = FIRST_YEAR): string[] 
 
 /** "1 year ago", "3 years ago": from today's id and a post's prompt id. */
 export function yearsAgoText(todayId: string, promptId: string): string {
-  const n = Number(todayId.slice(0, 4)) - Number(promptId.slice(0, 4));
-  return n === 1 ? "1 year ago" : `${n} years ago`;
+  return tn("prayers.yearsAgo", Number(todayId.slice(0, 4)) - Number(promptId.slice(0, 4)));
 }

@@ -7,6 +7,7 @@ import {
   type Firestore,
   type Unsubscribe,
 } from "firebase/firestore";
+import { tn } from "../i18n";
 import type { YearMonth } from "./calendar";
 import { appDayId } from "./onThisDay";
 import { postFromSnapshot, type Post } from "./posts";
@@ -74,7 +75,7 @@ export function buildRecap(me: string, posts: readonly Pick<Post, "authorId" | "
 }
 
 /** "1 prayer", "12 prayers". */
-export const prayersText = (n: number) => (n === 1 ? "1 prayer" : `${n} prayers`);
+export const prayersText = (n: number) => tn("prayers.count", n);
 
 /**
  * The calendar's marks: for each app day with a prayer, whether any prayer

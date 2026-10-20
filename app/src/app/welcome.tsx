@@ -4,15 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, fonts, makeStyles, Text, useColors } from "../components/ui";
-import { TUTORIAL_PAGES } from "../lib/tutorial";
+import { t } from "../i18n";
+import { tutorialPages } from "../lib/tutorial";
 
 /** "How PrayAlong works": three short pages, one at a time, with Skip. */
 export default function WelcomeScreen() {
   const styles = useStyles();
   const colors = useColors();
   const [index, setIndex] = useState(0);
-  const page = TUTORIAL_PAGES[index];
-  const last = index === TUTORIAL_PAGES.length - 1;
+  const [pages] = useState(tutorialPages);
+  const page = pages[index];
+  const last = index === pages.length - 1;
   // VoiceOver: move to the new page's title when the page changes.
   const titleRef = useRef<View>(null);
   const first = useRef(true);
@@ -30,8 +32,8 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.root}>
       <View style={styles.top}>
         {!last && (
-          <Pressable onPress={done} accessibilityRole="button" accessibilityLabel="Skip the introduction" hitSlop={10} style={styles.skip}>
-            <Text style={styles.skipText}>Skip</Text>
+          <Pressable onPress={done} accessibilityRole="button" accessibilityLabel={t("intro.skipA11y")} hitSlop={10} style={styles.skip}>
+            <Text style={styles.skipText}>{t("intro.skip")}</Text>
           </Pressable>
         )}
       </View>
@@ -39,19 +41,19 @@ export default function WelcomeScreen() {
         <View style={styles.art} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Ionicons name={page.icon} size={44} color={colors.accent} />
         </View>
-        <View ref={titleRef} accessible accessibilityRole="header" accessibilityLabel={`${page.title}. Page ${index + 1} of ${TUTORIAL_PAGES.length}`}>
+        <View ref={titleRef} accessible accessibilityRole="header" accessibilityLabel={t("intro.pageA11y", { title: page.title, page: index + 1, pages: pages.length })}>
           <Text style={styles.title}>{page.title}</Text>
         </View>
         <Text style={styles.text}>{page.body}</Text>
       </ScrollView>
       <View style={styles.bottom}>
         <View style={styles.dots} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          {TUTORIAL_PAGES.map((p, i) => (
+          {pages.map((p, i) => (
             <View key={p.title} style={[styles.dot, i === index && styles.dotOn]} />
           ))}
         </View>
-        <Button title={last ? "Start praying" : "Next"} size="large" onPress={() => (last ? done() : setIndex(index + 1))} />
-        {index > 0 && <Button title="Back" kind="secondary" onPress={() => setIndex(index - 1)} />}
+        <Button title={last ? t("intro.start") : t("common.next")} size="large" onPress={() => (last ? done() : setIndex(index + 1))} />
+        {index > 0 && <Button title={t("common.back")} kind="secondary" onPress={() => setIndex(index - 1)} />}
       </View>
     </SafeAreaView>
   );

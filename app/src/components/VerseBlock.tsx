@@ -6,6 +6,7 @@ import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
 import { spokenPassage } from "../lib/verseSpeech";
 import { db } from "../firebase";
+import { t } from "../i18n";
 import { saveVerse, unsaveVerse } from "../lib/savedVerses";
 import { usePassage, useSavedVerses } from "../session/hooks";
 import { useReadySession } from "../session/SessionProvider";
@@ -59,7 +60,7 @@ export function VerseBlock({ refId, collapsed = false, readMore = true }: { refI
 
   if (!open) {
     return (
-      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityHint="Shows the verse">
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityHint={t("verse.showsVerse")}>
         <Text style={styles.refLink}>{reference}</Text>
       </Pressable>
     );
@@ -67,10 +68,10 @@ export function VerseBlock({ refId, collapsed = false, readMore = true }: { refI
   const long = !!passage && passage.verses.length > PREVIEW_VERSES;
   return (
     <View style={styles.block}>
-      {passage ? <Verses passage={passage} limit={all ? Infinity : PREVIEW_VERSES} /> : failed ? <Text style={styles.muted}>This verse isn&apos;t available in your translation.</Text> : null}
+      {passage ? <Verses passage={passage} limit={all ? Infinity : PREVIEW_VERSES} /> : failed ? <Text style={styles.muted}>{t("verse.unavailable")}</Text> : null}
       {long && !all && (
         <Pressable onPress={() => setAll(true)} accessibilityRole="button">
-          <Text style={styles.more}>Show all {passage!.verses.length} verses</Text>
+          <Text style={styles.more}>{t("verse.showAll", { count: passage!.verses.length })}</Text>
         </Pressable>
       )}
       <View style={styles.refRow}>
@@ -89,11 +90,11 @@ export function VerseBlock({ refId, collapsed = false, readMore = true }: { refI
         <Pressable
           onPress={() => router.push({ pathname: "/read/[ref]", params: { ref: refId } })}
           accessibilityRole="link"
-          accessibilityLabel={`Read more: the whole chapter around ${reference}`}
+          accessibilityLabel={t("verse.readMoreA11y", { ref: reference })}
           hitSlop={8}
           style={styles.readMore}
         >
-          <Text style={styles.more}>Read more</Text>
+          <Text style={styles.more}>{t("verse.readMore")}</Text>
         </Pressable>
       )}
     </View>
@@ -128,13 +129,13 @@ function SaveButton({ refId, reference }: { refId: string; reference: string }) 
       disabled={busy}
       accessibilityRole="button"
       accessibilityState={{ selected: saved, busy }}
-      accessibilityLabel={saved ? `Saved: ${reference}` : `Save ${reference}`}
-      accessibilityHint={saved ? "Double-tap to remove it from your saved verses" : "Keeps it in your saved verses, on the Prayers tab"}
+      accessibilityLabel={t(saved ? "verse.savedA11y" : "verse.saveA11y", { ref: reference })}
+      accessibilityHint={t(saved ? "verse.savedHint" : "verse.saveHint")}
       hitSlop={8}
       style={styles.listen}
     >
       <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={20} color={colors.accent} />
-      <Text style={styles.listenText}>{saved ? "Saved" : "Save"}</Text>
+      <Text style={styles.listenText}>{t(saved ? "verse.saved" : "verse.save")}</Text>
     </Pressable>
   );
 }
@@ -147,13 +148,13 @@ function ListenButton({ speaking, reference, onPress }: { speaking: boolean; ref
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={speaking ? `Stop reading ${reference}` : `Listen to ${reference}`}
-      accessibilityHint={speaking ? undefined : "Reads the verse aloud"}
+      accessibilityLabel={t(speaking ? "verse.stopA11y" : "verse.listenA11y", { ref: reference })}
+      accessibilityHint={speaking ? undefined : t("verse.listenHint")}
       hitSlop={8}
       style={styles.listen}
     >
       <Ionicons name={speaking ? "stop-circle-outline" : "volume-medium-outline"} size={22} color={colors.accent} />
-      <Text style={styles.listenText}>{speaking ? "Stop" : "Listen"}</Text>
+      <Text style={styles.listenText}>{t(speaking ? "verse.stop" : "verse.listen")}</Text>
     </Pressable>
   );
 }

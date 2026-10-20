@@ -4,7 +4,8 @@ import { Alert, ScrollView, View } from "react-native";
 import { reauthenticate, revokeAppleToken, signOut } from "../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../components/ui";
 import { functions } from "../firebase";
-import { confirmed, CONFIRM_WORD, deleteAccountOnServer, forgetAccountOnDevice, WHAT_IS_DELETED } from "../lib/account";
+import { t } from "../i18n";
+import { confirmed, CONFIRM_WORD, deleteAccountOnServer, forgetAccountOnDevice, whatIsDeleted } from "../lib/account";
 import { useReadySession } from "../session/SessionProvider";
 
 /**
@@ -31,13 +32,13 @@ export default function DeleteAccountScreen() {
       await deleteAccountOnServer(functions);
       await forgetAccountOnDevice(profile.uid);
       await signOut().catch(() => {});
-      Alert.alert("Your account has been deleted", "Thank you for praying with us.");
+      Alert.alert(t("account.deleted.title"), t("account.deleted.message"));
     } catch (err) {
       console.warn("account deletion failed", err);
       const code = String((err as { code?: string }).code ?? "");
       setError(code.includes("failed-precondition")
-        ? "That took a little long. Please try again; you'll be asked to sign in once more."
-        : "Couldn't finish deleting your account. Please check your connection and try again; it picks up where it stopped.");
+        ? t("account.tooSlow")
+        : t("account.failed"));
     } finally {
       setBusy(false);
     }
@@ -45,27 +46,27 @@ export default function DeleteAccountScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title} accessibilityRole="header">Delete your account</Text>
-      <Text style={styles.body}>This permanently removes:</Text>
+      <Text style={styles.title} accessibilityRole="header">{t("account.title")}</Text>
+      <Text style={styles.body}>{t("account.removes")}</Text>
       <View style={styles.list}>
-        {WHAT_IS_DELETED.map((line) => (
+        {whatIsDeleted().map((line) => (
           <Text key={line} style={styles.item}>•  {line}</Text>
         ))}
       </View>
-      <Muted>Friends won&apos;t be told. Your prayers simply stop appearing for them.</Muted>
-      <Text style={styles.label}>Type {CONFIRM_WORD} to confirm</Text>
+      <Muted>{t("account.friendsNotTold")}</Muted>
+      <Text style={styles.label}>{t("account.typeToConfirm", { word: CONFIRM_WORD })}</Text>
       <TextInput
         value={typed}
         onChangeText={setTyped}
         autoCapitalize="characters"
         autoCorrect={false}
-        accessibilityLabel={`Type ${CONFIRM_WORD} to confirm`}
+        accessibilityLabel={t("account.typeToConfirm", { word: CONFIRM_WORD })}
         style={styles.input}
       />
-      <Muted>You&apos;ll be asked to sign in once more, to make sure it&apos;s you.</Muted>
+      <Muted>{t("account.signInAgain")}</Muted>
       {error && <ErrorText>{error}</ErrorText>}
-      <Button title="Delete my account" kind="danger" busy={busy} disabled={!confirmed(typed) || busy} onPress={run} />
-      <Button title="Cancel" kind="secondary" disabled={busy} onPress={() => router.back()} />
+      <Button title={t("account.deleteButton")} kind="danger" busy={busy} disabled={!confirmed(typed) || busy} onPress={run} />
+      <Button title={t("common.cancel")} kind="secondary" disabled={busy} onPress={() => router.back()} />
     </ScrollView>
   );
 }

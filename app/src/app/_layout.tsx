@@ -13,6 +13,7 @@ import { loadTextSize } from "../lib/textSize";
 import { loadVoicePrefs } from "../lib/voicePrefs";
 import { loadLiveActivityPref } from "../lib/liveActivity";
 import { loadLangPref, useLang } from "../i18n/prefs";
+import { t } from "../i18n";
 import { usernameFromLink } from "../lib/invite";
 import { configureNotifications } from "../lib/notifications";
 import { SessionProvider, useSession } from "../session/SessionProvider";
@@ -62,7 +63,7 @@ function RootNavigator() {
   // Pushed screens (profile, post) show a header with a back button.
   const pushed = {
     headerShown: true,
-    headerBackTitle: "Back",
+    headerBackTitle: t("common.back"),
     headerStyle: { backgroundColor: colors.bg },
     headerTitleStyle: navigationFonts.headerTitleStyle,
     headerBackTitleStyle: { fontFamily: fonts.serif },
@@ -81,12 +82,12 @@ function RootNavigator() {
         <Stack.Screen name="compose" options={{ presentation: "modal" }} />
         <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
         <Stack.Screen name="profile/[uid]" options={pushed} />
-        <Stack.Screen name="post/[id]" options={{ ...pushed, title: "Prayer" }} />
-        <Stack.Screen name="activity" options={{ ...pushed, title: "Activity" }} />
-        <Stack.Screen name="u/[username]" options={{ ...pushed, title: "Invite" }} />
-        <Stack.Screen name="read/[ref]" options={{ ...pushed, title: "Read" }} />
+        <Stack.Screen name="post/[id]" options={{ ...pushed, title: t("titles.prayer") }} />
+        <Stack.Screen name="activity" options={{ ...pushed, title: t("titles.activity") }} />
+        <Stack.Screen name="u/[username]" options={{ ...pushed, title: t("titles.invite") }} />
+        <Stack.Screen name="read/[ref]" options={{ ...pushed, title: t("titles.read") }} />
         <Stack.Screen name="welcome" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
-        <Stack.Screen name="delete-account" options={{ ...pushed, title: "Delete account" }} />
+        <Stack.Screen name="delete-account" options={{ ...pushed, title: t("titles.deleteAccount") }} />
       </Stack.Protected>
     </Stack>
   );

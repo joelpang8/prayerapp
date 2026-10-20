@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { t } from "../i18n";
 import { useSavedVerses } from "../session/hooks";
 import { fonts, makeStyles, Muted, Text, useColors } from "./ui";
 import { VerseBlock } from "./VerseBlock";
@@ -26,18 +27,18 @@ export function SavedVerses() {
         onPress={() => setOpen(!open)}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityLabel={`Saved verses, ${verses.length}`}
+        accessibilityLabel={t("prayers.saved.a11y", { count: verses.length })}
         hitSlop={8}
         style={styles.header}
       >
         <Ionicons name="bookmark" size={20} color={colors.accent} />
-        <Text style={styles.title} accessibilityRole="header">Saved verses</Text>
+        <Text style={styles.title} accessibilityRole="header">{t("prayers.saved.title")}</Text>
         {verses.length > 0 && <Text style={styles.count}>{verses.length}</Text>}
         <Ionicons name={open ? "chevron-up" : "chevron-down"} size={20} color={colors.muted} />
       </Pressable>
       {open && (
         verses.length === 0 ? (
-          <Muted>Tap Save under any verse to keep it here, to read or listen to again. Only you see this list.</Muted>
+          <Muted>{t("prayers.saved.empty")}</Muted>
         ) : (
           <View style={styles.list}>
             {shown.map((v) => (
@@ -47,10 +48,10 @@ export function SavedVerses() {
             ))}
             {verses.length > FIRST && !all && (
               <Pressable onPress={() => setAll(true)} accessibilityRole="button" hitSlop={8}>
-                <Text style={styles.more}>Show all {verses.length}</Text>
+                <Text style={styles.more}>{t("prayers.saved.showAll", { count: verses.length })}</Text>
               </Pressable>
             )}
-            <Muted>Only you see this list. Tap Saved to remove a verse.</Muted>
+            <Muted>{t("prayers.saved.footer")}</Muted>
           </View>
         )
       )}

@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { httpsCallable, type Functions } from "firebase/functions";
+import { t } from "../i18n";
 
 /**
  * "Delete my account". The server (firebase/functions, deleteAccount) does
@@ -11,14 +12,16 @@ export const CONFIRM_WORD = "DELETE";
 export const confirmed = (typed: string) => typed.trim().toUpperCase() === CONFIRM_WORD;
 
 /** What's removed, shown before confirming. Must match accountDeletion.ts. */
-export const WHAT_IS_DELETED = [
-  "All your prayers and their photos, including private ones",
-  "Comments and reactions on your prayers, and the ones you left on friends' prayers",
-  "Your friends, friend requests and blocks",
-  "Your profile, profile photo, bio, prayer requests and who's praying for them",
-  "Your saved settings and your username (someone else could take it later)",
-  "Your sign-in. This can't be undone.",
-] as const;
+export function whatIsDeleted(): string[] {
+  return [
+    t("account.item.prayers"),
+    t("account.item.comments"),
+    t("account.item.friends"),
+    t("account.item.profile"),
+    t("account.item.settings"),
+    t("account.item.signIn"),
+  ];
+}
 
 /** This device's stored data for one account (e.g. its offline outbox), by key. */
 export function keysForAccount(keys: readonly string[], uid: string): string[] {

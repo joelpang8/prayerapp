@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { signInForDevelopment, signInWithApple, signInWithGoogle, type SignInResult } from "../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../components/ui";
 import { usingEmulators } from "../firebase";
+import { t } from "../i18n";
 import { setSuggestedDisplayName } from "../session/SessionProvider";
 
 export default function SignInScreen() {
@@ -31,8 +32,8 @@ export default function SignInScreen() {
       console.warn(err);
       setError(
         err instanceof Error && err.message.includes("isn't configured")
-          ? "Google Sign-In isn't set up yet. In emulator mode, use Development sign-in below."
-          : "Sign-in didn't work. Please try again.",
+          ? t("signIn.googleNotSetUp")
+          : t("signIn.failed"),
       );
     } finally {
       setBusy(null);
@@ -42,8 +43,8 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.hero}>
-        <Text style={styles.title}>Pray now</Text>
-        <Muted>Once a day, at a moment nobody expects, pause and pray. Share it with your friends.</Muted>
+        <Text style={styles.title}>{t("signIn.title")}</Text>
+        <Muted>{t("signIn.tagline")}</Muted>
       </View>
       <View style={styles.actions}>
         {appleAvailable && (
@@ -55,12 +56,12 @@ export default function SignInScreen() {
             onPress={() => run("apple", signInWithApple)}
           />
         )}
-        <Button title="Sign in with Google" kind="secondary" busy={busy === "google"} disabled={!!busy} onPress={() => run("google", signInWithGoogle)} />
+        <Button title={t("signIn.google")} kind="secondary" busy={busy === "google"} disabled={!!busy} onPress={() => run("google", signInWithGoogle)} />
         {usingEmulators && (
           <View style={styles.dev}>
-            <Muted>Emulator mode: sign in as any test user.</Muted>
+            <Muted>{t("signIn.emulator")}</Muted>
             <TextInput value={devName} onChangeText={setDevName} style={styles.input} autoCapitalize="words" />
-            <Button title="Development sign-in" kind="secondary" busy={busy === "dev"} disabled={!!busy} onPress={() => run("dev", () => signInForDevelopment(devName))} />
+            <Button title={t("signIn.dev")} kind="secondary" busy={busy === "dev"} disabled={!!busy} onPress={() => run("dev", () => signInForDevelopment(devName))} />
           </View>
         )}
         {error && <ErrorText>{error}</ErrorText>}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "../auth/signIn";
+import { t } from "../i18n";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../components/ui";
 import { db } from "../firebase";
 import {
@@ -35,7 +36,7 @@ export default function OnboardingScreen() {
       await createProfile(db, session.user.uid, normalized, displayName);
       // SessionProvider's profile listener moves us on from here.
     } catch (err) {
-      setError(err instanceof UsernameTakenError ? `@${normalized} is taken. Try another.` : "Couldn't save. Please try again.");
+      setError(err instanceof UsernameTakenError ? t("onboarding.taken", { username: normalized }) : t("onboarding.saveFailed"));
       setBusy(false);
     }
   }
@@ -43,15 +44,15 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.root}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.body}>
-        <Text style={styles.title}>Set up your profile</Text>
-        <Muted>Friends find you by your username. You can&apos;t change it later, so choose carefully.</Muted>
+        <Text style={styles.title}>{t("onboarding.title")}</Text>
+        <Muted>{t("onboarding.intro")}</Muted>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>{t("onboarding.name")}</Text>
           <TextInput value={displayName} onChangeText={setDisplayName} style={styles.input} maxLength={50} autoCapitalize="words" />
         </View>
         <View style={styles.field}>
-          <Text style={styles.label}>Username</Text>
+          <Text style={styles.label}>{t("onboarding.username")}</Text>
           <TextInput
             value={username}
             onChangeText={setUsername}
@@ -59,14 +60,14 @@ export default function OnboardingScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             maxLength={21}
-            placeholder="e.g. grace_h"
+            placeholder={t("onboarding.usernamePlaceholder")}
           />
           {problem && <Muted>{problem}</Muted>}
         </View>
         {error && <ErrorText>{error}</ErrorText>}
         <View style={styles.actions}>
-          <Button title="Continue" onPress={submit} busy={busy} disabled={!username || !!problem} />
-          <Button title="Use a different account" kind="secondary" onPress={() => signOut()} disabled={busy} />
+          <Button title={t("onboarding.continue")} onPress={submit} busy={busy} disabled={!username || !!problem} />
+          <Button title={t("onboarding.otherAccount")} kind="secondary" onPress={() => signOut()} disabled={busy} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

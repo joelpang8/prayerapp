@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { t } from "../../i18n";
 import { fonts, makeStyles, Muted, Span, Text, useColors } from "../../components/ui";
 import { chapterTitle, parseRefId } from "../../lib/scripture/reference";
 import { getChapter, plainText, versesInChapter, type Chapter } from "../../lib/scripture/text";
@@ -42,7 +43,7 @@ export default function ReadScreen() {
   if (!start) {
     return (
       <View style={styles.root}>
-        <View style={styles.content}><Muted>This verse can&apos;t be opened.</Muted></View>
+        <View style={styles.content}><Muted>{t("read.cantOpen")}</Muted></View>
       </View>
     );
   }
@@ -55,12 +56,12 @@ export default function ReadScreen() {
   const nav = current ? (
     <View style={styles.nav}>
       {chapter > 1 ? (
-        <Pressable onPress={() => go(chapter - 1)} accessibilityRole="button" accessibilityLabel={`Previous chapter, ${chapterTitle(start.book, chapter - 1)}`} hitSlop={8} style={styles.navButton}>
+        <Pressable onPress={() => go(chapter - 1)} accessibilityRole="button" accessibilityLabel={t("read.previousChapter", { title: chapterTitle(start.book, chapter - 1) })} hitSlop={8} style={styles.navButton}>
           <Text style={styles.navText}>‹ {chapterTitle(start.book, chapter - 1)}</Text>
         </Pressable>
       ) : <View />}
       {chapter < current.chapters ? (
-        <Pressable onPress={() => go(chapter + 1)} accessibilityRole="button" accessibilityLabel={`Next chapter, ${chapterTitle(start.book, chapter + 1)}`} hitSlop={8} style={styles.navButton}>
+        <Pressable onPress={() => go(chapter + 1)} accessibilityRole="button" accessibilityLabel={t("read.nextChapter", { title: chapterTitle(start.book, chapter + 1) })} hitSlop={8} style={styles.navButton}>
           <Text style={styles.navText}>{chapterTitle(start.book, chapter + 1)} ›</Text>
         </Pressable>
       ) : <View />}
@@ -71,11 +72,11 @@ export default function ReadScreen() {
     <ScrollView ref={scroll} style={styles.root} contentContainerStyle={styles.content}>
       {/* Reading mode: the header sits on the same paper as the page. */}
       <Stack.Screen options={{ title: chapterTitle(start.book, chapter), headerStyle: { backgroundColor: colors.paper } }} />
-      {current === null && <Muted>This chapter isn&apos;t available.</Muted>}
+      {current === null && <Muted>{t("read.unavailable")}</Muted>}
       {current && (
         <>
           <Text style={styles.title} accessibilityRole="header">{current.title}</Text>
-          <Muted>King James Version. Words in italics were added by the translators.</Muted>
+          <Muted>{t("read.kjvNote")}</Muted>
           <View style={styles.rule} />
           {nav}
           {current.verses.map((v) => {
@@ -84,12 +85,12 @@ export default function ReadScreen() {
               <View
                 key={v.verse}
                 style={[styles.verse, on && styles.verseOn]}
-                accessibilityHint={on ? "The verse you were reading" : undefined}
+                accessibilityHint={on ? t("read.yourVerse") : undefined}
                 onLayout={on && v.verse === highlight!.first
                   ? (e) => scroll.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 24), animated: false })
                   : undefined}
               >
-                <Text style={styles.text} accessibilityLabel={`Verse ${v.verse}. ${plainText(v.segments)}`}>
+                <Text style={styles.text} accessibilityLabel={t("read.verseA11y", { verse: v.verse, text: plainText(v.segments) })}>
                   <Span style={styles.num}>{v.verse} </Span>
                   {v.segments.map((s, j) =>
                     s.supplied ? <Span key={j} style={styles.supplied}>{s.text}</Span> : <Span key={j}>{s.text}</Span>,
