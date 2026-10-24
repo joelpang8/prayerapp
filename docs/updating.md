@@ -29,7 +29,7 @@ The `prebuild` line is only needed after a change that adds a native package, or
 Most app-only changes skip this. The change's notes say when it's needed.
 
 ```sh
-cd ~/prayerapp/firebase && npx firebase deploy --only firestore,storage,functions:default
+cd ~/prayerapp/firebase && npx firebase deploy --only firestore,storage,functions:default,hosting
 ```
 
 After changes to rules, indexes or functions, rerun the production checks (`production-checks.md`).

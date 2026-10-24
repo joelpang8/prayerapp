@@ -115,6 +115,7 @@ export default defineStrings(
     // Sign-in and profile setup
     "signIn.title": "Pray now",
     "signIn.tagline": "Once a day, at a moment nobody expects, pause and pray. Share it with your friends.",
+    "signIn.privacy": "Privacy policy",
     "signIn.google": "Sign in with Google",
     "signIn.googleNotSetUp": "Google Sign-In isn't set up yet. In emulator mode, use Development sign-in below.",
     "signIn.failed": "Sign-in didn't work. Please try again.",
@@ -249,6 +250,7 @@ export default defineStrings(
       "Activa Privada al publicar y solo tú verás esa oración. Se queda en tu pestaña Oraciones, sin comentarios ni reacciones, y no se puede compartir después.",
     "signIn.title": "Ora ahora",
     "signIn.tagline": "Una vez al día, en un momento que nadie espera, detente y ora. Compártelo con tus amigos.",
+    "signIn.privacy": "Política de privacidad",
     "signIn.google": "Continuar con Google",
     "signIn.googleNotSetUp": "El inicio de sesión con Google aún no está configurado. En modo emulador, usa el inicio de sesión de desarrollo de abajo.",
     "signIn.failed": "No se pudo iniciar sesión. Por favor, inténtalo de nuevo.",

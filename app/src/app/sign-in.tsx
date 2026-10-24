@@ -1,12 +1,13 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useEffect, useState } from "react";
-import { Platform, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signInForDevelopment, signInWithApple, signInWithGoogle, type SignInResult } from "../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../components/ui";
 import { usingEmulators } from "../firebase";
 import { t } from "../i18n";
 import { setSuggestedDisplayName } from "../session/SessionProvider";
+import { openPrivacyPolicy } from "../lib/links";
 
 export default function SignInScreen() {
   const styles = useStyles();
@@ -65,12 +66,17 @@ export default function SignInScreen() {
           </View>
         )}
         {error && <ErrorText>{error}</ErrorText>}
+        <Pressable onPress={openPrivacyPolicy} accessibilityRole="link" hitSlop={8} style={styles.privacy}>
+          <Text style={styles.privacyText}>{t("signIn.privacy")}</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
+  privacy: { alignSelf: "center", paddingVertical: 8 },
+  privacyText: { fontSize: 15, color: colors.muted, textDecorationLine: "underline" },
   root: { flex: 1, backgroundColor: colors.bg, padding: 24, justifyContent: "space-between" },
   hero: { marginTop: 80, gap: 12 },
   title: { fontSize: 48, fontFamily: fonts.displayBold, color: colors.text },
