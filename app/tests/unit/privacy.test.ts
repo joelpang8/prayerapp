@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { PRIVACY_URL } from "../../src/lib/links";
 
 const page = readFileSync("../firebase/hosting/privacy/index.html", "utf8");
 const hosting = JSON.parse(readFileSync("../firebase/firebase.json", "utf8")).hosting;
@@ -8,7 +7,7 @@ const hosting = JSON.parse(readFileSync("../firebase/firebase.json", "utf8")).ho
 test("the privacy policy is published with Firebase Hosting at the app's link", () => {
   expect(hosting.public).toBe("hosting");
   expect(hosting.cleanUrls).toBe(true);
-  expect(PRIVACY_URL).toBe("https://prayerapp-4ce99.web.app/privacy");
+  expect(readFileSync("src/lib/links.ts", "utf8")).toContain('PRIVACY_URL = "https://prayerapp-4ce99.web.app/privacy"');
 });
 
 test("it's linked from Settings and from sign-in", () => {
