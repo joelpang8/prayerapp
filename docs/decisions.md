@@ -75,6 +75,7 @@
 
 | Decision | Needed by | Notes |
 |---|---|---|
+| Lock screen countdown with the alert (push-to-start, like BeReal) | Later, your call | Today the countdown starts when the app is opened during the window. Starting it with the alert needs a push-to-start token per iPhone (iOS 17.2+) stored server-only, which changes the "never store per-user push tokens" rule. Trade-offs: appears without opening the app and ends by itself after 7 minutes; small privacy cost (token only starts PrayAlong countdowns, deleted with the account, added to the privacy policy); medium work and some upkeep. |
 | Bible API provider | Step 3 (licensed translations only) | You're asking providers the seven questions. KJV text can ship without a provider. See `step3-scripture.md`. |
 
 ## Later (needs step 4 and the paid Apple account)
