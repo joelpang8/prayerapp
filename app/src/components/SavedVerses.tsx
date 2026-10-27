@@ -2,25 +2,27 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { t } from "../i18n";
+import { groupSavedVerses } from "../lib/savedVerses";
+import { bookName } from "../lib/scripture/reference";
 import { useSavedVerses } from "../session/hooks";
 import { fonts, makeStyles, Muted, Text, useColors } from "./ui";
 import { VerseBlock } from "./VerseBlock";
 
-const FIRST = 3;
-
 /**
- * "Saved verses" on the Prayers tab: the verses I've saved, newest first,
- * each to read again (Read more), listen to, or remove (Saved). Closed until
- * tapped, so it doesn't push the calendar down. Only mine; nobody else sees it.
+ * "Saved verses" on the Prayers tab, organized by book of the Bible (in
+ * Bible order, each book's verses in order), with how many in each. Tap a
+ * book to open its verses, each to read again (Read more), listen to, or
+ * remove (Saved). Closed until tapped, so it doesn't push the calendar
+ * down. Only mine; nobody else sees it.
  */
 export function SavedVerses() {
   const styles = useStyles();
   const colors = useColors();
   const { verses, loaded } = useSavedVerses();
   const [open, setOpen] = useState(false);
-  const [all, setAll] = useState(false);
+  const [openBook, setOpenBook] = useState<string | null>(null);
   if (!loaded) return null;
-  const shown = all ? verses : verses.slice(0, FIRST);
+  const books = groupSavedVerses(verses);
   return (
     <View style={styles.card}>
       <Pressable
@@ -40,17 +42,31 @@ export function SavedVerses() {
         verses.length === 0 ? (
           <Muted>{t("prayers.saved.empty")}</Muted>
         ) : (
-          <View style={styles.list}>
-            {shown.map((v) => (
-              <View key={v.refId} style={styles.item}>
-                <VerseBlock refId={v.refId} />
-              </View>
-            ))}
-            {verses.length > FIRST && !all && (
-              <Pressable onPress={() => setAll(true)} accessibilityRole="button" hitSlop={8}>
-                <Text style={styles.more}>{t("prayers.saved.showAll", { count: verses.length })}</Text>
-              </Pressable>
-            )}
+          <View>
+            {books.map(({ book, refIds }) => {
+              const expanded = openBook === book;
+              const name = bookName(book);
+              return (
+                <View key={book} style={styles.book}>
+                  <Pressable
+                    onPress={() => setOpenBook(expanded ? null : book)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded }}
+                    accessibilityLabel={t("prayers.saved.bookA11y", { book: name, count: refIds.length })}
+                    style={styles.bookRow}
+                  >
+                    <Text style={styles.bookName}>{name}</Text>
+                    <Text style={styles.bookCount}>{refIds.length}</Text>
+                    <Ionicons name={expanded ? "chevron-up" : "chevron-forward"} size={18} color={colors.muted} />
+                  </Pressable>
+                  {expanded && (
+                    <View style={styles.list}>
+                      {refIds.map((refId) => <VerseBlock key={refId} refId={refId} />)}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
             <Muted>{t("prayers.saved.footer")}</Muted>
           </View>
         )
@@ -64,7 +80,9 @@ const useStyles = makeStyles((colors) => ({
   header: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 32 },
   title: { flex: 1, fontSize: 22, fontFamily: fonts.display, color: colors.text },
   count: { fontSize: 16, fontFamily: fonts.serifSemiBold, color: colors.muted },
-  list: { gap: 18 },
-  item: { gap: 4 },
-  more: { fontSize: 16, color: colors.accent, fontFamily: fonts.serifSemiBold },
+  book: { borderTopWidth: 1, borderTopColor: colors.border },
+  bookRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48 },
+  bookName: { flex: 1, fontSize: 19, fontFamily: fonts.display, color: colors.text },
+  bookCount: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.muted },
+  list: { gap: 18, paddingBottom: 14 },
 }));

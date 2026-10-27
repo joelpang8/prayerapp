@@ -1,7 +1,8 @@
 import {
   collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, type Firestore, type Unsubscribe,
 } from "firebase/firestore";
-import { REF_ID_PATTERN } from "./scripture/reference";
+import { BOOKS } from "./scripture/books";
+import { parseRefId, REF_ID_PATTERN } from "./scripture/reference";
 
 /**
  * Scripture memory: verses I've saved to read or listen to again, at
@@ -46,3 +47,29 @@ export function watchSavedVerses(
     onError,
   );
 }
+
+export type SavedBook = { book: string; refIds: string[] };
+
+/**
+ * Saved verses grouped by book, in Bible order (Genesis first), and within
+ * a book by chapter and verse. Unknown references are left out.
+ */
+export function groupSavedVerses(verses: readonly SavedVerse[]): SavedBook[] {
+  const byBook = new Map<string, { refId: string; ch: number; v: number }[]>();
+  for (const { refId } of verses) {
+    let r;
+    try {
+      r = parseRefId(refId);
+    } catch {
+      continue;
+    }
+    const list = byBook.get(r.book) ?? [];
+    list.push({ refId, ch: r.startChapter, v: r.wholeChapter ? 0 : r.startVerse });
+    byBook.set(r.book, list);
+  }
+  return [...byBook]
+    .sort(([a], [b]) => BOOK_INDEX.get(a)! - BOOK_INDEX.get(b)!)
+    .map(([book, list]) => ({ book, refIds: list.sort((x, y) => x.ch - y.ch || x.v - y.v).map((x) => x.refId) }));
+}
+
+const BOOK_INDEX = new Map(BOOKS.map((b, i) => [b.id, i]));

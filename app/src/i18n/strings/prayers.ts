@@ -60,7 +60,7 @@ export default defineStrings(
     "prayers.saved.title": "Saved verses",
     "prayers.saved.a11y": "Saved verses, {count}",
     "prayers.saved.empty": "Tap Save under any verse to keep it here, to read or listen to again. Only you see this list.",
-    "prayers.saved.showAll": "Show all {count}",
+    "prayers.saved.bookA11y": "{book}, {count} saved",
     "prayers.saved.footer": "Only you see this list. Tap Saved to remove a verse.",
     // Verse buttons
     "verse.showsVerse": "Shows the verse",
@@ -199,7 +199,7 @@ export default defineStrings(
     "prayers.saved.title": "Versículos guardados",
     "prayers.saved.a11y": "Versículos guardados, {count}",
     "prayers.saved.empty": "Toca Guardar debajo de cualquier versículo para tenerlo aquí y volver a leerlo o escucharlo. Solo tú ves esta lista.",
-    "prayers.saved.showAll": "Mostrar los {count}",
+    "prayers.saved.bookA11y": "{book}, {count} guardados",
     "prayers.saved.footer": "Solo tú ves esta lista. Toca Guardado para quitar un versículo.",
     "verse.showsVerse": "Muestra el versículo",
     "verse.unavailable": "Este versículo no está disponible en tu traducción.",
