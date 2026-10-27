@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { EmptyState } from "../../components/EmptyState";
 import { MonthCalendar } from "../../components/MonthCalendar";
 import { OwnPostActions } from "../../components/OwnPostActions";
@@ -24,7 +24,7 @@ import { bookName as nameOfBook, formatReference, parseRefId } from "../../lib/s
 import { useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { usePullToRefresh } from "../../session/usePullToRefresh";
-import { useScrollToTop } from "expo-router";
+import { router, useScrollToTop } from "expo-router";
 
 /**
  * My prayers: "On this day" from earlier years, a calendar to browse month
@@ -344,6 +344,7 @@ function useMonthPosts(uid: string, month: YearMonth): { posts: Post[]; loaded: 
  */
 function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
   const styles = useStyles();
+  const colors = useColors();
   const { profile } = useReadySession();
   const recap = buildRecap(profile.uid, posts);
   if (recap.posted === 0) return null;
@@ -352,16 +353,31 @@ function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
     t("prayers.recap.posted", { prayers: prayersText(recap.posted) }),
     recap.answered > 0 ? tn("prayers.recap.answered", recap.answered) : "",
   ].filter(Boolean);
-  const verses = recap.verses.map(refLabel);
-  const label = [t("prayers.recap.a11y", { month: name }), ...lines, verses.length ? t("prayers.recap.versesA11y", { list: verses.join(", ") }) : ""];
+  const summary = [t("prayers.recap.a11y", { month: name }), ...lines].join(" ");
   return (
-    <View style={styles.recap} accessible accessibilityLabel={label.filter(Boolean).join(" ")}>
-      <Text style={styles.recapTitle} accessibilityRole="header">{t("prayers.recap.title", { month: name })}</Text>
-      {lines.map((l) => <Text key={l} style={styles.recapLine}>{l}</Text>)}
-      {verses.length > 0 && (
-        <Text style={styles.recapVerses}>
-          {tn("prayers.recap.verses", verses.length, { list: verses.join(" · ") })}
-        </Text>
+    <View style={styles.recap}>
+      <View accessible accessibilityLabel={summary} style={styles.recapSummary}>
+        <Text style={styles.recapTitle} accessibilityRole="header">{t("prayers.recap.title", { month: name })}</Text>
+        {lines.map((l) => <Text key={l} style={styles.recapLine}>{l}</Text>)}
+      </View>
+      {recap.verses.length > 0 && (
+        // The month's verses as a tidy list, each opening its chapter.
+        <View style={styles.recapVerses}>
+          <Text style={styles.recapVersesTitle}>{tn("prayers.recap.versesTitle", recap.verses.length)}</Text>
+          {recap.verses.map((ref) => (
+            <Pressable
+              key={ref}
+              onPress={() => router.push({ pathname: "/read/[ref]", params: { ref } })}
+              accessibilityRole="link"
+              accessibilityLabel={t("verse.readMoreA11y", { ref: refLabel(ref) })}
+              style={styles.recapVerse}
+            >
+              <Ionicons name="book-outline" size={16} color={colors.accent} />
+              <Text style={styles.recapVerseText}>{refLabel(ref)}</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+            </Pressable>
+          ))}
+        </View>
       )}
       <Muted>{t("prayers.recap.onlyYou")}</Muted>
     </View>
@@ -382,7 +398,11 @@ const useStyles = makeStyles((colors) => ({
   recap: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 6, marginBottom: 16 },
   recapTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.text },
   recapLine: { fontSize: 17, lineHeight: 24, color: colors.text },
-  recapVerses: { fontSize: 16, lineHeight: 23, color: colors.accent, fontFamily: fonts.display },
+  recapSummary: { gap: 6 },
+  recapVerses: { marginTop: 6, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
+  recapVersesTitle: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
+  recapVerse: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 40, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  recapVerseText: { flex: 1, fontSize: 17, fontFamily: fonts.display, color: colors.text },
   onThisDay: { marginBottom: 20, gap: 8 },
   onThisDayTitle: { fontSize: 24, fontFamily: fonts.display, color: colors.text },
   onThisDayItem: { gap: 4 },
