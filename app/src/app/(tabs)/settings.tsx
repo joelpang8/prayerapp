@@ -23,6 +23,7 @@ import { useBlocked, usePassage, useSettings } from "../../session/hooks";
 import { phoneVoices, useVerseSpeech } from "../../session/useVerseSpeech";
 import { useProfiles } from "../../session/useProfiles";
 import { useReadySession } from "../../session/SessionProvider";
+import { Hint } from "../../components/Hint";
 
 export default function SettingsScreen() {
   // Tapping this tab again scrolls back to the top.
@@ -70,13 +71,12 @@ export default function SettingsScreen() {
             accessibilityLabel={t("settings.promptNotifications")}
           />
         </View>
-        <Muted>
-          {notifications.status === "denied" && notificationsOn
-            ? t("settings.notifBlocked")
-            : notificationsOn && notifications.status === "granted"
-              ? t("settings.notifOn")
-              : t("settings.notifOff")}
-        </Muted>
+        {notifications.status === "denied" && notificationsOn ? (
+          // A problem to fix stays visible; plain explanations fold away.
+          <Muted>{t("settings.notifBlocked")}</Muted>
+        ) : (
+          <Hint>{notificationsOn && notifications.status === "granted" ? t("settings.notifOn") : t("settings.notifOff")}</Hint>
+        )}
         {notifications.status === "denied" && notificationsOn && (
           <Button title={t("settings.openPhoneSettings")} kind="secondary" onPress={openPhoneSettings} />
         )}
@@ -91,11 +91,11 @@ export default function SettingsScreen() {
                 accessibilityLabel={t("settings.lockScreen")}
               />
             </View>
-            <Muted>
+            <Hint>
               {liveActivity
                 ? t("settings.lockScreenOn")
                 : t("settings.lockScreenOff")}
-            </Muted>
+            </Hint>
           </>
         )}
         <View style={styles.option}>
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
             accessibilityLabel={t("settings.reminder")}
           />
         </View>
-        <Muted>{reminder ? t("settings.reminderOn") : t("settings.reminderOff")}</Muted>
+        <Hint>{reminder ? t("settings.reminderOn") : t("settings.reminderOff")}</Hint>
       </View>
 
       <SectionTitle>{t("settings.prayerRequests")}</SectionTitle>
@@ -121,12 +121,12 @@ export default function SettingsScreen() {
             accessibilityLabel={t("settings.showPrayingA11y")}
           />
         </View>
-        <Muted>
+        <Hint>
           {showPrayingNames
             ? t("settings.showPrayingOn")
             : t("settings.showPrayingOff")}{" "}
           {t("settings.neverNotified")}
-        </Muted>
+        </Hint>
       </View>
 
       <ListenSettings />
@@ -138,7 +138,7 @@ export default function SettingsScreen() {
         {APPEARANCE_OPTIONS.map((o) => (
           <Option key={o.id} label={o.label} selected={appearance === o.id} onPress={() => setAppearance(o.id)} />
         ))}
-        <Muted>{t("settings.appearanceNote")}</Muted>
+        <Hint>{t("settings.appearanceNote")}</Hint>
       </View>
 
       <SectionTitle>{t("settings.textSize")}</SectionTitle>
@@ -146,7 +146,7 @@ export default function SettingsScreen() {
         {TEXT_SIZES.map((size) => (
           <Option key={size.id} label={size.label} selected={textSize === size.id} onPress={() => setTextSize(size.id)} />
         ))}
-        <Muted>{t("settings.textSizeNote")}</Muted>
+        <Hint>{t("settings.textSizeNote")}</Hint>
       </View>
 
       <SectionTitle>{t("settings.bibleTranslation")}</SectionTitle>
@@ -154,7 +154,7 @@ export default function SettingsScreen() {
         {TRANSLATIONS.map((tr) => (
           <Option key={tr.id} label={`${tr.name} (${tr.id})`} selected={settings.bibleVersion === tr.id} onPress={() => choose(tr.id)} />
         ))}
-        <Muted>{t("settings.bibleTranslationNote")}</Muted>
+        <Hint>{t("settings.bibleTranslationNote")}</Hint>
       </View>
       {error && <ErrorText>{error}</ErrorText>}
 
@@ -163,7 +163,7 @@ export default function SettingsScreen() {
       <SectionTitle>{t("settings.help")}</SectionTitle>
       <View style={styles.card}>
         <Button title={t("settings.howItWorks")} kind="secondary" onPress={() => router.push("/welcome")} />
-        <Muted>{t("settings.howItWorksNote")}</Muted>
+        <Hint>{t("settings.howItWorksNote")}</Hint>
         <Button title={t("settings.privacy")} kind="secondary" onPress={openPrivacyPolicy} />
       </View>
 
@@ -213,7 +213,7 @@ function ListenSettings() {
             onPress={() => toggle(spokenPassage(passage), spokenLanguage(passage))}
           />
         )}
-        <Muted>{t("settings.listenNote")}</Muted>
+        <Hint>{t("settings.listenNote")}</Hint>
       </View>
     </>
   );
@@ -238,7 +238,7 @@ function LanguageSettings() {
         {options.map((o) => (
           <Option key={o.id} label={o.label} selected={pref === o.id} onPress={() => setLangPref(o.id)} />
         ))}
-        <Muted>{SPANISH_REVIEWED ? t("settings.languageNoteReviewed") : t("settings.languageNote")}</Muted>
+        <Hint>{SPANISH_REVIEWED ? t("settings.languageNoteReviewed") : t("settings.languageNote")}</Hint>
       </View>
     </>
   );
@@ -261,7 +261,7 @@ function BlockedPeople() {
             <Button title={t("settings.unblock")} kind="secondary" onPress={() => unblockUser(db, profile.uid, uid).catch(() => {})} />
           </View>
         ))}
-        <Muted>{t("settings.blockedNote")}</Muted>
+        <Hint>{t("settings.blockedNote")}</Hint>
       </View>
     </>
   );
