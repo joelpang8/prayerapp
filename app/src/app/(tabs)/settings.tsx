@@ -1,7 +1,7 @@
-import { router } from "expo-router";
+import { router, useScrollToTop } from "expo-router";
 import { SPANISH_REVIEWED, t } from "../../i18n";
 import { setLangPref, useLangPref, type LangPref } from "../../i18n/prefs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Platform, Pressable, ScrollView, Switch, View } from "react-native";
 import { signOut } from "../../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
@@ -25,6 +25,9 @@ import { useProfiles } from "../../session/useProfiles";
 import { useReadySession } from "../../session/SessionProvider";
 
 export default function SettingsScreen() {
+  // Tapping this tab again scrolls back to the top.
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
   const styles = useStyles();
   const { profile } = useReadySession();
   const settings = useSettings();
@@ -55,7 +58,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.content}>
       <SectionTitle>{t("settings.notifications")}</SectionTitle>
       <View style={styles.card}>
         <View style={styles.option}>

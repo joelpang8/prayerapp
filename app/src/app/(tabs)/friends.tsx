@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useScrollToTop } from "expo-router";
+import { useState, useRef } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
 import { EmptyState } from "../../components/EmptyState";
@@ -16,6 +16,9 @@ import { useProfiles } from "../../session/useProfiles";
 import { t } from "../../i18n";
 
 export default function FriendsScreen() {
+  // Tapping this tab again scrolls back to the top.
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
   const styles = useStyles();
   const { profile: me } = useReadySession();
   const { graph, loaded } = useFriendGraph();
@@ -61,7 +64,7 @@ export default function FriendsScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Button title={t("profile.invite")} onPress={() => shareInvite(me.username).catch(() => {})} />
       <Muted>{t("friends.inviteNote")}</Muted>
       <View style={styles.spacer} />

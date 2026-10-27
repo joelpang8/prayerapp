@@ -24,6 +24,7 @@ import { bookName as nameOfBook, formatReference, parseRefId } from "../../lib/s
 import { useNow } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
 import { usePullToRefresh } from "../../session/usePullToRefresh";
+import { useScrollToTop } from "expo-router";
 
 /**
  * My prayers: "On this day" from earlier years, a calendar to browse month
@@ -40,6 +41,8 @@ export default function PrayersScreen() {
   const { posts, loaded } = useMonthPosts(profile.uid, month);
   const [selected, setSelected] = useState<string | null>(null);
   const scroll = useRef<ScrollView>(null);
+  // Tapping this tab again scrolls back to the top.
+  useScrollToTop(scroll);
   // Where each day's first prayer sits in the list, and where the list sits
   // below the calendar, to scroll to a day.
   const offsets = useRef(new Map<string, number>());

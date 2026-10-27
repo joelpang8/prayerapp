@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useScrollToTop } from "expo-router";
+import { useState, useRef } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { BirthdayCard } from "../../components/BirthdayCard";
 import { EmptyState } from "../../components/EmptyState";
@@ -23,6 +23,9 @@ const OPEN_FOR_MS = 24 * 60 * 60 * 1000; // must match firestore.rules
 const time = (d: Date) => d.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
 
 export default function TodayScreen() {
+  // Tapping this tab again scrolls back to the top.
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
   const styles = useStyles();
   const colors = useColors();
   const pull = usePullToRefresh({ feed: true });
@@ -58,7 +61,7 @@ export default function TodayScreen() {
   const promptVerseShown = !!prompt?.verseRef && (!!myPost || !!open);
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}
+    <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
     >
       {queued.filter((q) => q !== queuedForPrompt || !myPost).map((q) => (
