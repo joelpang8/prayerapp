@@ -17,8 +17,7 @@ export default defineStrings(
     "common.other": "Other…",
     "common.tryAgain": "Please try again.",
     "common.didntWork": "That didn't work",
-    "hint.show": "About this",
-    "hint.hide": "Hide",
+    "hint.about": "About {name}",
   },
   {
     "common.cancel": "Cancelar",
@@ -35,7 +34,6 @@ export default defineStrings(
     "common.other": "Otro…",
     "common.tryAgain": "Por favor, inténtalo de nuevo.",
     "common.didntWork": "No funcionó",
-    "hint.show": "Más información",
-    "hint.hide": "Ocultar",
+    "hint.about": "Información sobre {name}",
   },
 );

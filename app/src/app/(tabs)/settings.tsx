@@ -23,7 +23,7 @@ import { useBlocked, usePassage, useSettings } from "../../session/hooks";
 import { phoneVoices, useVerseSpeech } from "../../session/useVerseSpeech";
 import { useProfiles } from "../../session/useProfiles";
 import { useReadySession } from "../../session/SessionProvider";
-import { Hint } from "../../components/Hint";
+import { InfoLabel } from "../../components/InfoLabel";
 import { NOTIFY_KINDS, type NotifyKind } from "../../lib/notifyPrefs";
 import { pushAvailable } from "../../lib/push";
 import { useNotifyPrefs } from "../../session/useActivityNotifications";
@@ -65,110 +65,104 @@ export default function SettingsScreen() {
     <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.content}>
       <SectionTitle>{t("settings.notifications")}</SectionTitle>
       <View style={styles.card}>
-        <View style={styles.option}>
-          <Text style={styles.optionText}>{t("settings.promptNotifications")}</Text>
-          <Switch
-            value={notificationsOn && notifications.status === "granted"}
-            onValueChange={toggleNotifications}
-            trackColor={{ true: colors.accent, false: colors.border }}
-            accessibilityLabel={t("settings.promptNotifications")}
-          />
-        </View>
-        {notifications.status === "denied" && notificationsOn ? (
-          // A problem to fix stays visible; plain explanations fold away.
-          <Muted>{t("settings.notifBlocked")}</Muted>
-        ) : (
-          <Hint>{notificationsOn && notifications.status === "granted" ? t("settings.notifOn") : t("settings.notifOff")}</Hint>
-        )}
+        <InfoLabel
+          label={t("settings.promptNotifications")}
+          // A problem to fix stays visible below; plain explanations fold away.
+          info={notifications.status === "denied" && notificationsOn
+            ? undefined
+            : notificationsOn && notifications.status === "granted" ? t("settings.notifOn") : t("settings.notifOff")}
+          right={
+            <Switch
+              value={notificationsOn && notifications.status === "granted"}
+              onValueChange={toggleNotifications}
+              trackColor={{ true: colors.accent, false: colors.border }}
+              accessibilityLabel={t("settings.promptNotifications")}
+            />
+          }
+        />
+        {notifications.status === "denied" && notificationsOn && <Muted>{t("settings.notifBlocked")}</Muted>}
         {notifications.status === "denied" && notificationsOn && (
           <Button title={t("settings.openPhoneSettings")} kind="secondary" onPress={openPhoneSettings} />
         )}
         {Platform.OS === "ios" && (
           <>
-            <View style={styles.option}>
-              <Text style={styles.optionText}>{t("settings.lockScreen")}</Text>
-              <Switch
-                value={liveActivity}
-                onValueChange={setLiveActivityEnabled}
-                trackColor={{ true: colors.accent, false: colors.border }}
-                accessibilityLabel={t("settings.lockScreen")}
-              />
-            </View>
-            <Hint>
-              {liveActivity
-                ? t("settings.lockScreenOn")
-                : t("settings.lockScreenOff")}
-            </Hint>
+            <InfoLabel
+              label={t("settings.lockScreen")}
+              info={liveActivity ? t("settings.lockScreenOn") : t("settings.lockScreenOff")}
+              right={
+                <Switch
+                  value={liveActivity}
+                  onValueChange={setLiveActivityEnabled}
+                  trackColor={{ true: colors.accent, false: colors.border }}
+                  accessibilityLabel={t("settings.lockScreen")}
+                />
+              }
+            />
           </>
         )}
-        <View style={styles.option}>
-          <Text style={styles.optionText}>{t("settings.reminder")}</Text>
-          <Switch
-            value={reminder}
-            onValueChange={setReminderEnabled}
-            trackColor={{ true: colors.accent, false: colors.border }}
-            accessibilityLabel={t("settings.reminder")}
-          />
-        </View>
-        <Hint>{reminder ? t("settings.reminderOn") : t("settings.reminderOff")}</Hint>
+        <InfoLabel
+          label={t("settings.reminder")}
+          info={reminder ? t("settings.reminderOn") : t("settings.reminderOff")}
+          right={
+            <Switch
+              value={reminder}
+              onValueChange={setReminderEnabled}
+              trackColor={{ true: colors.accent, false: colors.border }}
+              accessibilityLabel={t("settings.reminder")}
+            />
+          }
+        />
         {pushAvailable() && <ActivitySwitches />}
       </View>
 
       <SectionTitle>{t("settings.prayerRequests")}</SectionTitle>
       <View style={styles.card}>
-        <View style={styles.option}>
-          <Text style={styles.optionText}>{t("settings.showPraying")}</Text>
-          <Switch
-            value={showPrayingNames}
-            onValueChange={setShowPrayingNames}
-            trackColor={{ true: colors.accent, false: colors.border }}
-            accessibilityLabel={t("settings.showPrayingA11y")}
-          />
-        </View>
-        <Hint>
-          {showPrayingNames
-            ? t("settings.showPrayingOn")
-            : t("settings.showPrayingOff")}{" "}
-          {t("settings.neverNotified")}
-        </Hint>
+        <InfoLabel
+          label={t("settings.showPraying")}
+          info={`${showPrayingNames ? t("settings.showPrayingOn") : t("settings.showPrayingOff")} ${t("settings.neverNotified")}`}
+          right={
+            <Switch
+              value={showPrayingNames}
+              onValueChange={setShowPrayingNames}
+              trackColor={{ true: colors.accent, false: colors.border }}
+              accessibilityLabel={t("settings.showPrayingA11y")}
+            />
+          }
+        />
       </View>
 
       <ListenSettings />
 
       <LanguageSettings />
 
-      <SectionTitle>{t("settings.appearance")}</SectionTitle>
+      <InfoLabel section label={t("settings.appearance")} info={t("settings.appearanceNote")} />
       <View style={styles.card}>
         {APPEARANCE_OPTIONS.map((o) => (
           <Option key={o.id} label={o.label} selected={appearance === o.id} onPress={() => setAppearance(o.id)} />
         ))}
-        <Hint>{t("settings.appearanceNote")}</Hint>
-      </View>
+              </View>
 
-      <SectionTitle>{t("settings.textSize")}</SectionTitle>
+      <InfoLabel section label={t("settings.textSize")} info={t("settings.textSizeNote")} />
       <View style={styles.card}>
         {TEXT_SIZES.map((size) => (
           <Option key={size.id} label={size.label} selected={textSize === size.id} onPress={() => setTextSize(size.id)} />
         ))}
-        <Hint>{t("settings.textSizeNote")}</Hint>
-      </View>
+              </View>
 
-      <SectionTitle>{t("settings.bibleTranslation")}</SectionTitle>
+      <InfoLabel section label={t("settings.bibleTranslation")} info={t("settings.bibleTranslationNote")} />
       <View style={styles.card}>
         {TRANSLATIONS.map((tr) => (
           <Option key={tr.id} label={`${tr.name} (${tr.id})`} selected={settings.bibleVersion === tr.id} onPress={() => choose(tr.id)} />
         ))}
-        <Hint>{t("settings.bibleTranslationNote")}</Hint>
-      </View>
+              </View>
       {error && <ErrorText>{error}</ErrorText>}
 
       <BlockedPeople />
 
-      <SectionTitle>{t("settings.help")}</SectionTitle>
+      <InfoLabel section label={t("settings.help")} info={t("settings.howItWorksNote")} />
       <View style={styles.card}>
         <Button title={t("settings.howItWorks")} kind="secondary" onPress={() => router.push("/welcome")} />
-        <Hint>{t("settings.howItWorksNote")}</Hint>
-        <Button title={t("settings.privacy")} kind="secondary" onPress={openPrivacyPolicy} />
+                <Button title={t("settings.privacy")} kind="secondary" onPress={openPrivacyPolicy} />
       </View>
 
       <View style={styles.spacer} />
@@ -191,7 +185,7 @@ function ActivitySwitches() {
   };
   return (
     <>
-      <Text style={styles.subheading}>{t("settings.notifyHeading")}</Text>
+      <InfoLabel label={t("settings.notifyHeading")} info={t("settings.notifyNote")} style={styles.subheading} />
       {NOTIFY_KINDS.map((kind) => (
         <View key={kind} style={styles.option}>
           <Text style={styles.optionText}>{labels[kind]}</Text>
@@ -205,7 +199,6 @@ function ActivitySwitches() {
         </View>
       ))}
       {error && <ErrorText>{t("common.tryAgain")}</ErrorText>}
-      <Hint>{t("settings.notifyNote")}</Hint>
     </>
   );
 }
@@ -224,7 +217,7 @@ function ListenSettings() {
   const { speaking, toggle } = useVerseSpeech("settings-sample");
   return (
     <>
-      <SectionTitle>{t("settings.listen")}</SectionTitle>
+      <InfoLabel section label={t("settings.listen")} info={t("settings.listenNote")} />
       <View style={styles.card}>
         <Text style={styles.optionText}>{t("settings.voice")}</Text>
         <SelectField
@@ -249,8 +242,7 @@ function ListenSettings() {
             onPress={() => toggle(spokenPassage(passage), spokenLanguage(passage))}
           />
         )}
-        <Hint>{t("settings.listenNote")}</Hint>
-      </View>
+              </View>
     </>
   );
 }
@@ -269,13 +261,12 @@ function LanguageSettings() {
   ];
   return (
     <>
-      <SectionTitle>{t("settings.language")}</SectionTitle>
+      <InfoLabel section label={t("settings.language")} info={SPANISH_REVIEWED ? t("settings.languageNoteReviewed") : t("settings.languageNote")} />
       <View style={styles.card}>
         {options.map((o) => (
           <Option key={o.id} label={o.label} selected={pref === o.id} onPress={() => setLangPref(o.id)} />
         ))}
-        <Hint>{SPANISH_REVIEWED ? t("settings.languageNoteReviewed") : t("settings.languageNote")}</Hint>
-      </View>
+              </View>
     </>
   );
 }
@@ -289,7 +280,7 @@ function BlockedPeople() {
   if (blocked.size === 0) return null;
   return (
     <>
-      <SectionTitle>{t("settings.blockedPeople")}</SectionTitle>
+      <InfoLabel section label={t("settings.blockedPeople")} info={t("settings.blockedNote")} />
       <View style={styles.card}>
         {[...blocked].map((uid) => (
           <View key={uid} style={styles.option}>
@@ -297,8 +288,7 @@ function BlockedPeople() {
             <Button title={t("settings.unblock")} kind="secondary" onPress={() => unblockUser(db, profile.uid, uid).catch(() => {})} />
           </View>
         ))}
-        <Hint>{t("settings.blockedNote")}</Hint>
-      </View>
+              </View>
     </>
   );
 }
@@ -321,5 +311,5 @@ const useStyles = makeStyles((colors) => ({
   optionText: { fontSize: 16, color: colors.text },
   check: { fontSize: 17, color: colors.accent, fontFamily: fonts.bodySemiBold },
   spacer: { height: 16 },
-  subheading: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.muted, marginTop: 8 },
+  subheading: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.muted },
 }));
