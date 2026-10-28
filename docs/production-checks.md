@@ -75,6 +75,21 @@ node scripts/verify-production.mjs \
 
 Add `--bucket <name>` only if your bucket isn't `prayerapp-4ce99.firebasestorage.app`. The name is shown at the top of the Storage page in the console. It takes about 2–3 minutes, most of it waiting for the unfriend function to run.
 
+## Results: production, run 31ccb288 (October 2026, after notifications and Pray now)
+
+All checks passed against `prayerapp-4ce99` after deploying the rules, the three notification functions (`notifyPrayingTap`, `notifyReaction`, `notifyComment`) and the privacy page.
+
+- **I (Pray now): pass.** A start inside the window is recorded; a start after the window is refused; a post carrying that `startedAt` is accepted.
+- **E (private posts): pass.** Unfiltered friend query and direct read refused; filtered query leaves the private post out.
+- **F (Prayers tab): pass.** All post query shapes work, including search (found 3); saved verses list for the owner and a friend is refused.
+- **G ("I'll pray for this"): pass.** Tap deleted by the function immediately after an unfriend.
+- **H (account deletion): pass.** Everything of the deleted person removed; the other person's post kept.
+- **B:** 10 friends per `in` query work, 12 refused (unchanged).
+- **C:** an open listener was cut off about 44 ms after the unfriend, with no new data; the later post was never delivered.
+- **D:** a minted link died 3 seconds after the unfriend (HTTP 403); no tokens from reading bytes.
+
+The `PERMISSION_DENIED` lines printed during the run are the refusals the checks expect (too-late start, stranger taps), not failures.
+
 ## Results: production, run 56a1ee36 (October 2026, after account deletion, saved verses and the photo lock)
 
 All checks passed against `prayerapp-4ce99` after deploying the rules, indexes and thirteen functions.
