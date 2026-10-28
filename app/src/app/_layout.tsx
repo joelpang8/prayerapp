@@ -67,7 +67,7 @@ function RootNavigator() {
     headerBackTitle: t("common.back"),
     headerStyle: { backgroundColor: colors.bg },
     headerTitleStyle: navigationFonts.headerTitleStyle,
-    headerBackTitleStyle: { fontFamily: fonts.serif },
+    headerBackTitleStyle: { fontFamily: fonts.body },
     headerShadowVisible: false,
   };
   return (

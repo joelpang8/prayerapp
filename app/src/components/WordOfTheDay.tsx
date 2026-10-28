@@ -70,8 +70,8 @@ const useStyles = makeStyles((colors) => ({
   card: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 },
   header: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerText: { flex: 1, gap: 2 },
-  label: { fontSize: 14, fontFamily: fonts.serifSemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
-  reference: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
+  label: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
+  reference: { fontSize: 17, fontFamily: fonts.display, color: colors.text },
   chevron: { fontSize: 26, color: colors.muted, width: 24, textAlign: "center" },
   body: { marginTop: 12 },
 }));

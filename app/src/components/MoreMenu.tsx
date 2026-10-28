@@ -153,10 +153,10 @@ function ReportSheet({ target, name, onClose }: { target: ReportTarget; name: st
 const useStyles = makeStyles((colors) => ({
   sheet: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
-  title: { fontSize: 24, fontFamily: fonts.display, color: colors.text, flex: 1 },
-  link: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.accent },
+  title: { fontSize: 21, fontFamily: fonts.display, color: colors.text, flex: 1 },
+  link: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.accent },
   body: { padding: 20, gap: 12, paddingBottom: 48 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 48, gap: 12 },
-  rowText: { fontSize: 17, color: colors.text, flex: 1 },
+  rowText: { fontSize: 16, color: colors.text, flex: 1 },
   input: { minHeight: 80, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, textAlignVertical: "top", backgroundColor: colors.card },
 }));

@@ -64,6 +64,6 @@ const useStyles = makeStyles((colors) => ({
   content: { padding: 16, paddingBottom: 48 },
   row: { flexDirection: "row", gap: 12, alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   body: { flex: 1, gap: 2 },
-  text: { fontSize: 17, lineHeight: 23, color: colors.text },
-  time: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.muted },
+  text: { fontSize: 16, lineHeight: 23, color: colors.text },
+  time: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.muted },
 }));

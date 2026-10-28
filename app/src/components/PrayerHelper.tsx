@@ -63,12 +63,12 @@ export function PrayerHelper({ notes }: { notes: string }) {
 const useStyles = makeStyles((colors) => ({
   root: { gap: 8 },
   toggle: { alignSelf: "flex-start", paddingVertical: 4 },
-  toggleText: { fontSize: 16, fontFamily: fonts.serifSemiBold, color: colors.accent },
+  toggleText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { minHeight: 40, justifyContent: "center", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   chipOn: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  chipText: { fontSize: 16, color: colors.text },
-  chipTextOn: { color: colors.accent, fontFamily: fonts.serifSemiBold },
+  chipText: { fontSize: 15, color: colors.text },
+  chipTextOn: { color: colors.accent, fontFamily: fonts.bodySemiBold },
   hint: { backgroundColor: colors.accentSoft, borderRadius: 10, padding: 12 },
-  hintText: { fontSize: 17, lineHeight: 24, fontFamily: fonts.serifItalic, color: colors.text },
+  hintText: { fontSize: 16, lineHeight: 24, fontFamily: fonts.bodyItalic, color: colors.text },
 }));

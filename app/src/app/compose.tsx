@@ -344,19 +344,19 @@ function Composer({
 const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
-  title: { fontSize: 32, fontFamily: fonts.displayBold, color: colors.text },
+  title: { fontSize: 28, fontFamily: fonts.displayBold, color: colors.text },
   photo: { aspectRatio: 3 / 4, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   verse: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
-  verseLabel: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
+  verseLabel: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
   counter: { fontSize: 14, color: colors.muted, alignSelf: "flex-end", marginTop: -6 },
   onTime: { alignSelf: "flex-start", backgroundColor: colors.accentSoft, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
-  onTimeText: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent },
-  label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
+  onTimeText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent },
+  label: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.text, marginTop: 8 },
   placeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   answerBox: { gap: 8, marginTop: 8 },
   checkRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 },
-  checkLabel: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text },
+  checkLabel: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.text },
   placeText: { flex: 1, gap: 2 },
-  // Prayer notes are written in the same serif they're read in.
-  input: { minHeight: 120, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 18, lineHeight: 25, fontFamily: fonts.serif, backgroundColor: colors.card },
+  // Prayer notes are written in the same font they're read in.
+  input: { minHeight: 120, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, fontSize: 17, lineHeight: 25, fontFamily: fonts.body, backgroundColor: colors.card },
 }));

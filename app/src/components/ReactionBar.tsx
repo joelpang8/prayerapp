@@ -110,7 +110,7 @@ const useStyles = makeStyles((colors) => ({
   chipMine: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
   chipShowing: { borderColor: colors.text },
   who: { fontSize: 15, color: colors.muted },
-  emoji: { fontSize: 16 },
+  emoji: { fontSize: 15 },
   count: { fontSize: 15, color: colors.text },
   add: { borderColor: colors.accent },
   addText: { fontSize: 15, color: colors.accent },

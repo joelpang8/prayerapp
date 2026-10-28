@@ -190,16 +190,16 @@ function ListenButton({ speaking, reference, onPress }: { speaking: boolean; ref
 
 const useStyles = makeStyles((colors) => ({
   block: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 12, gap: 6 },
-  text: { fontSize: 19, lineHeight: 28, color: colors.text, fontFamily: fonts.serif },
-  num: { fontSize: 13, color: colors.muted, fontFamily: fonts.serifMedium },
-  // EB Garamond's true italic, as the KJV prints the translators' supplied words.
-  supplied: { fontFamily: fonts.serifItalic },
-  ref: { fontSize: 16, color: colors.muted, fontFamily: fonts.display, flexShrink: 1 },
+  text: { fontSize: 17, lineHeight: 27, color: colors.text, fontFamily: fonts.scripture },
+  num: { fontSize: 13, color: colors.muted, fontFamily: fonts.bodyMedium },
+  // Fraunces's true italic, as the KJV prints the translators' supplied words.
+  supplied: { fontFamily: fonts.scriptureItalic },
+  ref: { fontSize: 14, color: colors.muted, fontFamily: fonts.display, flexShrink: 1 },
   refRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 },
   actions: { flexDirection: "row", alignItems: "center", gap: 14 },
   listen: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 36 },
-  listenText: { fontSize: 15, color: colors.accent, fontFamily: fonts.serifSemiBold },
-  refLink: { fontSize: 17, color: colors.accent, fontFamily: fonts.display },
+  listenText: { fontSize: 15, color: colors.accent, fontFamily: fonts.bodySemiBold },
+  refLink: { fontSize: 15, color: colors.accent, fontFamily: fonts.display },
   more: { fontSize: 15, color: colors.accent },
   readMore: { alignSelf: "flex-start", paddingVertical: 4 },
   bottomRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },

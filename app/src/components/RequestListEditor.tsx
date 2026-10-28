@@ -91,10 +91,10 @@ const useStyles = makeStyles((colors) => ({
   bullet: { fontSize: 22, color: colors.accent, width: 14, textAlign: "center" },
   input: {
     flex: 1, minHeight: 46, borderWidth: 1, borderColor: colors.border, borderRadius: 12,
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 17, color: colors.text,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: colors.text,
   },
   remove: { minWidth: 32, minHeight: 44, alignItems: "center", justifyContent: "center" },
   add: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", minHeight: 44, paddingRight: 8 },
   addOff: { opacity: 0.45 },
-  addText: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.accent },
+  addText: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.accent },
 }));

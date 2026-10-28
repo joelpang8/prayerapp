@@ -202,6 +202,6 @@ const useStyles = makeStyles((colors) => ({
   },
   who: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   names: { flex: 1, gap: 2 },
-  name: { fontSize: 20, fontFamily: fonts.display, color: colors.text },
+  name: { fontSize: 17, fontFamily: fonts.display, color: colors.text },
   rowActions: { flexDirection: "row", gap: 8 },
 }));

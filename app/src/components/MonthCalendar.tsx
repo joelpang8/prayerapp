@@ -116,15 +116,15 @@ function Thumb({ path, day, answered, selected }: { path: string; day: number; a
 const useStyles = makeStyles((colors) => ({
   root: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 4 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4, paddingBottom: 6 },
-  title: { fontSize: 22, fontFamily: fonts.display, color: colors.text },
+  title: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
   disabled: { opacity: 0.3 },
   week: { flexDirection: "row" },
-  weekday: { flex: 1, textAlign: "center", fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.muted },
+  weekday: { flex: 1, textAlign: "center", fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.muted },
   cell: { flex: 1, alignItems: "center", paddingVertical: 2, minHeight: 46 },
   day: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   daySelected: { backgroundColor: colors.accent },
   dayToday: { borderWidth: 1, borderColor: colors.accent },
-  dayText: { fontSize: 16, color: colors.text },
+  dayText: { fontSize: 15, color: colors.text },
   dayEmpty: { color: colors.muted },
   dayTextSelected: { color: colors.onAccent },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, marginTop: 2 },
@@ -139,7 +139,7 @@ const useStyles = makeStyles((colors) => ({
   // The date sits on a soft dark wash so it reads on any photo.
   thumbDate: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, alignItems: "center", justifyContent: "center" },
   thumbDateLoading: { backgroundColor: "transparent" },
-  thumbText: { fontSize: 16, fontFamily: fonts.serifSemiBold, color: colors.onScrim },
+  thumbText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.onScrim },
   // Answered: the same quiet gold as on the post.
   dotAnswered: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: colors.gold, backgroundColor: colors.goldSoft },
 }));

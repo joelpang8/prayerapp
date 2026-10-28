@@ -47,10 +47,10 @@ export function QueuedPostCard({ item }: { item: QueuedPost }) {
 const useStyles = makeStyles((colors) => ({
   card: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.accent, padding: 16, gap: 10 },
   status: { flexDirection: "row", alignItems: "center", gap: 10 },
-  title: { fontSize: 24, fontFamily: fonts.display, color: colors.text },
+  title: { fontSize: 21, fontFamily: fonts.display, color: colors.text },
   row: { flexDirection: "row", gap: 12, alignItems: "center" },
   thumb: { width: 64, height: 85, borderRadius: 8, overflow: "hidden" },
-  notes: { flex: 1, fontSize: 17, lineHeight: 24, fontFamily: fonts.serif, color: colors.text },
+  notes: { flex: 1, fontSize: 16, lineHeight: 24, fontFamily: fonts.body, color: colors.text },
   actions: { flexDirection: "row", gap: 8 },
   flex: { flex: 1 },
 }));

@@ -77,9 +77,9 @@ export default function OnboardingScreen() {
 const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   body: { flex: 1, padding: 24, gap: 12 },
-  title: { fontSize: 34, fontFamily: fonts.displayBold, color: colors.text, marginTop: 24 },
+  title: { fontSize: 29, fontFamily: fonts.displayBold, color: colors.text, marginTop: 24 },
   field: { gap: 6, marginTop: 8 },
-  label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text },
+  label: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.text },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.card },
   actions: { gap: 12, marginTop: 16 },
 }));

@@ -148,9 +148,9 @@ const useStyles = makeStyles((colors) => ({
   wordOfTheDay: { marginTop: 16 },
   queued: { marginBottom: 16 },
   friendsHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  collapseAll: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent, marginTop: 24 },
+  collapseAll: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent, marginTop: 24 },
   notice: { backgroundColor: colors.accentSoft, borderRadius: 16, padding: 16, gap: 10, marginTop: 16 },
-  noticeTitle: { fontSize: 22, fontFamily: fonts.display, color: colors.text },
+  noticeTitle: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
-  promptTitle: { fontSize: 30, fontFamily: fonts.displayBold, color: colors.text },
+  promptTitle: { fontSize: 26, fontFamily: fonts.displayBold, color: colors.text },
 }));

@@ -318,8 +318,8 @@ const useStyles = makeStyles((colors) => ({
   content: { padding: 20, paddingBottom: 48, gap: 8 },
   card: { backgroundColor: colors.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 8 },
   option: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 44 },
-  optionText: { fontSize: 17, color: colors.text },
-  check: { fontSize: 18, color: colors.accent, fontFamily: fonts.serifSemiBold },
+  optionText: { fontSize: 16, color: colors.text },
+  check: { fontSize: 17, color: colors.accent, fontFamily: fonts.bodySemiBold },
   spacer: { height: 16 },
-  subheading: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.muted, marginTop: 8 },
+  subheading: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.muted, marginTop: 8 },
 }));

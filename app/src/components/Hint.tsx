@@ -34,5 +34,5 @@ export function Hint({ children }: { children: ReactNode }) {
 const useStyles = makeStyles((colors) => ({
   root: { gap: 4 },
   toggle: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", minHeight: 32 },
-  toggleText: { fontSize: 15, color: colors.muted, fontFamily: fonts.serifMedium },
+  toggleText: { fontSize: 15, color: colors.muted, fontFamily: fonts.bodyMedium },
 }));

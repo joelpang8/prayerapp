@@ -1,11 +1,13 @@
 // Per-weight imports: the packages' main entry would bundle every weight
-// (~10 MB); these five are all the app uses.
-import { CormorantGaramond_600SemiBold } from "@expo-google-fonts/cormorant-garamond/600SemiBold";
-import { CormorantGaramond_700Bold } from "@expo-google-fonts/cormorant-garamond/700Bold";
-import { EBGaramond_400Regular } from "@expo-google-fonts/eb-garamond/400Regular";
-import { EBGaramond_400Regular_Italic } from "@expo-google-fonts/eb-garamond/400Regular_Italic";
-import { EBGaramond_500Medium } from "@expo-google-fonts/eb-garamond/500Medium";
-import { EBGaramond_600SemiBold } from "@expo-google-fonts/eb-garamond/600SemiBold";
+// (several MB each); these are all the app uses.
+import { Figtree_400Regular } from "@expo-google-fonts/figtree/400Regular";
+import { Figtree_400Regular_Italic } from "@expo-google-fonts/figtree/400Regular_Italic";
+import { Figtree_500Medium } from "@expo-google-fonts/figtree/500Medium";
+import { Figtree_600SemiBold } from "@expo-google-fonts/figtree/600SemiBold";
+import { Fraunces_400Regular } from "@expo-google-fonts/fraunces/400Regular";
+import { Fraunces_400Regular_Italic } from "@expo-google-fonts/fraunces/400Regular_Italic";
+import { Fraunces_500Medium } from "@expo-google-fonts/fraunces/500Medium";
+import { Fraunces_600SemiBold } from "@expo-google-fonts/fraunces/600SemiBold";
 import type { ReactNode, Ref } from "react";
 import { useTextScale } from "../lib/textSize";
 import {
@@ -101,31 +103,36 @@ export function makeStyles<T extends StyleSheet.NamedStyles<T>>(build: (colors: 
 }
 
 /**
- * Typefaces (SIL Open Font License; see docs/credits.md), used for all text:
- *  - display: Cormorant Garamond, for titles, names and verse references
- *  - serif:   EB Garamond, for everything else: scripture, notes, buttons,
- *             labels and inputs. Its true italic renders the KJV's supplied
- *             words, as printed Bibles do.
+ * Typefaces (SIL Open Font License; see docs/credits.md):
+ *  - display:   Fraunces, for titles, names and verse references
+ *  - scripture: Fraunces, for the Bible text. Its true italic renders the
+ *               KJV's supplied words, as printed Bibles do.
+ *  - body:      Figtree, for everything else: notes, buttons, labels and
+ *               inputs (the default for Text and TextInput)
  * Custom fonts don't synthesize weights, so each weight is its own family:
  * use these names instead of fontWeight/fontStyle.
  */
 export const fonts = {
-  display: "CormorantGaramond_600SemiBold",
-  displayBold: "CormorantGaramond_700Bold",
-  serif: "EBGaramond_400Regular",
-  serifItalic: "EBGaramond_400Regular_Italic",
-  serifMedium: "EBGaramond_500Medium",
-  serifSemiBold: "EBGaramond_600SemiBold",
+  display: "Fraunces_500Medium",
+  displayBold: "Fraunces_600SemiBold",
+  scripture: "Fraunces_400Regular",
+  scriptureItalic: "Fraunces_400Regular_Italic",
+  body: "Figtree_400Regular",
+  bodyItalic: "Figtree_400Regular_Italic",
+  bodyMedium: "Figtree_500Medium",
+  bodySemiBold: "Figtree_600SemiBold",
 } as const;
 
 /** Passed to useFonts() in the root layout. Keys must match `fonts`. */
 export const fontAssets = {
-  CormorantGaramond_600SemiBold,
-  CormorantGaramond_700Bold,
-  EBGaramond_400Regular,
-  EBGaramond_400Regular_Italic,
-  EBGaramond_500Medium,
-  EBGaramond_600SemiBold,
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+  Fraunces_400Regular,
+  Fraunces_400Regular_Italic,
+  Figtree_400Regular,
+  Figtree_400Regular_Italic,
+  Figtree_500Medium,
+  Figtree_600SemiBold,
 };
 
 /**
@@ -179,8 +186,8 @@ export function TextInput({ style, ...props }: TextInputProps & { ref?: Ref<RNTe
 
 /** For navigation headers and the tab bar, which draw their own text. */
 export const navigationFonts = {
-  headerTitleStyle: { fontFamily: fonts.display, fontSize: 22 },
-  tabBarLabelStyle: { fontFamily: fonts.serifMedium, fontSize: 12 },
+  headerTitleStyle: { fontFamily: fonts.display, fontSize: 19 },
+  tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: 12 },
 };
 
 export function Screen({ children, style }: { children: ReactNode; style?: ViewStyle }) {
@@ -270,13 +277,13 @@ const useStyles = makeStyles((colors) => ({
     justifyContent: "center",
   },
   secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  text: { fontFamily: fonts.serif, color: colors.text },
-  input: { fontFamily: fonts.serif, fontSize: 17, color: colors.text },
-  buttonText: { color: colors.onAccent, fontSize: 17, fontFamily: fonts.serifSemiBold },
+  text: { fontFamily: fonts.body, color: colors.text },
+  input: { fontFamily: fonts.body, fontSize: 16, color: colors.text },
+  buttonText: { color: colors.onAccent, fontSize: 16, fontFamily: fonts.bodySemiBold },
   buttonLarge: { minHeight: 68, borderRadius: 16 },
-  buttonTextLarge: { fontSize: 30, fontFamily: fonts.displayBold, letterSpacing: 0.5 },
-  section: { fontSize: 14, fontFamily: fonts.serifSemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 24, marginBottom: 8 },
-  muted: { color: colors.muted, fontSize: 16, lineHeight: 22 },
-  error: { color: colors.danger, fontSize: 16, marginTop: 8 },
+  buttonTextLarge: { fontSize: 26, fontFamily: fonts.displayBold },
+  section: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 24, marginBottom: 8 },
+  muted: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  error: { color: colors.danger, fontSize: 15, marginTop: 8 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },
 }));

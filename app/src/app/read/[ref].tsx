@@ -122,17 +122,17 @@ const useStyles = makeStyles((colors) => ({
   // Reading mode: warmer paper, a narrower measure and roomier lines.
   root: { flex: 1, backgroundColor: colors.paper },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 56, gap: 4, width: "100%", maxWidth: 640, alignSelf: "center" },
-  title: { fontSize: 32, fontFamily: fonts.displayBold, color: colors.text },
+  title: { fontSize: 28, fontFamily: fonts.displayBold, color: colors.text },
   rule: { height: 1, backgroundColor: colors.paperRule, marginVertical: 10 },
   nav: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginVertical: 6 },
   navButton: { minHeight: 44, justifyContent: "center", flexShrink: 1 },
-  navText: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.accent },
+  navText: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.accent },
   // Every verse has the same left margin; the verses that were shown get
   // an accent bar in it, as if marked in the margin of a printed Bible.
   verse: { paddingVertical: 5, paddingLeft: 12, borderLeftWidth: 3, borderLeftColor: "transparent" },
   verseOn: { borderLeftColor: colors.accent },
-  text: { fontSize: 20, lineHeight: 33, color: colors.text, fontFamily: fonts.serif },
-  num: { fontSize: 13, color: colors.muted, fontFamily: fonts.serifMedium },
-  // EB Garamond's true italic, as the KJV prints the translators' supplied words.
-  supplied: { fontFamily: fonts.serifItalic },
+  text: { fontSize: 18, lineHeight: 31, color: colors.text, fontFamily: fonts.scripture },
+  num: { fontSize: 13, color: colors.muted, fontFamily: fonts.bodyMedium },
+  // Fraunces's true italic, as the KJV prints the translators' supplied words.
+  supplied: { fontFamily: fonts.scriptureItalic },
 }));

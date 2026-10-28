@@ -20,7 +20,7 @@ export function Avatar({ path, name, size = 40, previewUri }: { path: string | n
         // cachePolicy "none": the decoded photo stays in memory only.
         <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="none" />
       ) : (
-        <Text style={[styles.initials, { fontSize: size * 0.42 }]}>{initials(name)}</Text>
+        <Text style={[styles.initials, { fontSize: size * 0.36 }]}>{initials(name)}</Text>
       )}
     </View>
   );

@@ -31,5 +31,5 @@ export function ActivityBell() {
 const useStyles = makeStyles((colors) => ({
   root: { marginRight: 16, padding: 2 },
   badge: { position: "absolute", top: -4, right: -8, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
-  badgeText: { fontSize: 11, fontFamily: fonts.serifSemiBold, color: colors.onDanger },
+  badgeText: { fontSize: 11, fontFamily: fonts.bodySemiBold, color: colors.onDanger },
 }));

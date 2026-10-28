@@ -78,11 +78,11 @@ export function SavedVerses() {
 const useStyles = makeStyles((colors) => ({
   card: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12, marginBottom: 16 },
   header: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 32 },
-  title: { flex: 1, fontSize: 22, fontFamily: fonts.display, color: colors.text },
-  count: { fontSize: 16, fontFamily: fonts.serifSemiBold, color: colors.muted },
+  title: { flex: 1, fontSize: 19, fontFamily: fonts.display, color: colors.text },
+  count: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.muted },
   book: { borderTopWidth: 1, borderTopColor: colors.border },
   bookRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48 },
-  bookName: { flex: 1, fontSize: 19, fontFamily: fonts.display, color: colors.text },
-  bookCount: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.muted },
+  bookName: { flex: 1, fontSize: 16, fontFamily: fonts.display, color: colors.text },
+  bookCount: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.muted },
   list: { gap: 18, paddingBottom: 14 },
 }));

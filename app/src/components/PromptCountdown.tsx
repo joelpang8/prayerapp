@@ -59,13 +59,13 @@ export function CountdownPill({ firedAt }: { firedAt: Date }) {
 const useStyles = makeStyles((colors) => ({
   root: { alignItems: "center", gap: 4, paddingVertical: 8 },
   // Tabular figures so the digits don't shift as they change.
-  time: { fontSize: 72, lineHeight: 80, fontFamily: fonts.displayBold, color: colors.text, fontVariant: ["tabular-nums"] },
-  label: { fontSize: 22, fontFamily: fonts.display, color: colors.text },
+  time: { fontSize: 62, lineHeight: 72, fontFamily: fonts.displayBold, color: colors.text, fontVariant: ["tabular-nums"] },
+  label: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
   track: { alignSelf: "stretch", height: 6, borderRadius: 3, backgroundColor: colors.accentSoft, overflow: "hidden", marginTop: 8 },
   bar: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
   barGrace: { backgroundColor: colors.muted },
   pill: { alignSelf: "flex-start", backgroundColor: colors.accentSoft, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
   pillLate: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  pillText: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent, fontVariant: ["tabular-nums"] },
+  pillText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent, fontVariant: ["tabular-nums"] },
   pillTextLate: { color: colors.muted },
 }));

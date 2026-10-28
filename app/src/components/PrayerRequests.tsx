@@ -126,16 +126,16 @@ function Bullet({ text }: { text: string }) {
 
 const useStyles = makeStyles((colors) => ({
   bulletRow: { flexDirection: "row", gap: 8 },
-  bullet: { fontSize: 17, lineHeight: 24, color: colors.accent, width: BULLET_WIDTH, textAlign: "center" },
+  bullet: { fontSize: 16, lineHeight: 24, color: colors.accent, width: BULLET_WIDTH, textAlign: "center" },
   bulletText: { flex: 1 },
   // Lines under a request (who's praying, the button) line up with its text.
   indent: { marginLeft: BULLET_WIDTH + 8 },
   card: { alignSelf: "stretch", backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12, marginBottom: 16 },
-  label: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6 },
+  label: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6 },
   request: { gap: 6 },
-  text: { fontSize: 17, lineHeight: 24, color: colors.text },
-  praying: { fontSize: 15, color: colors.accent, fontFamily: fonts.serifSemiBold },
+  text: { fontSize: 16, lineHeight: 24, color: colors.text },
+  praying: { fontSize: 15, color: colors.accent, fontFamily: fonts.bodySemiBold },
   pray: { alignSelf: "flex-start", minHeight: 36, justifyContent: "center", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18, borderWidth: 1, borderColor: colors.accent },
   prayOn: { backgroundColor: colors.accentSoft },
-  prayText: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent },
+  prayText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent },
 }));

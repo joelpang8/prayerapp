@@ -79,7 +79,7 @@ const useStyles = makeStyles((colors) => ({
   privacyText: { fontSize: 15, color: colors.muted, textDecorationLine: "underline" },
   root: { flex: 1, backgroundColor: colors.bg, padding: 24, justifyContent: "space-between" },
   hero: { marginTop: 80, gap: 12 },
-  title: { fontSize: 48, fontFamily: fonts.displayBold, color: colors.text },
+  title: { fontSize: 41, fontFamily: fonts.displayBold, color: colors.text },
   actions: { gap: 12, marginBottom: 24 },
   appleButton: { height: 48 },
   dev: { gap: 8, marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },

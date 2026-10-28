@@ -74,10 +74,10 @@ export default function DeleteAccountScreen() {
 const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: 48, gap: 12 },
-  title: { fontSize: 28, fontFamily: fonts.displayBold, color: colors.text },
-  body: { fontSize: 17, lineHeight: 24, color: colors.text },
+  title: { fontSize: 24, fontFamily: fonts.displayBold, color: colors.text },
+  body: { fontSize: 16, lineHeight: 24, color: colors.text },
   list: { gap: 6 },
-  item: { fontSize: 17, lineHeight: 24, color: colors.text },
-  label: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
-  input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.card, fontSize: 18, letterSpacing: 2 },
+  item: { fontSize: 16, lineHeight: 24, color: colors.text },
+  label: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.text, marginTop: 8 },
+  input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.card, fontSize: 17, letterSpacing: 2 },
 }));

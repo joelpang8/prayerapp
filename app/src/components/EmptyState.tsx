@@ -27,6 +27,6 @@ export function EmptyState({ icon, title, message }: { icon: IconName; title: st
 const useStyles = makeStyles((colors) => ({
   root: { alignItems: "center", paddingVertical: 28, paddingHorizontal: 16, gap: 8 },
   art: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accentSoft, alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  title: { fontSize: 22, fontFamily: fonts.display, color: colors.text, textAlign: "center" },
-  message: { fontSize: 17, lineHeight: 24, color: colors.muted, textAlign: "center", maxWidth: 340 },
+  title: { fontSize: 19, fontFamily: fonts.display, color: colors.text, textAlign: "center" },
+  message: { fontSize: 16, lineHeight: 24, color: colors.muted, textAlign: "center", maxWidth: 340 },
 }));
