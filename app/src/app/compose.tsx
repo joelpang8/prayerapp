@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { usePreventRemove } from "expo-router/react-navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { CountdownPill } from "../components/PromptCountdown";
 import { PrayerHelper } from "../components/PrayerHelper";
@@ -13,9 +13,10 @@ import { pickPhotoForDevelopment, takePhoto, type CapturedPhoto } from "../lib/c
 import { clearDraft, loadDraft, saveDraft } from "../lib/draft";
 import { currentPlaceName, LocationUnavailableError } from "../lib/location";
 import { editPost, MAX_ANSWER_NOTE, MAX_NOTES, notesProblem, postIdFor, setAnswered } from "../lib/posts";
-import { useLatestPrompt, useMyPosts, usePhoto } from "../session/hooks";
+import { useLatestPrompt, useMyPosts, useNow, usePhoto } from "../session/hooks";
+import { beginPraying, cancelPraying, stampMs, START_GRACE_MS, startStillValid, type StartStamp } from "../lib/prayStart";
 import { useReadySession } from "../session/SessionProvider";
-import { t } from "../i18n";
+import { locale, t } from "../i18n";
 import { haptics } from "../lib/haptics";
 
 /** The notes counter appears once this many characters or fewer are left. */
@@ -120,6 +121,24 @@ function Composer({
   // down) asks first. After posting or saving, it just closes.
   const [leaving, setLeaving] = useState(false);
   useEffect(() => { if (leaving) router.back(); }, [leaving]);
+
+  // "Pray now" keeps you on time (lib/prayStart.ts): opening this screen in
+  // time records the start, giving 15 minutes to pray and post. Leaving
+  // without posting gives it up.
+  const startPromptId = editing ? null : prompt?.id ?? null;
+  const [start, setStart] = useState<StartStamp | null>(null);
+  const posted = useRef(false);
+  useEffect(() => {
+    if (!startPromptId) return;
+    let live = true;
+    beginPraying(db, uid, startPromptId).then((s) => { if (live) setStart(s); });
+    return () => {
+      live = false;
+      if (!posted.current) void cancelPraying(db, uid, startPromptId);
+    };
+  }, [uid, startPromptId]);
+  const now = useNow();
+  const startValid = !!start && startStillValid(start, now);
   const unsaved = editing
     ? notes.trim() !== editing.notes
       || answered !== !!editing.answeredAt
@@ -174,9 +193,13 @@ function Composer({
           place: showPlace ? place : null,
           visibility: isPrivate ? "private" : "friends",
           takenAt: photo.takenAt,
+          startedAt: start && startStillValid(start, Date.now()) ? start : null,
         });
       }
-      if (!editing) void clearDraft(uid);
+      if (!editing) {
+        posted.current = true;
+        void clearDraft(uid);
+      }
       haptics.done();
       setLeaving(true);
     } catch (err) {
@@ -199,7 +222,13 @@ function Composer({
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{editing ? t("compose.editTitle") : t("today.prayNow")}</Text>
-        {!editing && prompt && <CountdownPill firedAt={prompt.firedAt} />}
+        {!editing && prompt && (startValid ? (
+          <View style={styles.onTime} accessibilityLiveRegion="polite">
+            <Text style={styles.onTimeText}>
+              {t("compose.onTimeUntil", { time: new Date(stampMs(start!) + START_GRACE_MS).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" }) })}
+            </Text>
+          </View>
+        ) : <CountdownPill firedAt={prompt.firedAt} />)}
         {verseRef && (
           <View style={styles.verse}>
             <Text style={styles.verseLabel} accessibilityRole="header">{editing ? t("compose.thatDaysVerse") : t("compose.todaysVerse")}</Text>
@@ -320,6 +349,8 @@ const useStyles = makeStyles((colors) => ({
   verse: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
   verseLabel: { fontSize: 13, fontFamily: fonts.serifSemiBold, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.8 },
   counter: { fontSize: 14, color: colors.muted, alignSelf: "flex-end", marginTop: -6 },
+  onTime: { alignSelf: "flex-start", backgroundColor: colors.accentSoft, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
+  onTimeText: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.accent },
   label: { fontSize: 17, fontFamily: fonts.serifSemiBold, color: colors.text, marginTop: 8 },
   placeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   answerBox: { gap: 8, marginTop: 8 },

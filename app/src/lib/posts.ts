@@ -48,6 +48,8 @@ export type Post = {
   visibility: Visibility;
   /** When the photo was taken by the phone's clock, if the post was queued offline. */
   takenAt: Date | null;
+  /** When "Pray now" was pressed (server time), if the post was made within 15 minutes of it. */
+  startedAt: Date | null;
 };
 
 /**
@@ -56,8 +58,15 @@ export type Post = {
  * so it can't be faked, and editing a post can't change it.
  * It is a label only; nothing ranks or counts by it.
  */
-export function isLate(post: Pick<Post, "createdAt" | "promptFiredAt">): boolean {
-  return post.createdAt.getTime() - post.promptFiredAt.getTime() > ON_TIME_WINDOW_MS;
+export function isLate(post: Pick<Post, "createdAt" | "promptFiredAt"> & { startedAt?: Date | null }): boolean {
+  const fired = post.promptFiredAt.getTime();
+  const created = post.createdAt.getTime();
+  // Pressed Pray now in time and posted within 15 minutes of it: on time.
+  if (post.startedAt) {
+    const started = post.startedAt.getTime();
+    if (started - fired <= ON_TIME_WINDOW_MS && created - started <= 15 * 60_000) return false;
+  }
+  return created - fired > ON_TIME_WINDOW_MS;
 }
 
 export function notesProblem(notes: string): string | null {
@@ -106,6 +115,7 @@ export function postFromSnapshot(snap: DocumentSnapshot): Post | null {
     answerNote: typeof d.answerNote === "string" ? d.answerNote : null,
     visibility: d.visibility === "private" ? "private" : "friends",
     takenAt: date(d.takenAt),
+    startedAt: date(d.startedAt),
   };
 }
 
@@ -131,6 +141,8 @@ export type NewPost = {
   visibility?: Visibility;
   /** For a post sent from the offline queue: when the photo was taken. */
   takenAt?: Date | null;
+  /** When I pressed Pray now (exact server stamp), if posting within 15 minutes of it. */
+  startedAt?: { seconds: number; nanoseconds: number } | null;
 };
 
 /**
@@ -155,6 +167,8 @@ export async function createPost(db: Firestore, storage: FirebaseStorage, p: New
       photoPath,
       visibility,
       ...(p.takenAt ? { takenAt: Timestamp.fromDate(p.takenAt) } : {}),
+      // Must equal my start exactly (firestore.rules), so the stamp is kept whole.
+      ...(p.startedAt ? { startedAt: new Timestamp(p.startedAt.seconds, p.startedAt.nanoseconds) } : {}),
       // Carried from the prompt; the rules require it to match exactly.
       ...(p.prompt.verseRef ? { verseRef: p.prompt.verseRef, verseBook: bookOfRef(p.prompt.verseRef) } : {}),
       ...(p.place ? { place: p.place.slice(0, MAX_PLACE) } : {}),

@@ -4,6 +4,7 @@ import type { FirebaseStorage } from "firebase/storage";
 import { photoBlob } from "./capture";
 import { Outbox, type QueuedPost } from "./outbox";
 import { createPost } from "./posts";
+import { startStillValid } from "./prayStart";
 
 const key = (uid: string) => `outbox.${uid}`;
 
@@ -31,7 +32,11 @@ export function createOutbox(db: Firestore, storage: FirebaseStorage, uid: strin
         }
       },
       send: async (q) => {
+        // Still within 15 minutes of Pray now? Then the post carries the
+        // start (on time); otherwise it's sent without it (late).
+        const startedAt = q.startedAt && startStillValid(q.startedAt, Date.now()) ? q.startedAt : null;
         await createPost(db, storage, {
+          startedAt,
           uid: q.uid,
           prompt: { id: q.prompt.id, firedAt: new Date(q.prompt.firedAt), verseRef: q.prompt.verseRef },
           notes: q.notes,

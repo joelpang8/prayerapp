@@ -219,6 +219,31 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // ---------- "Pray now" starts ----------
+      // users/{uid}/starts/{promptId}: when I pressed "Pray now" for a
+      // prompt. Only allowed while that prompt is still on time (the first
+      // 7 minutes: 2 to pray + 5 grace; must match ON_TIME_WINDOW_MS in
+      // app/src/lib/posts.ts), at the server's time. A post that carries this
+      // startedAt and is made within 15 minutes of it counts as on time, so
+      // people can take their time praying. Cancelling deletes it. Only the
+      // owner can read it; removed with the account.
+      match /starts/{promptId} {
+        function startPrompt() {
+          return get(/databases/$(database)/documents/prompts/$(promptId)).data;
+        }
+        allow get: if isSelf(uid);
+        allow list: if false;
+        allow create: if isSelf(uid)
+          && promptId.matches('^[0-9]{8}$')
+          && exists(/databases/$(database)/documents/prompts/$(promptId))
+          && request.resource.data.keys().hasOnly(['startedAt'])
+          && request.resource.data.startedAt == request.time
+          && request.time >= startPrompt().firedAt
+          && request.time <= startPrompt().firedAt + duration.value(7, 'm');
+        allow update: if false;
+        allow delete: if isSelf(uid);
+      }
+
       // ---------- saved verses (scripture memory) ----------
       // users/{uid}/savedVerses/{refId}: verses I've saved to read or listen
       // to again. Only the owner can see or change them; friends never see
@@ -396,7 +421,7 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(
-             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef', 'verseBook', 'place', 'visibility', 'takenAt'])
+             ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'verseRef', 'verseBook', 'place', 'visibility', 'takenAt', 'startedAt'])
         && request.resource.data.keys().hasAll(
              ['authorId', 'promptId', 'promptFiredAt', 'createdAt', 'notes', 'photoPath', 'visibility'])
         && request.resource.data.visibility in ['friends', 'private']
@@ -420,6 +445,14 @@ service cloud.firestore {
         && request.time >= prompt().firedAt
         && request.time < prompt().firedAt + duration.value(24, 'h')
         && request.resource.data.createdAt == request.time
+        // startedAt: when I pressed "Pray now" (users/{me}/starts/{promptId},
+        // which only exists if that was on time). Must be exactly that, and
+        // the post must come within 15 minutes of it to carry it; without
+        // it, on time vs late is decided by createdAt as before.
+        && (!('startedAt' in request.resource.data) || (
+              exists(/databases/$(database)/documents/users/$(request.auth.uid)/starts/$(request.resource.data.promptId))
+              && request.resource.data.startedAt == get(/databases/$(database)/documents/users/$(request.auth.uid)/starts/$(request.resource.data.promptId)).data.startedAt
+              && request.time <= request.resource.data.startedAt + duration.value(15, 'm')))
         // takenAt: when the photo was taken, by the phone's clock. Only shown
         // ("taken 3:02") for a post that was queued offline; on time vs late
         // is always decided by createdAt, the server's time. Loosely bounded

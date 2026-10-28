@@ -23,7 +23,8 @@ describe("a half-written prayer", () => {
   test("leaving with unsaved words asks first; posting clears the draft", () => {
     const compose = readFileSync("src/app/compose.tsx", "utf8");
     expect(compose).toContain("usePreventRemove(unsaved && !leaving && !busy");
-    expect(compose).toMatch(/if \(!editing\) void clearDraft\(uid\);\s*(haptics\.done\(\);\s*)?setLeaving\(true\);/);
+    expect(compose).toMatch(/posted\.current = true;\s*void clearDraft\(uid\);/);
+    expect(compose).toMatch(/haptics\.done\(\);\s*setLeaving\(true\);/);
     // Only the words are kept, never the photo.
     expect(readFileSync("src/lib/draft.ts", "utf8")).not.toMatch(/photo(Uri|Id)/);
   });

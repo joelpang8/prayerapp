@@ -10,6 +10,7 @@
 | **F** | Do the Prayers tab's queries work in production (filters by answered, verse book, exact verse; "On this day"; one month for the calendar and recap; all my posts for search; my saved verses, which a friend can't list)? The emulator doesn't check indexes, production does. A friend running the same query on my posts must be refused. | A missing index shows here as `failed-precondition` with a link to create it. |
 | **G** | "I'll pray for this": can a friend tap, can the owner see it, is a non-friend refused, can't the owner tap their own, and does the Cloud Function delete the tap after an unfriend? | Confirms the rules and the cleanup function are the deployed ones. |
 | **H** | Account deletion: does `deleteAccount` (called as a throwaway user, just signed in) remove their profile, posts, comment, reaction, follow, avatar and sign-in, while another person's post stays? | Confirms the deployed function and its collection-group indexes. The script exits with an error if H fails. |
+| **I** | "Pray now": can I record a start in time, is a late start refused, and is a post carrying my start accepted? | Confirms the deployed rules for the 15-minute grace. The script exits with an error if I fails. |
 | **D** | Does revoking a photo's download token on unfriend really kill a saved link? Does reading a photo create a new token? | This is the guarantee from step 2. |
 
 It runs on **your Mac, with your own Google login**. It creates throwaway users (uids starting `zzv`), follows, posts, a prayer request and tap, and one tiny photo. It deletes all of them when it finishes, including after a failure. It prints a JSON report with no secrets in it. Paste that report back to me.
@@ -103,6 +104,6 @@ Rerun the script after any change to the rules, indexes or functions.
 
 - **B:** set `FEED_CHUNK_SIZE` to a safe value below the largest working size.
 - **C:** confirm, or adjust the docs if production behaves differently from the emulator.
-- **F**, **G** and **H:** must say `"pass": true`. A `failed-precondition` in F means an index is still building (wait, then rerun) or missing (tell me).
+- **F**, **G**, **H** and **I:** must say `"pass": true`. A `failed-precondition` in F means an index is still building (wait, then rerun) or missing (tell me).
 - **E:** must say `"pass": true`. If it doesn't, stop and send me the report; the rules deployed aren't the ones in this repo.
 - **D:** if the link dies after unfriend, the guarantee holds. If it doesn't, we switch photo reads to a different design, such as short-lived signed URLs from a Cloud Function. That's more work, but it closes the gap for certain.

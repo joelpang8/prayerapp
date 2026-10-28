@@ -170,7 +170,7 @@ async function checkPrayersTab(author, viewer) {
     // The Prayers calendar and "Your month in prayer": one app month.
     monthInPrayer: () => mine(where("promptId", ">=", "20240101"), where("promptId", "<", "20240201"), orderBy("promptId", "desc")),
     // "Search my prayers": all my posts, newest first (searched on the phone).
-    search: () => mine(orderBy("createdAt", "desc")),
+    search: () => mine(orderBy("createdAt", "desc")),  // found: all my posts (at least 1)
   };
   const out = {};
   for (const [name, run] of Object.entries(queries)) {
@@ -187,10 +187,40 @@ async function checkPrayersTab(author, viewer) {
     .then(() => savedList(author.fs))
     .then((s) => ({ ok: true, found: s.size }), (e) => ({ ok: false, code: e.code, message: String(e.message).slice(0, 300) }));
   out.savedVersesFriendRefused = await savedList(viewer.fs).then(() => false, (e) => e.code === "permission-denied");
-  out.pass = Object.keys(queries).every((k) => out[k].ok && out[k].found === 1) && out.friendRefused
+  out.pass = Object.keys(queries).every((k) => out[k].ok && (k === "search" ? out[k].found >= 1 : out[k].found === 1)) && out.friendRefused
     && out.savedVerses.ok && out.savedVerses.found === 1 && out.savedVersesFriendRefused;
   report.checks.F_prayersTab = out;
   log(`F Prayers tab queries (indexes built) = ${out.pass}`);
+}
+
+// ---------- I: "Pray now" keeps you on time ----------
+// Old-dated prompt ids (1990…) so the app never shows them as the latest.
+async function checkPrayNow(author) {
+  const digits = String(parseInt(RUN.slice(0, 6), 16) % 10000).padStart(4, "0");
+  const inTime = `1990${digits}`;
+  const tooLate = `1991${digits}`;
+  for (const id of [inTime, tooLate]) created.docs.add(`prompts/${id}`);
+  created.docs.add(`users/${MAIN}/starts/${inTime}`);
+  created.docs.add(`users/${MAIN}/starts/${tooLate}`);
+  created.docs.add(`posts/${inTime}_${MAIN}`);
+  // Posting needs a profile (users/{uid}); the other checks don't make one.
+  created.docs.add(`users/${MAIN}`);
+  await setDocAdmin(`users/${MAIN}`, { username: `zzv${RUN}main`.toLowerCase(), displayName: "verification", createdAt: AdminTimestamp.now() });
+  const fired = AdminTimestamp.fromMillis(Date.now() - 2 * 60_000);
+  await setDocAdmin(`prompts/${inTime}`, { firedAt: fired });
+  await setDocAdmin(`prompts/${tooLate}`, { firedAt: AdminTimestamp.fromMillis(Date.now() - 10 * 60_000) });
+  const outcome = (pr) => pr.then(() => true, (e) => e.code ?? false);
+  const out = {};
+  out.startInTime = await outcome(setDoc(doc(author.fs, `users/${MAIN}/starts/${inTime}`), { startedAt: serverTimestamp() }));
+  out.startTooLateRefused = (await outcome(setDoc(doc(author.fs, `users/${MAIN}/starts/${tooLate}`), { startedAt: serverTimestamp() }))) === "permission-denied";
+  const startedAt = (await getDoc(doc(author.fs, `users/${MAIN}/starts/${inTime}`))).data()?.startedAt;
+  out.postWithStart = await outcome(setDoc(doc(author.fs, `posts/${inTime}_${MAIN}`), {
+    authorId: MAIN, promptId: inTime, promptFiredAt: Timestamp.fromMillis(fired.toMillis()), createdAt: serverTimestamp(),
+    notes: "verification post", photoPath: `privatePhotos/${MAIN}/none.jpg`, visibility: "private", startedAt,
+  }));
+  out.pass = out.startInTime === true && out.startTooLateRefused && out.postWithStart === true;
+  report.checks.I_prayNow = out;
+  log(`I Pray now keeps you on time = ${out.pass}`);
 }
 
 // ---------- G: "I'll pray for this" ----------
@@ -365,6 +395,7 @@ try {
   await checkPrivatePosts(viewer, author);
   await checkPrayersTab(author, viewer);
   await checkPraying(author, viewer, await clientFor(AUTHORS[1]));
+  await checkPrayNow(author);
   await checkListenerCutoff(viewer);
   await checkPrayingCleanup();
   await checkAccountDeletion();
@@ -376,6 +407,6 @@ try {
   await cleanup();
   console.log("\n===== paste everything below this line =====");
   console.log(JSON.stringify(report, null, 2));
-  const failed = ["E_privatePosts", "F_prayersTab", "G_praying", "H_accountDeletion"].some((k) => report.checks[k]?.pass === false);
+  const failed = ["E_privatePosts", "F_prayersTab", "G_praying", "H_accountDeletion", "I_prayNow"].some((k) => report.checks[k]?.pass === false);
   process.exit(report.error || failed ? 1 : 0);
 }

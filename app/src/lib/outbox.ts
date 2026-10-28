@@ -20,6 +20,8 @@ export type QueuedPost = {
   place: string | null;
   visibility: Visibility;
   takenAt: number;
+  /** When I pressed Pray now (exact server stamp); dropped if sending is more than 15 minutes later. */
+  startedAt?: { seconds: number; nanoseconds: number } | null;
   /** waiting: will retry. failed: won't send (e.g. the prompt closed); needs Retry or Discard. */
   status: "waiting" | "sending" | "failed";
   problem?: string;
