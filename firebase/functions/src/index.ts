@@ -10,6 +10,7 @@ import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWrit
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onTaskDispatched } from "firebase-functions/v2/tasks";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
+import { buildActivityMessage, parseNotifyPrefs, shouldNotify, type ActivityKind, type NotifyPrefs } from "./activityNotify";
 import { deleteAccountData, isRecentSignIn } from "./accountDeletion";
 import { buildPromptMessage, dateKeyIn, pickFireTime, PROMPT_WINDOW, verseForDate, windowEnd } from "./dailyPrompt";
 import { buildVerseIndex, staleTaps } from "./prayers";
@@ -275,4 +276,59 @@ export const deleteAccount = onCall({ timeoutSeconds: 300 }, async (req) => {
   // Counts only: nothing about what was deleted.
   logger.info("account deleted", { summary });
   return { deleted: true };
+});
+
+/*
+ * Opt-in notifications (activityNotify.ts): a friend praying for my
+ * request, reacting to or commenting on my prayer. Only if I've turned that
+ * kind on; sent to my secret topic. Counts only, logged: never who or what.
+ */
+async function notifyOwner(owner: string, kind: ActivityKind, actor: string, build: (prefs: NotifyPrefs, name: string) => Promise<Parameters<typeof buildActivityMessage>[1] | null>): Promise<void> {
+  const db = getFirestore();
+  const prefs = parseNotifyPrefs((await db.doc(`users/${owner}/private/notify`).get()).data());
+  if (!shouldNotify(prefs, kind, owner, actor)) return;
+  const name = (await db.doc(`users/${actor}`).get()).get("displayName");
+  if (typeof name !== "string" || !name) return;
+  const event = await build(prefs, name);
+  if (!event) return;
+  const message = buildActivityMessage(prefs, event);
+  if (process.env.FUNCTIONS_EMULATOR === "true") {
+    // No FCM in the emulators: record what would be sent, for tests.
+    await db.collection("_notifyDryRun").add({ owner, message });
+    return;
+  }
+  await getMessaging().send(message).catch((err) => logger.warn("activity notification failed", { kind, code: err?.code }));
+}
+
+/** A friend tapped "I'll pray for this" on one of my requests. */
+export const notifyPrayingTap = onDocumentCreated("users/{owner}/prayingFor/{tapId}", async (event) => {
+  const tap = event.data?.data();
+  if (!tap || typeof tap.friendUid !== "string" || typeof tap.itemId !== "string") return;
+  await notifyOwner(event.params.owner, "taps", tap.friendUid, async (_prefs, name) => {
+    const about = (await getFirestore().doc(`users/${event.params.owner}/friendsOnly/about`).get()).data() ?? {};
+    const ids: unknown[] = Array.isArray(about.requestIds) ? about.requestIds : [];
+    const lines = typeof about.prayerRequests === "string" ? about.prayerRequests.split("\n") : [];
+    const i = ids.indexOf(tap.itemId);
+    return { kind: "taps", name, requestText: i >= 0 ? (lines[i] ?? "") : "" };
+  });
+});
+
+/** A friend reacted to my prayer (first reaction only, not changes). */
+export const notifyReaction = onDocumentCreated("posts/{postId}/reactions/{reactorId}", async (event) => {
+  const reaction = event.data?.data();
+  const post = (await getFirestore().doc(`posts/${event.params.postId}`).get()).data();
+  if (!reaction || !post || typeof post.authorId !== "string") return;
+  await notifyOwner(post.authorId, "reactions", event.params.reactorId, async (_prefs, name) => ({
+    kind: "reactions", name, reaction: String(reaction.kind ?? ""), postId: event.params.postId, notes: String(post.notes ?? ""),
+  }));
+});
+
+/** A friend commented on my prayer. */
+export const notifyComment = onDocumentCreated("posts/{postId}/comments/{commentId}", async (event) => {
+  const comment = event.data?.data();
+  const post = (await getFirestore().doc(`posts/${event.params.postId}`).get()).data();
+  if (!comment || !post || typeof post.authorId !== "string" || typeof comment.authorId !== "string") return;
+  await notifyOwner(post.authorId, "comments", comment.authorId, async (_prefs, name) => ({
+    kind: "comments", name, text: String(comment.text ?? ""), postId: event.params.postId,
+  }));
 });

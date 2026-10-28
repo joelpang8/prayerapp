@@ -209,12 +209,26 @@ service cloud.firestore {
         // verseIndex: { books: {PHP: 3}, refs: {"PHP.4.6-7": 2} }, the verses
         // of my own posts, for the Prayers tab's verse filter. Written only
         // by a Cloud Function.
-        allow get: if isSelf(uid) && docId in ['settings', 'verseIndex'];
+        // notify: opt-in notifications about my own things (a friend praying
+        // for my requests, reactions and comments on my prayers). topic is a
+        // secret random channel name only my phone listens on and only the
+        // server sends to; no push tokens are stored. lang picks the wording.
+        function validNotify() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['topic', 'taps', 'reactions', 'comments', 'lang'])
+            && d.keys().hasAll(['topic', 'taps', 'reactions', 'comments', 'lang'])
+            && d.topic is string && d.topic.matches('^n_[A-Za-z0-9]{32}$')
+            && d.taps is bool && d.reactions is bool && d.comments is bool
+            && d.lang in ['en', 'es'];
+        }
+
+        allow get: if isSelf(uid) && docId in ['settings', 'verseIndex', 'notify'];
         allow list: if false;
-        allow create, update: if isSelf(uid)
-          && docId == 'settings'
-          && request.resource.data.keys().hasOnly(['bibleVersion'])
-          && request.resource.data.bibleVersion in allowedTranslations();
+        allow create, update: if isSelf(uid) && (
+          (docId == 'settings'
+            && request.resource.data.keys().hasOnly(['bibleVersion'])
+            && request.resource.data.bibleVersion in allowedTranslations())
+          || (docId == 'notify' && validNotify()));
         // Removed with the account (step 5), not by clients.
         allow delete: if false;
       }
