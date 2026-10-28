@@ -18,6 +18,7 @@ import { beginPraying, cancelPraying, stampMs, START_GRACE_MS, startStillValid, 
 import { useReadySession } from "../session/SessionProvider";
 import { locale, t } from "../i18n";
 import { haptics } from "../lib/haptics";
+import { OfflineBanner } from "../components/OfflineBanner";
 
 /** The notes counter appears once this many characters or fewer are left. */
 const NOTES_COUNTER_FROM = 200;
@@ -222,6 +223,7 @@ function Composer({
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{editing ? t("compose.editTitle") : t("today.prayNow")}</Text>
+        {!editing && <OfflineBanner message={t("offline.compose")} />}
         {!editing && prompt && (startValid ? (
           <View style={styles.onTime} accessibilityLiveRegion="polite">
             <Text style={styles.onTimeText}>

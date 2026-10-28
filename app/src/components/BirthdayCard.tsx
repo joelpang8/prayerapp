@@ -57,7 +57,7 @@ export function BirthdayCard({ now }: { now: number }) {
 
 const useStyles = makeStyles((colors) => ({
   card: { backgroundColor: colors.goldSoft, borderRadius: 16, borderWidth: 1, borderColor: colors.gold, padding: 16, gap: 6, marginBottom: 16 },
-  title: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.gold, textTransform: "uppercase", letterSpacing: 0.8 },
+  title: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.gold, textTransform: "uppercase", letterSpacing: 0.8 },
   text: { fontSize: 16, lineHeight: 24, color: colors.text },
   names: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 2 },
   name: { minHeight: 36, justifyContent: "center" },

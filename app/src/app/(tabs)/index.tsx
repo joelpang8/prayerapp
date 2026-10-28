@@ -6,6 +6,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { PromptCountdown } from "../../components/PromptCountdown";
+import { OfflineBanner } from "../../components/OfflineBanner";
 import { QueuedPostCard } from "../../components/QueuedPostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
 import { WordOfTheDay } from "../../components/WordOfTheDay";
@@ -64,6 +65,7 @@ export default function TodayScreen() {
     <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
     >
+      <OfflineBanner />
       {queued.filter((q) => q !== queuedForPrompt || !myPost).map((q) => (
         <View key={q.postId} style={styles.queued}><QueuedPostCard item={q} /></View>
       ))}

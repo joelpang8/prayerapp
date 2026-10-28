@@ -59,7 +59,7 @@ export function CountdownPill({ firedAt }: { firedAt: Date }) {
 const useStyles = makeStyles((colors) => ({
   root: { alignItems: "center", gap: 4, paddingVertical: 8 },
   // Tabular figures so the digits don't shift as they change.
-  time: { fontSize: 62, lineHeight: 72, fontFamily: fonts.displayBold, color: colors.text, fontVariant: ["tabular-nums"] },
+  time: { fontSize: 62, lineHeight: 77, fontFamily: fonts.displayBold, color: colors.text, fontVariant: ["tabular-nums"] },
   label: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
   track: { alignSelf: "stretch", height: 6, borderRadius: 3, backgroundColor: colors.accentSoft, overflow: "hidden", marginTop: 8 },
   bar: { height: 6, borderRadius: 3, backgroundColor: colors.accent },

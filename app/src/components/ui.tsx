@@ -282,7 +282,7 @@ const useStyles = makeStyles((colors) => ({
   buttonText: { color: colors.onAccent, fontSize: 16, fontFamily: fonts.bodySemiBold },
   buttonLarge: { minHeight: 68, borderRadius: 16 },
   buttonTextLarge: { fontSize: 26, fontFamily: fonts.displayBold },
-  section: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 24, marginBottom: 8 },
+  section: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 24, marginBottom: 8 },
   muted: { color: colors.muted, fontSize: 15, lineHeight: 22 },
   error: { color: colors.danger, fontSize: 15, marginTop: 8 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },

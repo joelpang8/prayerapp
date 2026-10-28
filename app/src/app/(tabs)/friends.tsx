@@ -9,6 +9,7 @@ import {
   acceptRequest, cancelRequest, declineRequest, follow, relationshipTo, removeFriend,
 } from "../../lib/friends";
 import { shareInvite } from "../../lib/invite";
+import { filterFriends, FRIEND_FILTER_MIN } from "../../lib/friendFilter";
 import { findByUsername, type Profile } from "../../lib/profile";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
@@ -28,6 +29,9 @@ export default function FriendsScreen() {
   const profiles = useProfiles([...graph.friends, ...incoming, ...graph.outgoing]);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const searchable = graph.friends.size >= FRIEND_FILTER_MIN;
+  const shownFriends = searchable ? filterFriends([...graph.friends], profiles, query) : [...graph.friends];
 
   async function act(uid: string, fn: () => Promise<void>) {
     setPending(uid);
@@ -86,7 +90,21 @@ export default function FriendsScreen() {
       {loaded && graph.friends.size === 0 && (
         <EmptyState icon="people-circle-outline" title={t("friends.emptyTitle")} message={t("friends.emptyMessage")} />
       )}
-      {[...graph.friends].map((uid) =>
+      {searchable && (
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t("friends.searchMine")}
+          accessibilityLabel={t("friends.searchMine")}
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          returnKeyType="search"
+          style={[styles.input, styles.filter]}
+        />
+      )}
+      {searchable && query.trim() !== "" && shownFriends.length === 0 && <Muted>{t("friends.noMatch", { query: query.trim() })}</Muted>}
+      {shownFriends.map((uid) =>
         row(uid, (
           <Button
             title={t("friends.remove")}
@@ -187,6 +205,7 @@ const useStyles = makeStyles((colors) => ({
   content: { padding: 20, paddingBottom: 48 },
   find: { gap: 8 },
   spacer: { height: 16 },
+  filter: { flex: 0, marginBottom: 8 },
   searchRow: { flexDirection: "row", gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.card, minHeight: 48 },
   row: {
