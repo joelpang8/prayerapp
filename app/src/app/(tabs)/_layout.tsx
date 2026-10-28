@@ -11,6 +11,7 @@ import { useBlocked } from "../../session/hooks";
 import { useFriendGraph } from "../../session/SessionProvider";
 import { useLiveActivity } from "../../session/useLiveActivity";
 import { useReminder } from "../../session/useReminder";
+import { useActivitySubscription } from "../../session/useActivityNotifications";
 import { t } from "../../i18n";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -54,9 +55,20 @@ export default function TabsLayout() {
   const requests = [...graph.incoming].filter((uid) => !blocked.has(uid)).length;
   // Tapping a "Time to pray" notification opens Today. (These tabs only
   // exist once signed in, so a tap while signed out just opens sign-in.)
-  const openToday = useCallback(() => router.navigate("/"), []);
-  useNotificationTaps(openToday);
-  usePushTaps(openToday);
+  // An opt-in notification opens what it's about: the prayer, or my
+  // profile for "praying for your request"; everything else opens Today.
+  const openFromNotification = useCallback((data?: Record<string, unknown>) => {
+    if (data?.kind === "activity") {
+      if (typeof data.postId === "string") router.push(`/post/${data.postId}`);
+      else router.navigate("/profile");
+      return;
+    }
+    router.navigate("/");
+  }, []);
+  useNotificationTaps(openFromNotification);
+  usePushTaps(openFromNotification);
+  // Listen for my opt-in notifications (prayers, reactions, comments).
+  useActivitySubscription();
   // The lock-screen countdown while the prompt is open (iPhone only).
   useLiveActivity();
   // The opt-in "haven't prayed yet" reminder, scheduled on this phone.

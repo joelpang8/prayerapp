@@ -42,6 +42,14 @@ export async function setPromptSubscription(on: boolean): Promise<void> {
   else await fm.m.unsubscribeFromTopic(fm.instance, PROMPT_TOPIC);
 }
 
+/** Listen (or stop listening) on this account's secret topic for opt-in notifications. */
+export async function setActivitySubscription(topic: string, on: boolean): Promise<void> {
+  const fm = messaging();
+  if (!fm) return;
+  if (on) await fm.m.subscribeToTopic(fm.instance, topic);
+  else await fm.m.unsubscribeFromTopic(fm.instance, topic);
+}
+
 /**
  * Keeps the subscription in step with the app's notifications switch and
  * the phone's permission: subscribed only while both are on.
@@ -58,11 +66,11 @@ export function usePromptSubscription(wanted: boolean | null): void {
  * launched the app). Complements notifications.ts, in case React Native
  * Firebase receives the tap instead of expo-notifications.
  */
-export function usePushTaps(onOpen: () => void): void {
+export function usePushTaps(onOpen: (data?: Record<string, unknown>) => void): void {
   useEffect(() => {
     const fm = messaging();
     if (!fm) return;
-    fm.m.getInitialNotification(fm.instance).then((msg) => { if (msg) onOpen(); }, () => {});
-    return fm.m.onNotificationOpenedApp(fm.instance, () => onOpen());
+    fm.m.getInitialNotification(fm.instance).then((msg) => { if (msg) onOpen(msg.data); }, () => {});
+    return fm.m.onNotificationOpenedApp(fm.instance, (msg) => onOpen(msg.data));
   }, [onOpen]);
 }

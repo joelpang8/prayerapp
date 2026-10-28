@@ -24,6 +24,9 @@ import { phoneVoices, useVerseSpeech } from "../../session/useVerseSpeech";
 import { useProfiles } from "../../session/useProfiles";
 import { useReadySession } from "../../session/SessionProvider";
 import { Hint } from "../../components/Hint";
+import { NOTIFY_KINDS, type NotifyKind } from "../../lib/notifyPrefs";
+import { pushAvailable } from "../../lib/push";
+import { useNotifyPrefs } from "../../session/useActivityNotifications";
 
 export default function SettingsScreen() {
   // Tapping this tab again scrolls back to the top.
@@ -108,6 +111,7 @@ export default function SettingsScreen() {
           />
         </View>
         <Hint>{reminder ? t("settings.reminderOn") : t("settings.reminderOff")}</Hint>
+        {pushAvailable() && <ActivitySwitches />}
       </View>
 
       <SectionTitle>{t("settings.prayerRequests")}</SectionTitle>
@@ -171,6 +175,38 @@ export default function SettingsScreen() {
       <Button title={t("settings.signOut")} kind="secondary" onPress={() => signOut()} />
       <Button title={t("settings.deleteAccount")} kind="danger" onPress={() => router.push("/delete-account")} />
     </ScrollView>
+  );
+}
+
+/** Opt-in notifications about my own things: all off until turned on. */
+function ActivitySwitches() {
+  const styles = useStyles();
+  const colors = useColors();
+  const { prefs, loaded, set } = useNotifyPrefs();
+  const [error, setError] = useState(false);
+  const labels: Record<NotifyKind, string> = {
+    taps: t("settings.notifyTaps"),
+    reactions: t("settings.notifyReactions"),
+    comments: t("settings.notifyComments"),
+  };
+  return (
+    <>
+      <Text style={styles.subheading}>{t("settings.notifyHeading")}</Text>
+      {NOTIFY_KINDS.map((kind) => (
+        <View key={kind} style={styles.option}>
+          <Text style={styles.optionText}>{labels[kind]}</Text>
+          <Switch
+            value={!!prefs?.[kind]}
+            disabled={!loaded}
+            onValueChange={(on) => { setError(false); set(kind, on).catch(() => setError(true)); }}
+            trackColor={{ true: colors.accent, false: colors.border }}
+            accessibilityLabel={labels[kind]}
+          />
+        </View>
+      ))}
+      {error && <ErrorText>{t("common.tryAgain")}</ErrorText>}
+      <Hint>{t("settings.notifyNote")}</Hint>
+    </>
   );
 }
 
@@ -285,4 +321,5 @@ const useStyles = makeStyles((colors) => ({
   optionText: { fontSize: 17, color: colors.text },
   check: { fontSize: 18, color: colors.accent, fontFamily: fonts.serifSemiBold },
   spacer: { height: 16 },
+  subheading: { fontSize: 15, fontFamily: fonts.serifSemiBold, color: colors.muted, marginTop: 8 },
 }));

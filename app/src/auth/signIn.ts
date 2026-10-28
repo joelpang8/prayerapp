@@ -13,6 +13,8 @@ import {
 } from "firebase/auth";
 import { auth, usingEmulators } from "../firebase";
 import { REMINDER_ID } from "../lib/reminder";
+import { setActivitySubscription } from "../lib/push";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Only set up Google Sign-In once it's configured (app/.env). Configuring
 // without a client id makes the native module reject, which shows up as an
@@ -129,6 +131,12 @@ export async function revokeAppleToken(authorizationCode: string): Promise<void>
 export async function signOut(): Promise<void> {
   // A reminder scheduled for this account shouldn't fire after signing out.
   await Notifications.cancelScheduledNotificationAsync(REMINDER_ID).catch(() => {});
+  // Stop listening for this account's opt-in notifications on this phone.
+  const uid = auth.currentUser?.uid;
+  if (uid) {
+    const topic = await AsyncStorage.getItem(`activityTopic.${uid}`).catch(() => null);
+    if (topic) await setActivitySubscription(topic, false).catch(() => {});
+  }
   try {
     if (googleConfigured && GoogleSignin.hasPreviousSignIn()) await GoogleSignin.signOut();
   } finally {

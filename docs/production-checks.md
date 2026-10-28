@@ -27,7 +27,7 @@ Dry run against the local emulators: `npx firebase emulators:exec --only auth,fi
    npm --prefix functions install
    npx firebase deploy --only firestore,storage,functions:default
    ```
-   `functions:default` deploys the app's functions (thirteen, including the daily prompt's three and `deleteAccount`). This command deploys the Firestore rules and indexes, the Storage rules and those functions. When it asks, let Storage read Firestore; the photo rules need that. Indexes can take a few minutes to build; checks B and F fail with `failed-precondition` until they're ready.
+   `functions:default` deploys the app's functions (sixteen, including the daily prompt's three, `deleteAccount`, and the three opt-in notification triggers). This command deploys the Firestore rules and indexes, the Storage rules and those functions. When it asks, let Storage read Firestore; the photo rules need that. Indexes can take a few minutes to build; checks B and F fail with `failed-precondition` until they're ready.
    
    Indexes on `posts` (all in `firebase/firestore.indexes.json`):
    - `authorId, createdAt desc`: my posts by month; the feed.

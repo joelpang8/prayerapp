@@ -120,11 +120,11 @@ export function useNotificationPermission(): { status: NotificationStatus | null
  * Calls `onOpen` when the user taps a notification, including the one that
  * launched the app. Every notification this app sends is a prompt.
  */
-export function useNotificationTaps(onOpen: () => void): void {
+export function useNotificationTaps(onOpen: (data?: Record<string, unknown>) => void): void {
   const response = Notifications.useLastNotificationResponse();
   useEffect(() => {
     if (!response) return;
-    onOpen();
+    onOpen(response.notification.request.content.data ?? undefined);
     // Handled: don't act on the same tap again after a reload.
     Notifications.clearLastNotificationResponseAsync().catch(() => {});
   }, [response, onOpen]);
