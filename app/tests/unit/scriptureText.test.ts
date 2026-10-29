@@ -1,9 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { BOOKS } from "../../src/lib/scripture/books";
 import { KJV_BOOKS } from "../../src/lib/scripture/kjv";
+import { ASV_BOOKS } from "../../src/lib/scripture/asv";
 import { BSB_BOOKS } from "../../src/lib/scripture/bsb";
+import { DARBY_BOOKS } from "../../src/lib/scripture/darby";
+import { DRA_BOOKS, DRA_NUMBERED_DIFFERENTLY } from "../../src/lib/scripture/dra";
 import { RV1909_BOOKS, RV1909_NUMBERED_DIFFERENTLY } from "../../src/lib/scripture/rv1909";
 import { WEB_BOOKS } from "../../src/lib/scripture/web";
+import { WEBSTER_BOOKS } from "../../src/lib/scripture/webster";
+import { YLT_BOOKS } from "../../src/lib/scripture/ylt";
 import { getChapter, getPassage, plainText, segmentsOf, TranslationUnavailableError } from "../../src/lib/scripture/text";
 
 describe("bundled KJV text", () => {
@@ -143,5 +148,63 @@ describe("bundled modern English: Berean Standard Bible and World English Bible"
     expect(p.translation).toBe("WEB");
     expect(plainText(p.verses[0].segments)).toMatch(/^Now to him who is able to establish you/);
     expect((await getChapter("ROM", 14, "WEB")).verses).toHaveLength(23);
+  });
+});
+
+describe("older public-domain English: ASV, Young's Literal, Darby, Webster", () => {
+  const OMITTED = {
+    ASV: ["MAT 17:21", "MAT 18:11", "MAT 23:14", "MRK 7:16", "MRK 9:44", "MRK 9:46", "MRK 11:26", "MRK 15:28", "LUK 17:36", "LUK 23:17", "JHN 5:4", "ACT 8:37", "ACT 15:34", "ACT 24:7", "ACT 28:29", "ROM 16:24"],
+    YLT: [],
+    DARBY: ["MAT 23:14", "ACT 8:37", "ACT 15:34"],
+    WEBSTER: [],
+  };
+  const LOADERS = { ASV: ASV_BOOKS, YLT: YLT_BOOKS, DARBY: DARBY_BOOKS, WEBSTER: WEBSTER_BOOKS };
+
+  test.each(["ASV", "YLT", "DARBY", "WEBSTER"] as const)("%s: KJV numbering, every verse present except the few it leaves out", async (id) => {
+    const empty: string[] = [];
+    for (const book of BOOKS) {
+      const chapters = (await LOADERS[id][book.id]()).default;
+      expect(chapters.map((c) => c.length), `${id} ${book.id}`).toEqual(book.verses);
+      chapters.forEach((c, ci) => c.forEach((v, vi) => { if (!v.trim()) empty.push(`${book.id} ${ci + 1}:${vi + 1}`); }));
+    }
+    expect(empty).toEqual(OMITTED[id]);
+  });
+
+  test("their added words are in italics", async () => {
+    const p = await getPassage("GEN.1.4", "WEBSTER");
+    expect(p.translation).toBe("WEBSTER");
+    expect(p.verses[0].segments.some((s) => s.supplied && s.text === "it was")).toBe(true);
+    expect(plainText((await getPassage("PSA.23.1", "ASV")).verses[0].segments)).toMatch(/Jehovah is my shepherd/);
+  });
+});
+
+describe("Douay-Rheims (Vulgate numbering matched to the KJV's)", () => {
+  test("matched chapters have the KJV's verse counts; the rest are empty and listed", async () => {
+    let shownInKjv = 0;
+    for (const book of BOOKS) {
+      const chapters = (await DRA_BOOKS[book.id]()).default;
+      expect(chapters).toHaveLength(book.verses.length);
+      chapters.forEach((c, ci) => {
+        const listed = DRA_NUMBERED_DIFFERENTLY[book.id]?.includes(ci + 1) ?? false;
+        if (listed) { shownInKjv++; expect(c, `${book.id} ${ci + 1}`).toEqual([]); }
+        else expect(c.length, `${book.id} ${ci + 1}`).toBe(book.verses[ci]);
+      });
+    }
+    // Most chapters are its own text.
+    expect(shownInKjv).toBeLessThan(200);
+  });
+
+  test("psalms are found by their KJV numbers, without the titles printed as verses", async () => {
+    expect(plainText((await getPassage("PSA.46.10", "DRA")).verses[0].segments)).toBe("Be still and see that I am God; I will be exalted among the nations, and I will be exalted in the earth.");
+    expect(plainText((await getPassage("PSA.51.10", "DRA")).verses[0].segments)).toMatch(/^Create a clean heart in me, O God/);
+    expect(plainText((await getPassage("PSA.23.4", "DRA")).verses[0].segments)).toMatch(/shadow of death/);
+    expect((await getPassage("PSA.23.1", "DRA")).translation).toBe("DRA");
+  });
+
+  test("psalms numbered as one in the Vulgate but two in the KJV (9-10) show the KJV", async () => {
+    const p = await getPassage("PSA.10.1", "DRA");
+    expect(p.translation).toBe("KJV");
+    expect((await getChapter("PSA", 9, "DRA")).translation).toBe("KJV");
+    expect(DRA_NUMBERED_DIFFERENTLY.PSA).toEqual(expect.arrayContaining([9, 10, 114, 115, 116, 147]));
   });
 });

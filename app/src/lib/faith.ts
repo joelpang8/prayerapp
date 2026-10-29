@@ -38,6 +38,8 @@ export const BIBLE_VERSIONS: { abbr: string; name: string }[] = [
   { abbr: "BSB", name: "Berean Standard Bible" },
   { abbr: "WEB", name: "World English Bible" },
   { abbr: "YLT", name: "Young's Literal Translation" },
+  { abbr: "DARBY", name: "Darby Translation" },
+  { abbr: "WEBSTER", name: "Webster Bible" },
 ];
 
 export function bibleVersionLabel(value: string): string {

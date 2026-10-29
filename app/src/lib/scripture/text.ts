@@ -1,7 +1,12 @@
+import { ASV_BOOKS } from "./asv";
 import { BSB_BOOKS } from "./bsb";
+import { DARBY_BOOKS } from "./darby";
+import { DRA_BOOKS, DRA_NUMBERED_DIFFERENTLY } from "./dra";
 import { KJV_BOOKS } from "./kjv";
 import { RV1909_BOOKS, RV1909_NUMBERED_DIFFERENTLY } from "./rv1909";
 import { WEB_BOOKS } from "./web";
+import { WEBSTER_BOOKS } from "./webster";
+import { YLT_BOOKS } from "./ylt";
 import { chapterTitle, formatReference, parseRefId, type VerseRef } from "./reference";
 import { TRANSLATIONS, type TranslationId } from "./translations";
 
@@ -42,16 +47,28 @@ const BUNDLED: Record<TranslationId, Record<string, () => Promise<{ default: str
   KJV: KJV_BOOKS,
   BSB: BSB_BOOKS,
   WEB: WEB_BOOKS,
+  ASV: ASV_BOOKS,
+  YLT: YLT_BOOKS,
+  DARBY: DARBY_BOOKS,
+  WEBSTER: WEBSTER_BOOKS,
+  DRA: DRA_BOOKS,
   RV1909: RV1909_BOOKS,
 };
 
 /**
- * The translation actually shown for these chapters: the Reina-Valera
- * numbers a few chapters differently from the KJV (whose numbering stored
- * references use), so there the KJV is shown instead, labelled KJV.
+ * Chapters numbered differently from the KJV (whose numbering stored
+ * references use): a few in the Reina-Valera, and those the Douay-Rheims
+ * (which follows the Latin Vulgate) couldn't be matched in.
  */
+const NUMBERED_DIFFERENTLY: Partial<Record<TranslationId, Record<string, readonly number[]>>> = {
+  RV1909: RV1909_NUMBERED_DIFFERENTLY,
+  DRA: DRA_NUMBERED_DIFFERENTLY,
+};
+
+/** The translation actually shown for these chapters: the KJV, labelled KJV, where the chosen one is numbered differently. */
 export function shownTranslation(translation: TranslationId, book: string, chapters: readonly number[]): TranslationId {
-  if (translation === "RV1909" && chapters.some((c) => RV1909_NUMBERED_DIFFERENTLY[book]?.includes(c))) return "KJV";
+  const differs = NUMBERED_DIFFERENTLY[translation]?.[book];
+  if (differs && chapters.some((c) => differs.includes(c))) return "KJV";
   return translation;
 }
 
@@ -82,8 +99,7 @@ function* versesOf(ref: VerseRef, chapters: string[][]) {
 /**
  * The text of a stored reference in the viewer's translation. Only the
  * reference is ever stored; this runs at display time, per viewer.
- * The KJV, BSB, WEB and Reina-Valera 1909 are bundled with the app (public
- * domain). Licensed translations will come through a provider once their
+ * Every translation offered is public domain and bundled with the app. Licensed translations will come through a provider once their
  * terms are known. A reference made only of verses the translation leaves
  * out is shown in the KJV instead, labelled KJV.
  */

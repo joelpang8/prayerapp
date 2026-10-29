@@ -5,16 +5,8 @@ import { t } from "../../i18n";
 import { fonts, makeStyles, Muted, Span, Text, useColors } from "../../components/ui";
 import { chapterTitle, parseRefId } from "../../lib/scripture/reference";
 import { getChapter, plainText, versesInChapter, type Chapter } from "../../lib/scripture/text";
-import type { TranslationId } from "../../lib/scripture/translations";
+import { TRANSLATIONS } from "../../lib/scripture/translations";
 import { useSettings } from "../../session/hooks";
-
-/** The line under the chapter title: which Bible, and what its italics mean. */
-const READ_NOTE = {
-  KJV: "read.kjvNote",
-  BSB: "read.bsbNote",
-  WEB: "read.webNote",
-  RV1909: "read.rvNote",
-} as const satisfies Record<TranslationId, string>;
 
 /**
  * "Read more": the whole chapter around a verse, in my Bible translation (no
@@ -88,7 +80,7 @@ export default function ReadScreen() {
       {current && (
         <>
           <Text style={styles.title} accessibilityRole="header">{current.title}</Text>
-          <Muted>{t(READ_NOTE[current.translation])}</Muted>
+          <Muted>{readNote(current.translation)}</Muted>
           <View style={styles.rule} />
           {nav}
           {current.verses.map((v) => {
@@ -125,6 +117,12 @@ function safeParse(refId: string | undefined) {
   } catch {
     return null;
   }
+}
+
+/** The line under the chapter title: which Bible, and what its italics mean. */
+function readNote(id: Chapter["translation"]): string {
+  const tr = TRANSLATIONS.find((x) => x.id === id)!;
+  return t(tr.addedWords ? "read.noteAddedWords" : "read.note", { name: tr.name });
 }
 
 const useStyles = makeStyles((colors) => ({

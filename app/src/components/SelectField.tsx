@@ -4,11 +4,13 @@ import { FlatList, Modal, Pressable, View } from "react-native";
 import { Button, fonts, makeStyles, Muted, Text, TextInput, useColors } from "./ui";
 import { t } from "../i18n";
 
-export type SelectOption = { value: string; label: string };
+/** `detail`: an optional second line under the label in the list. */
+export type SelectOption = { value: string; label: string; detail?: string };
 
 /**
  * A dropdown: shows the current choice, opens a list to pick from, with
- * "None" to clear and (optionally) "Other…" to type your own.
+ * "None" to clear (unless `noneLabel` is null) and (optionally) "Other…"
+ * to type your own.
  * A value that isn't in the list counts as "Other".
  */
 export function SelectField({
@@ -30,8 +32,8 @@ export function SelectField({
   /** Set to allow "Other…" with this many characters at most. */
   otherMaxLength?: number;
   otherPlaceholder?: string;
-  /** The first row, which clears the choice. */
-  noneLabel?: string;
+  /** The first row, which clears the choice; null for a choice that can't be cleared. */
+  noneLabel?: string | null;
 }) {
   const styles = useStyles();
   const colors = useColors();
@@ -86,7 +88,7 @@ export function SelectField({
           ) : (
             <FlatList
               data={[
-                { value: "", label: noneLabel },
+                ...(noneLabel === null ? [] : [{ value: "", label: noneLabel }]),
                 ...options,
                 ...(otherMaxLength ? [{ value: "\u0000other", label: isOther ? t("select.otherValue", { value }) : t("select.other") }] : []),
               ]}
@@ -100,7 +102,10 @@ export function SelectField({
                     accessibilityState={{ selected }}
                     style={styles.row}
                   >
-                    <Text style={[styles.rowText, !item.value && styles.placeholder]}>{item.label}</Text>
+                    <View style={styles.rowLabels}>
+                      <Text style={[styles.rowText, !item.value && styles.placeholder]}>{item.label}</Text>
+                      {"detail" in item && item.detail ? <Text style={styles.rowDetail}>{item.detail}</Text> : null}
+                    </View>
                     {selected && <Ionicons name="checkmark" size={22} color={colors.accent} />}
                   </Pressable>
                 );
@@ -130,8 +135,10 @@ const useStyles = makeStyles((colors) => ({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
   title: { fontSize: 21, fontFamily: fonts.display, color: colors.text },
   done: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.accent },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, minHeight: 52, borderBottomWidth: 1, borderBottomColor: colors.border },
-  rowText: { fontSize: 16, color: colors.text, flex: 1 },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 10, minHeight: 52, borderBottomWidth: 1, borderBottomColor: colors.border },
+  rowLabels: { flex: 1, gap: 2 },
+  rowText: { fontSize: 16, color: colors.text },
+  rowDetail: { fontSize: 14, color: colors.muted },
   otherBox: { padding: 20, gap: 12 },
   input: { minHeight: 46, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.card },
 }));

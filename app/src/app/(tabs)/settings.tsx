@@ -13,7 +13,7 @@ import { setReminderEnabled, useReminderEnabled } from "../../lib/reminder";
 import { setShowPrayingNames, useShowPrayingNames } from "../../lib/prayingPrefs";
 import { setTextSize, TEXT_SIZES, useTextSize } from "../../lib/textSize";
 import { openPhoneSettings, setNotificationsEnabled, useNotificationPermission, useNotificationsEnabled } from "../../lib/notifications";
-import { TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
+import { isTranslationId, TRANSLATIONS, type TranslationId } from "../../lib/scripture/translations";
 import { setBibleVersion } from "../../lib/settings";
 import { unblockUser } from "../../lib/moderation";
 import { SelectField } from "../../components/SelectField";
@@ -140,21 +140,26 @@ export default function SettingsScreen() {
         {APPEARANCE_OPTIONS.map((o) => (
           <Option key={o.id} label={o.label} selected={appearance === o.id} onPress={() => setAppearance(o.id)} />
         ))}
-              </View>
+      </View>
 
       <InfoLabel section label={t("settings.textSize")} info={t("settings.textSizeNote")} />
       <View style={styles.card}>
         {TEXT_SIZES.map((size) => (
           <Option key={size.id} label={size.label} selected={textSize === size.id} onPress={() => setTextSize(size.id)} />
         ))}
-              </View>
+      </View>
 
       <InfoLabel section label={t("settings.bibleTranslation")} info={t("settings.bibleTranslationNote")} />
       <View style={styles.card}>
-        {TRANSLATIONS.map((tr) => (
-          <Option key={tr.id} label={`${tr.name} (${tr.id})`} selected={settings.bibleVersion === tr.id} onPress={() => choose(tr.id)} />
-        ))}
-              </View>
+        <SelectField
+          title={t("settings.bibleTranslation")}
+          value={settings.bibleVersion}
+          onChange={(id) => { if (isTranslationId(id)) void choose(id); }}
+          options={TRANSLATIONS.map((tr) => ({ value: tr.id, label: `${tr.name} (${tr.id})`, detail: t(`translation.about.${tr.id}`) }))}
+          placeholder={t("settings.bibleTranslation")}
+          noneLabel={null}
+        />
+      </View>
       {error && <ErrorText>{error}</ErrorText>}
 
       <BlockedPeople />
@@ -162,7 +167,7 @@ export default function SettingsScreen() {
       <InfoLabel section label={t("settings.help")} info={t("settings.howItWorksNote")} />
       <View style={styles.card}>
         <Button title={t("settings.howItWorks")} kind="secondary" onPress={() => router.push("/welcome")} />
-                <Button title={t("settings.privacy")} kind="secondary" onPress={openPrivacyPolicy} />
+        <Button title={t("settings.privacy")} kind="secondary" onPress={openPrivacyPolicy} />
       </View>
 
       <View style={styles.spacer} />
@@ -242,7 +247,7 @@ function ListenSettings() {
             onPress={() => toggle(spokenPassage(passage), spokenLanguage(passage))}
           />
         )}
-              </View>
+      </View>
     </>
   );
 }
@@ -266,7 +271,7 @@ function LanguageSettings() {
         {options.map((o) => (
           <Option key={o.id} label={o.label} selected={pref === o.id} onPress={() => setLangPref(o.id)} />
         ))}
-              </View>
+      </View>
     </>
   );
 }
@@ -288,7 +293,7 @@ function BlockedPeople() {
             <Button title={t("settings.unblock")} kind="secondary" onPress={() => unblockUser(db, profile.uid, uid).catch(() => {})} />
           </View>
         ))}
-              </View>
+      </View>
     </>
   );
 }
