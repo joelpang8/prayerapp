@@ -6,6 +6,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { PromptCountdown } from "../../components/PromptCountdown";
+import { OPEN_FOR_MS } from "../../lib/prayShortcut";
 import { OfflineBanner } from "../../components/OfflineBanner";
 import { QueuedPostCard } from "../../components/QueuedPostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
@@ -19,7 +20,6 @@ import { usePullToRefresh } from "../../session/usePullToRefresh";
 import { useProfiles } from "../../session/useProfiles";
 import { locale, t } from "../../i18n";
 
-const OPEN_FOR_MS = 24 * 60 * 60 * 1000; // must match firestore.rules
 
 const time = (d: Date) => d.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
 

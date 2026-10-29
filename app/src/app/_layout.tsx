@@ -80,6 +80,7 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={session.status === "ready"}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="pray" options={{ animation: "none" }} />
         <Stack.Screen name="compose" options={{ presentation: "modal" }} />
         <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
         <Stack.Screen name="profile/[uid]" options={pushed} />
@@ -87,6 +88,7 @@ function RootNavigator() {
         <Stack.Screen name="activity" options={{ ...pushed, title: t("titles.activity") }} />
         <Stack.Screen name="u/[username]" options={{ ...pushed, title: t("titles.invite") }} />
         <Stack.Screen name="read/[ref]" options={{ ...pushed, title: t("titles.read") }} />
+        <Stack.Screen name="verse-card/[ref]" options={{ ...pushed, title: t("verseCard.title") }} />
         <Stack.Screen name="welcome" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
         <Stack.Screen name="delete-account" options={{ ...pushed, title: t("titles.deleteAccount") }} />
       </Stack.Protected>

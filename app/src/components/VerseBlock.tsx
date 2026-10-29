@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useId, useState } from "react";
-import { Pressable, Share, View } from "react-native";
+import { Alert, Pressable, Share, View } from "react-native";
 import { formatReference, parseRefId } from "../lib/scripture/reference";
 import { plainText, type Passage } from "../lib/scripture/text";
 import { spokenLanguage, spokenPassage } from "../lib/verseSpeech";
@@ -156,7 +156,14 @@ function ShareButton({ passage, reference }: { passage: Passage; reference: stri
   const colors = useColors();
   return (
     <Pressable
-      onPress={() => { Share.share({ message: verseShareText(passage) }).catch(() => {}); }}
+      // Share the words (or copy them), or a picture of the verse as a card.
+      onPress={() =>
+        Alert.alert(reference, undefined, [
+          { text: t("verse.shareText"), onPress: () => { Share.share({ message: verseShareText(passage) }).catch(() => {}); } },
+          { text: t("verse.shareImage"), onPress: () => router.push({ pathname: "/verse-card/[ref]", params: { ref: passage.refId } }) },
+          { text: t("common.cancel"), style: "cancel" },
+        ])
+      }
       accessibilityRole="button"
       accessibilityLabel={t("verse.shareA11y", { ref: reference })}
       accessibilityHint={t("verse.shareHint")}

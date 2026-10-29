@@ -1,6 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { useCallback, type ComponentProps } from "react";
+import { useCallback, useEffect, type ComponentProps } from "react";
+import * as QuickActions from "expo-quick-actions";
+import { useQuickActionRouting } from "expo-quick-actions/router";
 import { View, type ColorValue } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
 import { ActivityBell } from "../../components/ActivityBell";
@@ -13,6 +15,7 @@ import { useLiveActivity } from "../../session/useLiveActivity";
 import { useReminder } from "../../session/useReminder";
 import { useActivitySubscription } from "../../session/useActivityNotifications";
 import { t } from "../../i18n";
+import { PRAY_QUICK_ACTION_ID } from "../../lib/prayShortcut";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -67,6 +70,11 @@ export default function TabsLayout() {
   }, []);
   useNotificationTaps(openFromNotification);
   usePushTaps(openFromNotification);
+  // "Pray now" on the app icon's long-press menu; /pray decides where it goes.
+  useEffect(() => {
+    QuickActions.setItems([{ id: PRAY_QUICK_ACTION_ID, title: t("today.prayNow"), icon: "symbol:hands.and.sparkles", params: { href: "/pray" } }]).catch(() => {});
+  }, []);
+  useQuickActionRouting();
   // Listen for my opt-in notifications (prayers, reactions, comments).
   useActivitySubscription();
   // The lock-screen countdown while the prompt is open (iPhone only).

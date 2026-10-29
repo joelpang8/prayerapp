@@ -29,6 +29,7 @@
     "expo-localization": "~57.0.2",
     "expo-location": "~57.0.20",
     "expo-notifications": "~57.0.21",
+    "expo-quick-actions": "^6.0.2",
     "expo-router": "~57.0.24",
     "expo-sharing": "~57.0.24",
     "expo-speech": "~57.0.3",
@@ -39,7 +40,8 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "react-native-view-shot": "5.1.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
