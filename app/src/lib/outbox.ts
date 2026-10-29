@@ -53,6 +53,7 @@ export function isPermanent(err: unknown): string | null {
 export class Outbox {
   private items: QueuedPost[] = [];
   private readonly listeners = new Set<(items: QueuedPost[]) => void>();
+  private readonly sentListeners = new Set<(postId: string) => void>();
   private flushing: Promise<void> | null = null;
   private loaded = false;
 
@@ -83,6 +84,12 @@ export class Outbox {
     this.listeners.add(listener);
     listener(this.items);
     return () => this.listeners.delete(listener);
+  }
+
+  /** Called each time a post is actually sent to the server (not one found already there). */
+  onSent(listener: (postId: string) => void): () => void {
+    this.sentListeners.add(listener);
+    return () => this.sentListeners.delete(listener);
   }
 
   /** Save a post to send, then try to send it straight away. */
@@ -120,9 +127,11 @@ export class Outbox {
       try {
         // An earlier attempt may have reached the server just before the
         // app closed; posting again would be refused (one post per prompt).
-        if (!(await this.sender.exists(item.postId))) await this.sender.send(item);
+        const sent = !(await this.sender.exists(item.postId));
+        if (sent) await this.sender.send(item);
         this.items = this.items.filter((i) => i.postId !== item.postId);
         this.publish();
+        if (sent) for (const l of this.sentListeners) l(item.postId);
       } catch (err) {
         const problem = isPermanent(err);
         this.update(item.postId, problem ? { status: "failed", problem } : { status: "waiting" });

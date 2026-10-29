@@ -6,7 +6,9 @@ import { EmptyState } from "../../components/EmptyState";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
 import { PromptCountdown } from "../../components/PromptCountdown";
+import { prayedCandleLeft } from "../../lib/prayedCandle";
 import { OPEN_FOR_MS } from "../../lib/prayShortcut";
+import { Candle } from "../../components/Candle";
 import { OfflineBanner } from "../../components/OfflineBanner";
 import { QueuedPostCard } from "../../components/QueuedPostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
@@ -71,6 +73,14 @@ export default function TodayScreen() {
       ))}
       {!loaded ? null : myPost ? (
         <>
+          {/* Candle mode: a quiet candle stays lit after I've prayed today. */}
+          <View style={styles.prayedCandle} accessible accessibilityLabel={`${t("candle.title")}. ${t("candle.body")}`}>
+            <Candle left={prayedCandleLeft(myPost.createdAt, now)} />
+            <View style={styles.prayedCandleText}>
+              <Text style={styles.prayedCandleTitle}>{t("candle.title")}</Text>
+              <Muted>{t("candle.body")}</Muted>
+            </View>
+          </View>
           <SectionTitle>{t("today.yourPrayer")}</SectionTitle>
           <PostCard post={myPost} author={profile} footer={<OwnPostActions post={myPost} />} showVerse={false} />
         </>
@@ -153,6 +163,9 @@ const useStyles = makeStyles((colors) => ({
   collapseAll: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent, marginTop: 24 },
   notice: { backgroundColor: colors.accentSoft, borderRadius: 16, padding: 16, gap: 10, marginTop: 16 },
   noticeTitle: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
+  prayedCandle: { flexDirection: "row", alignItems: "flex-end", gap: 14, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, marginBottom: 4 },
+  prayedCandleText: { flex: 1, gap: 2, paddingBottom: 6 },
+  prayedCandleTitle: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
   promptTitle: { fontSize: 26, fontFamily: fonts.displayBold, color: colors.text },
 }));

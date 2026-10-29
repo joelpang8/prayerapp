@@ -201,7 +201,9 @@ function Composer({
         posted.current = true;
         void clearDraft(uid);
       }
-      haptics.done();
+      // A new prayer gets its "amen" when it actually sends (SessionProvider);
+      // an edit gets the usual tap now.
+      if (editing) haptics.done();
       setLeaving(true);
     } catch (err) {
       console.warn("post failed", err);

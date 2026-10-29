@@ -5,6 +5,7 @@ import { auth, db, storage } from "../firebase";
 import { AppState } from "react-native";
 import { ActivityStore } from "../lib/activity";
 import type { Outbox } from "../lib/outbox";
+import { haptics } from "../lib/haptics";
 import { createOutbox } from "../lib/outboxApp";
 import { FeedStore } from "../lib/feed";
 import { EMPTY_GRAPH, type FriendGraph } from "../lib/friends";
@@ -80,10 +81,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     void scoped.outbox.flush();
     const retry = setInterval(() => { if (scoped.outbox.hasWaiting) void scoped.outbox.flush(); }, 20_000);
     const foreground = AppState.addEventListener("change", (s) => { if (s === "active") void scoped.outbox.flush(); });
+    // The "amen": a soft double tap when a prayer reaches the server, now or
+    // later from the outbox (only while the app is open).
+    const offSent = scoped.outbox.onSent(() => { if (AppState.currentState === "active") haptics.amen(); });
     scoped.scope.start((err) => console.warn("friend graph listener failed", err));
     return () => {
       clearInterval(retry);
       foreground.remove();
+      offSent();
       scoped.activity.stop();
       scoped.feed.stop();
       scoped.scope.stop();

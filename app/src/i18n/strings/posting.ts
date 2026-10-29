@@ -4,6 +4,8 @@ import { defineStrings } from "../define";
 export default defineStrings(
   {
     "today.yourPrayer": "Your prayer today",
+    "candle.title": "You prayed today",
+    "candle.body": "Your candle stays lit through the day.",
     "today.timeToPray": "Time to pray",
     "today.wentOutOnTime": "The prompt went out at {sent}. Post by {until} to be on time.",
     "today.wentOutLate": "The prompt went out at {sent}. You can still post; it will be marked late.",
@@ -194,6 +196,8 @@ export default defineStrings(
   },
   {
     "today.yourPrayer": "Tu oración de hoy",
+    "candle.title": "Oraste hoy",
+    "candle.body": "Tu vela sigue encendida durante el día.",
     "today.timeToPray": "Hora de orar",
     "today.wentOutOnTime": "El aviso llegó a las {sent}. Publica antes de las {until} para estar a tiempo.",
     "today.wentOutLate": "El aviso llegó a las {sent}. Aún puedes publicar; se marcará como tarde.",
