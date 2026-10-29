@@ -169,6 +169,8 @@ async function checkPrayersTab(author, viewer) {
     onThisDay: () => mine(where("promptId", "in", ["20240101", "20230101"])),
     // The Prayers calendar and "Your month in prayer": one app month.
     monthInPrayer: () => mine(where("promptId", ">=", "20240101"), where("promptId", "<", "20240201"), orderBy("promptId", "desc")),
+    // "Your year in prayer": one app year (same shape, longer range).
+    yearInPrayer: () => mine(where("promptId", ">=", "20240101"), where("promptId", "<", "20250101"), orderBy("promptId", "desc")),
     // "Search my prayers": all my posts, newest first (searched on the phone).
     search: () => mine(orderBy("createdAt", "desc")),  // found: all my posts (at least 1)
   };

@@ -5,7 +5,10 @@ import { useEffect, useState, useRef } from "react";
 import { Platform, Pressable, ScrollView, Switch, View } from "react-native";
 import { signOut } from "../../auth/signIn";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
-import { db } from "../../firebase";
+import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { db, storage } from "../../firebase";
+import { makeExport } from "../../lib/exportPrayers";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
 import { setLiveActivityEnabled, useLiveActivityEnabled } from "../../lib/liveActivity";
 import { openPrivacyPolicy } from "../../lib/links";
@@ -170,6 +173,8 @@ export default function SettingsScreen() {
         <Button title={t("settings.privacy")} kind="secondary" onPress={openPrivacyPolicy} />
       </View>
 
+      <DownloadMyPrayers />
+
       <View style={styles.spacer} />
       <Button title={t("settings.signOut")} kind="secondary" onPress={() => signOut()} />
       <Button title={t("settings.deleteAccount")} kind="danger" onPress={() => router.push("/delete-account")} />
@@ -204,6 +209,75 @@ function ActivitySwitches() {
         </View>
       ))}
       {error && <ErrorText>{t("common.tryAgain")}</ErrorText>}
+    </>
+  );
+}
+
+/**
+ * "Download my prayers": my own posts, photos and saved verses as one file,
+ * made on the phone and handed to the share sheet (lib/exportPrayers.ts).
+ * The file is deleted from the phone once the share sheet closes.
+ */
+function DownloadMyPrayers() {
+  const styles = useStyles();
+  const colors = useColors();
+  const { profile } = useReadySession();
+  const settings = useSettings();
+  const [photos, setPhotos] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
+
+  async function download() {
+    setBusy(true);
+    setMessage(null);
+    setProgress(null);
+    let file: File | null = null;
+    try {
+      const { html, count } = await makeExport(
+        { db, storage },
+        { uid: profile.uid, name: profile.displayName, translation: settings.bibleVersion },
+        { photos, onProgress: (done, total) => setProgress({ done, total }) },
+      );
+      if (count === 0) {
+        setMessage({ error: false, text: t("settings.downloadNone") });
+        return;
+      }
+      file = new File(Paths.cache, "PrayAlong prayers.html");
+      if (file.exists) file.delete();
+      file.write(html);
+      await Sharing.shareAsync(file.uri, { mimeType: "text/html", UTI: "public.html", dialogTitle: t("settings.download") });
+    } catch (err) {
+      console.warn("download my prayers failed", err);
+      setMessage({ error: true, text: t("settings.downloadFailed") });
+    } finally {
+      // Nothing is left behind on the phone.
+      try { if (file?.exists) file.delete(); } catch { /* already gone */ }
+      setBusy(false);
+      setProgress(null);
+    }
+  }
+
+  return (
+    <>
+      <InfoLabel section label={t("settings.yourData")} info={t("settings.downloadNote")} />
+      <View style={styles.card}>
+        <InfoLabel
+          label={t("settings.downloadPhotos")}
+          right={
+            <Switch
+              value={photos}
+              onValueChange={setPhotos}
+              disabled={busy}
+              trackColor={{ true: colors.accent, false: colors.border }}
+              accessibilityLabel={t("settings.downloadPhotos")}
+            />
+          }
+        />
+        <Button title={t("settings.download")} kind="secondary" onPress={download} busy={busy} />
+        {progress && progress.total > 0 && <Text style={styles.optionText}>{t("settings.downloadPreparing", progress)}</Text>}
+        {message && (message.error ? <ErrorText>{message.text}</ErrorText> : <Text style={styles.optionText}>{message.text}</Text>)}
+      </View>
     </>
   );
 }

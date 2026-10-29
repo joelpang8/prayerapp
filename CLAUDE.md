@@ -17,7 +17,8 @@
 - **Scripture:** posts store only a verse *reference* (and its book code, `verseBook`), never the verse text.
 - **Saved verses** (`users/{uid}/savedVerses/{refId}`) are owner-only and store only `verseRef` and `savedAt`, never the text or anything about the post it was saved from.
 - **Days and months** in the Prayers tab ("On this day", the calendar, "Your month in prayer") are the app's (prompt ids, America/New_York), never the phone's local date.
-- **"Your month in prayer"** is counts only, from my own posts, worked out on the phone and never stored: no streaks, goals, comparisons or "missed" language, and never on-time/late.
+- **"Your month in prayer" and "Your year in prayer"** are counts only, from my own posts, worked out on the phone and never stored: no streaks, goals, comparisons or "missed" language (months without prayers aren't listed), and never on-time/late.
+- **Download my prayers** (`app/src/lib/exportPrayers.ts`) holds only my own posts, photos and saved verses, never anyone else's comments, reactions, taps or names. The file is made on the phone, handed to the share sheet and deleted afterwards.
 - **Prayer helper (ACTS)** only shows hints while writing. It never writes into the notes or adds fields to posts.
 - **Listen (text-to-speech)** plays only from a tap (including Settings' sample, which is a verse), reads only the verse text and reference, uses the voice and speed from Settings (kept on the phone, `app/src/lib/voicePrefs.ts`), and stops when its screen closes or the app leaves the foreground. `expo-audio` is only for the silent-mode session switch: keep its plugin options (no microphone permission, no background audio).
 - **Privacy policy** (`firebase/hosting/privacy/index.html`) must match what the app does. Any change to what's collected, who can see it, or what stays on the phone updates the policy (and its date) in the same change.

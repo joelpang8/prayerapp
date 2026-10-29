@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, test } from "vitest";
-import { appMonthOf, buildRecap, dayKeyOfPromptId, monthIdRange, prayersText } from "../../src/lib/monthRecap";
+import { appMonthOf, buildRecap, buildYearRecap, dayKeyOfPromptId, monthIdRange, prayersText, yearIdRange } from "../../src/lib/monthRecap";
 
 const at = (iso: string) => new Date(iso);
 
@@ -129,5 +129,35 @@ describe("calendar thumbnails", () => {
     expect(src).toContain("usePhoto(path, profile.uid)");
     expect(src).toContain('cachePolicy="none"');
     expect(src).not.toMatch(/getDownloadURL/);
+  });
+});
+
+describe("Your year in prayer", () => {
+  const post = (promptId: string, extra: Partial<{ authorId: string; answeredAt: Date | null; verseRef: string | null }> = {}) =>
+    ({ authorId: "me", promptId, answeredAt: null, verseRef: null, ...extra });
+
+  test("counts only, from my own posts: per month (only months with prayers), answered, verses and books in Bible order", () => {
+    const r = buildYearRecap("me", [
+      post("20260105", { verseRef: "PSA.46.10" }),
+      post("20260106", { verseRef: "PHP.4.6-7", answeredAt: new Date() }),
+      post("20260301", { verseRef: "PSA.46.10" }),
+      post("20261231", { verseRef: "GEN.1.1" }),
+      post("20261001", { authorId: "friend", verseRef: "JHN.3.16" }), // never counted
+    ]);
+    expect(r.posted).toBe(4);
+    expect(r.answered).toBe(1);
+    expect(r.months).toEqual([{ month: 1, count: 2 }, { month: 3, count: 1 }, { month: 12, count: 1 }]);
+    expect(r.verses).toBe(3);
+    expect(r.books).toEqual([{ book: "GEN", count: 1 }, { book: "PSA", count: 2 }, { book: "PHP", count: 1 }]);
+  });
+
+  test("the app's year runs from 1 January to 31 December by prompt id", () => {
+    expect(yearIdRange(2026)).toEqual({ from: "20260101", to: "20270101" });
+  });
+
+  test("no streaks, goals, comparisons or 'missed' wording", async () => {
+    const { default: strings } = await import("../../src/i18n/strings/prayers");
+    const year = Object.entries(strings.en).filter(([k]) => k.startsWith("prayers.year.")).map(([, v]) => v).join(" ").toLowerCase();
+    expect(year).not.toMatch(/streak|goal|missed|best|more than|less than|record|behind/);
   });
 });

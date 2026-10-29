@@ -10,7 +10,9 @@ import { ON_TIME_WINDOW_MS, RESPOND_WINDOW_MS } from "./posts";
  * the on-time window is over and the app is open, or when I turn it off.
  *
  * The lock screen shows "Time to pray" with a 2-minute countdown (like the
- * alert) and "Still on time until 2:21 PM" (true even after the countdown).
+ * alert) and "On time until 2:21 PM · Psalm 46:10" (true even after the
+ * countdown; without the verse on a day that has none). Only the day's verse
+ * reference, the same for everyone, is shown: nothing about me or friends.
  * This file holds the decisions (pure, tested); the app wires them up in
  * session/useLiveActivity.ts.
  */

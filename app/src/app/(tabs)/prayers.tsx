@@ -9,14 +9,14 @@ import { SavedVerses } from "../../components/SavedVerses";
 import { SelectField } from "../../components/SelectField";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text, TextInput, useColors } from "../../components/ui";
 import { db } from "../../firebase";
-import { t, tn } from "../../i18n";
+import { locale, t, tn } from "../../i18n";
 import { addMonths, monthTitle, type YearMonth } from "../../lib/calendar";
 import {
   EMPTY_VERSE_INDEX, isFiltered, NO_FILTER, PAGE_SIZE, refsInBook, watchFilteredPosts, watchPostsOnDays, watchVerseIndex,
   type PrayerFilter, type VerseIndex,
 } from "../../lib/myPrayers";
 import { appDayId, onThisDayIds, yearsAgoText } from "../../lib/onThisDay";
-import { appMonthOf, buildRecap, dayKeyOfPromptId, markedDays, prayersText, watchMyPostsInMonth } from "../../lib/monthRecap";
+import { appMonthOf, buildRecap, buildYearRecap, dayKeyOfPromptId, markedDays, prayersText, watchMyPostsInMonth, watchMyPostsInYear } from "../../lib/monthRecap";
 import { type Post } from "../../lib/posts";
 import { matchesSearch, MIN_SEARCH, SEARCH_LIMIT } from "../../lib/prayerSearch";
 import { BOOKS } from "../../lib/scripture/books";
@@ -337,17 +337,57 @@ function useMonthPosts(uid: string, month: YearMonth): { posts: Post[]; loaded: 
   return state?.key === key ? { posts: state.posts, loaded: true } : { posts: [], loaded: false };
 }
 
+/** My posts in an app year (loaded only while the year is shown). */
+function useYearPosts(uid: string, year: number): { posts: Post[]; loaded: boolean } {
+  const [state, setState] = useState<{ year: number; posts: Post[] } | null>(null);
+  useEffect(() => {
+    return watchMyPostsInYear(db, uid, year, (posts) => setState({ year, posts }), (err) => {
+      console.warn("prayers for year failed", err);
+      setState({ year, posts: [] });
+    });
+  }, [uid, year]);
+  return state?.year === year ? { posts: state.posts, loaded: true } : { posts: [], loaded: false };
+}
+
 /**
- * "Your month in prayer": counts only, from my own posts in the month the
- * calendar shows. No streaks, goals or comparisons, and nothing at all for
- * a month without prayers. Worked out on the phone; nothing is stored.
+ * "Your month in prayer" and "Your year in prayer", with a switch between
+ * them: counts only, from my own posts, for the month the calendar shows or
+ * its year. No streaks, goals, comparisons or "missed" months, and nothing
+ * at all for a month without prayers. Worked out on the phone; nothing is
+ * stored.
  */
 function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
+  const styles = useStyles();
+  const { profile } = useReadySession();
+  const [span, setSpan] = useState<"month" | "year">("month");
+  const recap = buildRecap(profile.uid, posts);
+  if (recap.posted === 0) return null;
+  return (
+    <View style={styles.recap}>
+      <View style={styles.spanSwitch} accessibilityRole="tablist" accessibilityLabel={t("prayers.recap.choose")}>
+        {(["month", "year"] as const).map((s) => (
+          <Pressable
+            key={s}
+            onPress={() => setSpan(s)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: span === s }}
+            style={[styles.spanOption, span === s && styles.spanOptionOn]}
+          >
+            <Text style={[styles.spanText, span === s && styles.spanTextOn]}>{t(s === "month" ? "prayers.recap.month" : "prayers.recap.year")}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {span === "month" ? <MonthRecapBody month={month} posts={posts} /> : <YearRecapBody year={month.year} />}
+      <Muted>{t("prayers.recap.onlyYou")}</Muted>
+    </View>
+  );
+}
+
+function MonthRecapBody({ month, posts }: { month: YearMonth; posts: Post[] }) {
   const styles = useStyles();
   const colors = useColors();
   const { profile } = useReadySession();
   const recap = buildRecap(profile.uid, posts);
-  if (recap.posted === 0) return null;
   const name = monthTitle(month);
   const lines = [
     t("prayers.recap.posted", { prayers: prayersText(recap.posted) }),
@@ -355,7 +395,7 @@ function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
   ].filter(Boolean);
   const summary = [t("prayers.recap.a11y", { month: name }), ...lines].join(" ");
   return (
-    <View style={styles.recap}>
+    <>
       <View accessible accessibilityLabel={summary} style={styles.recapSummary}>
         <Text style={styles.recapTitle} accessibilityRole="header">{t("prayers.recap.title", { month: name })}</Text>
         {lines.map((l) => <Text key={l} style={styles.recapLine}>{l}</Text>)}
@@ -379,8 +419,57 @@ function MonthInPrayer({ month, posts }: { month: YearMonth; posts: Post[] }) {
           ))}
         </View>
       )}
-      <Muted>{t("prayers.recap.onlyYou")}</Muted>
-    </View>
+    </>
+  );
+}
+
+/** "January", "enero": a month's name alone, capitalised as a heading. */
+function monthName(month: number): string {
+  const s = new Date(2026, month - 1, 1).toLocaleDateString(locale(), { month: "long" });
+  return s.charAt(0).toLocaleUpperCase(locale()) + s.slice(1);
+}
+
+function YearRecapBody({ year }: { year: number }) {
+  const styles = useStyles();
+  const { profile } = useReadySession();
+  const { posts, loaded } = useYearPosts(profile.uid, year);
+  if (!loaded) return <Muted>{t("friends.loading")}</Muted>;
+  const recap = buildYearRecap(profile.uid, posts);
+  const lines = [
+    t("prayers.recap.posted", { prayers: prayersText(recap.posted) }),
+    recap.answered > 0 ? tn("prayers.recap.answered", recap.answered) : "",
+    recap.verses > 0 ? tn("prayers.year.verses", recap.verses) : "",
+  ].filter(Boolean);
+  const summary = [t("prayers.year.a11y", { year: String(year) }), ...lines].join(" ");
+  return (
+    <>
+      <View accessible accessibilityLabel={summary} style={styles.recapSummary}>
+        <Text style={styles.recapTitle} accessibilityRole="header">{t("prayers.year.title", { year: String(year) })}</Text>
+        {lines.map((l) => <Text key={l} style={styles.recapLine}>{l}</Text>)}
+      </View>
+      {recap.months.length > 0 && (
+        <View style={styles.recapVerses}>
+          <Text style={styles.recapVersesTitle}>{t("prayers.year.monthsTitle")}</Text>
+          {recap.months.map((m) => (
+            <View key={m.month} style={styles.yearRow} accessible accessibilityLabel={`${monthName(m.month)}, ${prayersText(m.count)}`}>
+              <Text style={styles.yearRowName}>{monthName(m.month)}</Text>
+              <Text style={styles.yearRowCount}>{prayersText(m.count)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {recap.books.length > 0 && (
+        <View style={styles.recapVerses}>
+          <Text style={styles.recapVersesTitle}>{t("prayers.year.booksTitle")}</Text>
+          {recap.books.map((b) => (
+            <View key={b.book} style={styles.yearRow} accessible accessibilityLabel={`${bookName(b.book)}, ${prayersText(b.count)}`}>
+              <Text style={styles.yearRowName}>{bookName(b.book)}</Text>
+              <Text style={styles.yearRowCount}>{prayersText(b.count)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </>
   );
 }
 
@@ -399,6 +488,14 @@ const useStyles = makeStyles((colors) => ({
   recapTitle: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
   recapLine: { fontSize: 16, lineHeight: 24, color: colors.text },
   recapSummary: { gap: 6 },
+  spanSwitch: { flexDirection: "row", alignSelf: "flex-start", backgroundColor: colors.bg, borderRadius: 10, padding: 3, gap: 2, marginBottom: 6 },
+  spanOption: { paddingHorizontal: 16, minHeight: 32, justifyContent: "center", borderRadius: 8 },
+  spanOptionOn: { backgroundColor: colors.accent },
+  spanText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.muted },
+  spanTextOn: { color: colors.onAccent },
+  yearRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 36, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  yearRowName: { fontSize: 15, color: colors.text, flex: 1 },
+  yearRowCount: { fontSize: 15, color: colors.muted, fontVariant: ["tabular-nums"] },
   recapVerses: { marginTop: 6, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
   recapVersesTitle: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
   recapVerse: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 40, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },

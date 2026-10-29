@@ -190,6 +190,7 @@ export default defineStrings(
     "compose.atMost": "At most {max} characters.",
     "post.commentEmpty": "Write something first.",
     "live.onTimeUntil": "Still on time until {time}",
+    "live.onTimeWithVerse": "On time until {time} · {verse}",
   },
   {
     "today.yourPrayer": "Tu oración de hoy",
@@ -379,5 +380,6 @@ export default defineStrings(
     "compose.atMost": "Máximo {max} caracteres.",
     "post.commentEmpty": "Primero escribe algo.",
     "live.onTimeUntil": "Aún a tiempo hasta las {time}",
+    "live.onTimeWithVerse": "A tiempo hasta las {time} · {verse}",
   },
 );

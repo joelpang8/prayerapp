@@ -5,6 +5,7 @@ import { palettes } from "../components/ui";
 import { loadRunning, nextCheckIn, planLiveActivity, saveRunning, useLiveActivityEnabled, type Running } from "../lib/liveActivity";
 import { useLatestPrompt, useMyPosts, useOutbox } from "./hooks";
 import { locale, t } from "../i18n";
+import { formatReference, parseRefId } from "../lib/scripture/reference";
 
 // The lock screen is dark, so the night palette (the same colors as the app).
 const night = palettes.dark;
@@ -22,15 +23,27 @@ const CONFIG: LiveActivity.LiveActivityConfig = {
   contentFit: "contain",
 };
 
-function state(countdownTo: number, onTimeUntil: number, title = t("today.timeToPray")): LiveActivity.LiveActivityState {
+function state(countdownTo: number, onTimeUntil: number, verseRef: string | null): LiveActivity.LiveActivityState {
   const until = new Date(onTimeUntil).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
+  const verse = verseLabel(verseRef);
   return {
-    title,
-    subtitle: t("live.onTimeUntil", { time: until }),
+    title: t("today.timeToPray"),
+    // Today's verse, by reference only (the same for everyone).
+    subtitle: verse ? t("live.onTimeWithVerse", { time: until, verse }) : t("live.onTimeUntil", { time: until }),
     progressBar: { date: countdownTo },
     imageName: "candle",
     dynamicIslandImageName: "candle",
   };
+}
+
+/** "Psalm 46:10", or null without a verse (or one that can't be read). */
+function verseLabel(refId: string | null): string | null {
+  if (!refId) return null;
+  try {
+    return formatReference(parseRefId(refId));
+  } catch {
+    return null;
+  }
 }
 
 function stop(r: Running) {
@@ -73,7 +86,7 @@ export function useLiveActivity(): void {
         await saveRunning(null);
       }
       if (plan.kind === "start") {
-        const activityId = LiveActivity.startActivity(state(plan.countdownTo, plan.onTimeUntil), CONFIG);
+        const activityId = LiveActivity.startActivity(state(plan.countdownTo, plan.onTimeUntil, prompt?.verseRef ?? null), CONFIG);
         if (activityId) {
           running.current = { promptId: plan.promptId, activityId };
           await saveRunning(running.current);
