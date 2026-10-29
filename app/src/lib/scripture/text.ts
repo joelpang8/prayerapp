@@ -1,5 +1,7 @@
+import { BSB_BOOKS } from "./bsb";
 import { KJV_BOOKS } from "./kjv";
 import { RV1909_BOOKS, RV1909_NUMBERED_DIFFERENTLY } from "./rv1909";
+import { WEB_BOOKS } from "./web";
 import { chapterTitle, formatReference, parseRefId, type VerseRef } from "./reference";
 import { TRANSLATIONS, type TranslationId } from "./translations";
 
@@ -38,6 +40,8 @@ export const plainText = (segments: Segment[]) => segments.map((s) => s.text).jo
 // The bundled public-domain texts, one lazily loaded file per book.
 const BUNDLED: Record<TranslationId, Record<string, () => Promise<{ default: string[][] }>>> = {
   KJV: KJV_BOOKS,
+  BSB: BSB_BOOKS,
+  WEB: WEB_BOOKS,
   RV1909: RV1909_BOOKS,
 };
 
@@ -59,26 +63,39 @@ async function bookChapters(book: string, translation: TranslationId): Promise<s
   return (await load()).default;
 }
 
+/**
+ * The verses of a reference. Verses a translation leaves out (the BSB and
+ * WEB keep e.g. Matthew 17:21 only in a footnote) are empty and skipped, as
+ * printed Bibles skip their numbers.
+ */
 function* versesOf(ref: VerseRef, chapters: string[][]) {
   for (let c = ref.startChapter; c <= ref.endChapter; c++) {
     const from = c === ref.startChapter ? ref.startVerse : 1;
     const to = c === ref.endChapter ? ref.endVerse : chapters[c - 1].length;
-    for (let v = from; v <= to; v++) yield { chapter: c, verse: v, raw: chapters[c - 1][v - 1] };
+    for (let v = from; v <= to; v++) {
+      const raw = chapters[c - 1][v - 1];
+      if (raw) yield { chapter: c, verse: v, raw };
+    }
   }
 }
 
 /**
  * The text of a stored reference in the viewer's translation. Only the
  * reference is ever stored; this runs at display time, per viewer.
- * The KJV and the Reina-Valera 1909 are bundled with the app (public
+ * The KJV, BSB, WEB and Reina-Valera 1909 are bundled with the app (public
  * domain). Licensed translations will come through a provider once their
- * terms are known.
+ * terms are known. A reference made only of verses the translation leaves
+ * out is shown in the KJV instead, labelled KJV.
  */
 export async function getPassage(refId: string, translation: TranslationId): Promise<Passage> {
   const ref = parseRefId(refId);
   const span = Array.from({ length: ref.endChapter - ref.startChapter + 1 }, (_, i) => ref.startChapter + i);
-  const shown = shownTranslation(translation, ref.book, span);
-  const chapters = await bookChapters(ref.book, shown);
+  let shown = shownTranslation(translation, ref.book, span);
+  let chapters = await bookChapters(ref.book, shown);
+  if (shown !== "KJV" && versesOf(ref, chapters).next().done) {
+    shown = "KJV";
+    chapters = await bookChapters(ref.book, shown);
+  }
   return {
     refId,
     // A Spanish Bible names its books in Spanish; otherwise the app's language.
@@ -110,7 +127,8 @@ export async function getChapter(book: string, chapter: number, requested: Trans
     chapter,
     title: chapterTitle(book, chapter),
     translation,
-    verses: verses.map((raw, i) => ({ chapter, verse: i + 1, segments: segmentsOf(raw) })),
+    // Verses this translation leaves out are skipped (their numbers too).
+    verses: verses.flatMap((raw, i) => (raw ? [{ chapter, verse: i + 1, segments: segmentsOf(raw) }] : [])),
     chapters: chapters.length,
   };
 }

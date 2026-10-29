@@ -203,7 +203,7 @@ service cloud.firestore {
       // allows it. Must match app/src/lib/scripture/translations.ts.
       match /private/{docId} {
         function allowedTranslations() {
-          return ['KJV', 'RV1909'];
+          return ['KJV', 'BSB', 'WEB', 'RV1909'];
         }
 
         // verseIndex: { books: {PHP: 3}, refs: {"PHP.4.6-7": 2} }, the verses

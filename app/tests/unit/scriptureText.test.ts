@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { BOOKS } from "../../src/lib/scripture/books";
 import { KJV_BOOKS } from "../../src/lib/scripture/kjv";
+import { BSB_BOOKS } from "../../src/lib/scripture/bsb";
 import { RV1909_BOOKS, RV1909_NUMBERED_DIFFERENTLY } from "../../src/lib/scripture/rv1909";
+import { WEB_BOOKS } from "../../src/lib/scripture/web";
 import { getChapter, getPassage, plainText, segmentsOf, TranslationUnavailableError } from "../../src/lib/scripture/text";
 
 describe("bundled KJV text", () => {
@@ -98,4 +100,48 @@ test("chapters numbered differently in Spanish show the KJV, labelled KJV", asyn
   expect((await getChapter("JOB", 39, "RV1909")).translation).toBe("KJV");
   expect((await getChapter("JOB", 37, "RV1909")).translation).toBe("RV1909");
   expect((await getPassage("PSA.46.10", "RV1909")).translation).toBe("RV1909");
+});
+
+describe("bundled modern English: Berean Standard Bible and World English Bible", () => {
+  const OMITTED = {
+    BSB: ["MAT 17:21", "MAT 18:11", "MAT 23:14", "MRK 7:16", "MRK 9:44", "MRK 9:46", "MRK 11:26", "MRK 15:28", "LUK 17:36", "LUK 23:17", "JHN 5:4", "ACT 8:37", "ACT 15:34", "ACT 24:7", "ACT 28:29", "ROM 16:24"],
+    WEB: ["LUK 17:36", "ACT 8:37", "ACT 15:34", "ACT 24:7"],
+  };
+  const LOADERS = { BSB: BSB_BOOKS, WEB: WEB_BOOKS };
+
+  test.each(["BSB", "WEB"] as const)("%s: KJV numbering, every verse present except the few it leaves out", async (id) => {
+    const empty: string[] = [];
+    for (const book of BOOKS) {
+      const chapters = (await LOADERS[id][book.id]()).default;
+      expect(chapters.map((c) => c.length), `${id} ${book.id}`).toEqual(book.verses);
+      chapters.forEach((c, ci) => c.forEach((v, vi) => { if (!v.trim()) empty.push(`${book.id} ${ci + 1}:${vi + 1}`); }));
+    }
+    expect(empty).toEqual(OMITTED[id]);
+  });
+
+  test("the same reference in each translation", async () => {
+    expect(plainText((await getPassage("PHP.4.6", "BSB")).verses[0].segments)).toBe("Be anxious for nothing, but in everything, by prayer and petition, with thanksgiving, present your requests to God.");
+    expect(plainText((await getPassage("PHP.4.6", "WEB")).verses[0].segments)).toBe("In nothing be anxious, but in everything, by prayer and petition with thanksgiving, let your requests be made known to God.");
+    expect((await getPassage("PHP.4.6", "BSB")).translation).toBe("BSB");
+  });
+
+  test("left-out verses are skipped; a reference made only of them shows the KJV", async () => {
+    const p = await getPassage("MAT.17.20-22", "BSB");
+    expect(p.translation).toBe("BSB");
+    expect(p.verses.map((v) => v.verse)).toEqual([20, 22]);
+    const only = await getPassage("ACT.8.37", "WEB");
+    expect(only.translation).toBe("KJV");
+    expect(plainText(only.verses[0].segments)).toMatch(/^And Philip said/);
+    const chapter = await getChapter("MRK", 9, "BSB");
+    expect(chapter.translation).toBe("BSB");
+    expect(chapter.verses.map((v) => v.verse)).not.toContain(44);
+    expect(chapter.verses).toHaveLength(48);
+  });
+
+  test("the WEB's closing doxology of Romans is found at 16:25-27, as in the KJV", async () => {
+    const p = await getPassage("ROM.16.25-27", "WEB");
+    expect(p.translation).toBe("WEB");
+    expect(plainText(p.verses[0].segments)).toMatch(/^Now to him who is able to establish you/);
+    expect((await getChapter("ROM", 14, "WEB")).verses).toHaveLength(23);
+  });
 });

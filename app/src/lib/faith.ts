@@ -35,6 +35,7 @@ export const BIBLE_VERSIONS: { abbr: string; name: string }[] = [
   { abbr: "TLB", name: "The Living Bible" },
   { abbr: "TPT", name: "The Passion Translation" },
   { abbr: "ASV", name: "American Standard Version" },
+  { abbr: "BSB", name: "Berean Standard Bible" },
   { abbr: "WEB", name: "World English Bible" },
   { abbr: "YLT", name: "Young's Literal Translation" },
 ];

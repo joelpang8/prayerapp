@@ -32,9 +32,17 @@ describe("preferred translation setting", () => {
     await assertSucceeds(updateDoc(settings(db), { bibleVersion: "KJV" }));
   });
 
+  test("owner can choose the Berean Standard Bible or World English Bible (public domain)", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(setDoc(settings(db), { bibleVersion: "BSB" }));
+    await assertSucceeds(updateDoc(settings(db), { bibleVersion: "WEB" }));
+    // Still owner-only: nobody else can set it for them.
+    await assertFails(setDoc(settings(signedInAs(env, "bob"), "alice"), { bibleVersion: "BSB" }));
+  });
+
   test("translations not on the allowed list are rejected (licence gate)", async () => {
     const db = signedInAs(env, "alice");
-    for (const v of ["NIV", "ESV", "kjv", "rv1909", "RVR1960", "", 1, null]) {
+    for (const v of ["NIV", "ESV", "NLT", "kjv", "bsb", "web", "rv1909", "RVR1960", "", 1, null]) {
       await assertFails(setDoc(settings(db), { bibleVersion: v }));
     }
   });

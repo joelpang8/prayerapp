@@ -89,6 +89,8 @@ export default defineStrings(
     "read.unavailable": "This chapter isn't available.",
     "read.kjvNote": "King James Version. Words in italics were added by the translators.",
     "read.rvNote": "Reina-Valera 1909. Words in italics were added by the translators.",
+    "read.bsbNote": "Berean Standard Bible.",
+    "read.webNote": "World English Bible.",
     "read.yourVerse": "The verse you were reading",
     "read.verseA11y": "Verse {verse}. {text}",
     // Screen titles
@@ -226,6 +228,8 @@ export default defineStrings(
     "read.unavailable": "Este capítulo no está disponible.",
     "read.kjvNote": "Versión King James (en inglés). Las palabras en cursiva las añadieron los traductores.",
     "read.rvNote": "Reina-Valera 1909. Las palabras en cursiva las añadieron los traductores.",
+    "read.bsbNote": "Berean Standard Bible (en inglés).",
+    "read.webNote": "World English Bible (en inglés).",
     "read.yourVerse": "El versículo que estabas leyendo",
     "read.verseA11y": "Versículo {verse}. {text}",
     "titles.prayer": "Oración",

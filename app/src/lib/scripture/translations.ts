@@ -5,6 +5,8 @@
  */
 export const TRANSLATIONS = [
   { id: "KJV", name: "King James Version", language: "en", licence: "public domain" },
+  { id: "BSB", name: "Berean Standard Bible", language: "en", licence: "public domain (eBible.org)" },
+  { id: "WEB", name: "World English Bible", language: "en", licence: "public domain (eBible.org)" },
   { id: "RV1909", name: "Reina-Valera 1909", language: "es", licence: "public domain (eBible.org)" },
 ] as const;
 
