@@ -10,7 +10,10 @@ import { RequestListEditor } from "../components/RequestListEditor";
 import { SelectField } from "../components/SelectField";
 import { joinRequests, MAX_REQUESTS, splitRequests } from "../lib/prayerRequests";
 import { BIBLE_VERSIONS, DENOMINATIONS, denominationLabel } from "../lib/faith";
-import { ABOUT_LIMITS, aboutFields, aboutProblem, removeAvatar, saveAbout, setAvatar, watchAbout, type About, type AboutDoc } from "../lib/profile";
+import {
+  ABOUT_LIMITS, aboutFields, aboutProblem, changeDisplayName, changeUsername, displayNameProblem, normalizeUsername, removeAvatar, saveAbout,
+  setAvatar, usernameProblem, UsernameTakenError, watchAbout, type About, type AboutDoc,
+} from "../lib/profile";
 import { useReadySession } from "../session/SessionProvider";
 import { t } from "../i18n";
 
@@ -134,6 +137,7 @@ export default function EditProfileScreen() {
           {profile.avatarPath && <Button title={t("editProfile.remove")} kind="danger" onPress={deletePhoto} disabled={photoBusy} />}
         </View>
         <Muted>{t("editProfile.publicNote")}</Muted>
+        <NameForm />
       </View>
 
       <View style={styles.card}>
@@ -190,7 +194,75 @@ export default function EditProfileScreen() {
   );
 }
 
+/**
+ * Name and username (both public). A new username is checked like at sign-up
+ * and saved in one batch with the old one released (lib/profile.ts).
+ */
+function NameForm() {
+  const styles = useStyles();
+  const { profile } = useReadySession();
+  const [name, setName] = useState(profile.displayName);
+  const [username, setUsername] = useState(profile.username);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const normalized = normalizeUsername(username);
+  const nameChanged = name.trim() !== profile.displayName;
+  const usernameChanged = normalized !== profile.username;
+  const problem = (nameChanged ? displayNameProblem(name) : null) ?? (usernameChanged ? usernameProblem(normalized) : null);
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    try {
+      if (usernameChanged) await changeUsername(db, profile.uid, profile.username, normalized);
+      if (nameChanged) await changeDisplayName(db, profile.uid, name);
+      setUsername(normalized);
+      setSaved(true);
+    } catch (err) {
+      console.warn("name change failed", err);
+      setError(err instanceof UsernameTakenError ? t("onboarding.taken", { username: normalized }) : t("editProfile.couldntSave"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <View style={styles.nameForm}>
+      <Text style={styles.label} accessibilityRole="header">{t("editProfile.nameAndUsername")}</Text>
+      <View style={styles.field}>
+        <Text style={styles.label}>{t("editProfile.name")}</Text>
+        <TextInput value={name} onChangeText={(v) => { setName(v); setSaved(false); }} maxLength={60} style={styles.input} accessibilityLabel={t("editProfile.name")} />
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.label}>{t("editProfile.username")}</Text>
+        <TextInput
+          value={username}
+          onChangeText={(v) => { setUsername(v); setSaved(false); }}
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={25}
+          style={styles.input}
+          accessibilityLabel={t("editProfile.username")}
+        />
+        {usernameChanged && <Muted>{t("editProfile.usernameNote")}</Muted>}
+      </View>
+      {problem && <ErrorText>{problem}</ErrorText>}
+      {error && <ErrorText>{error}</ErrorText>}
+      <Button
+        title={saved && !nameChanged && !usernameChanged ? t("editProfile.nameSaved") : t("editProfile.saveName")}
+        kind="secondary"
+        onPress={save}
+        busy={busy}
+        disabled={(!nameChanged && !usernameChanged) || !!problem}
+      />
+    </View>
+  );
+}
+
 const useStyles = makeStyles((colors) => ({
+  nameForm: { gap: 10, marginTop: 6, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, paddingBottom: 48, gap: 12 },
   title: { fontSize: 28, fontFamily: fonts.displayBold, color: colors.text },

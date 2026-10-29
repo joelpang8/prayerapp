@@ -149,6 +149,12 @@ export default defineStrings(
 
     // Edit profile
     "editProfile.title": "Edit profile",
+    "editProfile.nameAndUsername": "Name and username",
+    "editProfile.name": "Name",
+    "editProfile.username": "Username",
+    "editProfile.usernameNote": "Your old username is let go straight away: someone else could take it, and invite links with it stop finding you. Friends stay friends.",
+    "editProfile.saveName": "Save name and username",
+    "editProfile.nameSaved": "Saved",
     "editProfile.couldntLoad": "Couldn't load your profile.",
     "editProfile.couldntUpdatePhoto": "Couldn't update your photo. Please try again.",
     "editProfile.couldntRemovePhoto": "Couldn't remove your photo. Please try again.",
@@ -411,6 +417,12 @@ export default defineStrings(
     "friends.thatsYou": "Eres tú",
 
     "editProfile.title": "Editar perfil",
+    "editProfile.nameAndUsername": "Nombre y nombre de usuario",
+    "editProfile.name": "Nombre",
+    "editProfile.username": "Nombre de usuario",
+    "editProfile.usernameNote": "Tu nombre de usuario anterior queda libre enseguida: otra persona podría usarlo, y los enlaces de invitación con él dejan de encontrarte. Tus amigos siguen siendo tus amigos.",
+    "editProfile.saveName": "Guardar nombre y nombre de usuario",
+    "editProfile.nameSaved": "Guardado",
     "editProfile.couldntLoad": "No se pudo cargar tu perfil.",
     "editProfile.couldntUpdatePhoto": "No se pudo actualizar tu foto. Por favor, inténtalo de nuevo.",
     "editProfile.couldntRemovePhoto": "No se pudo quitar tu foto. Por favor, inténtalo de nuevo.",

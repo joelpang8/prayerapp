@@ -76,15 +76,24 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && getAfter(usernameDoc(request.resource.data.username)).data.uid == uid;
 
-      // Display name and profile photo are mutable; usernames are fixed in
-      // v1. The photo must be in the owner's own avatars/ folder (storage
-      // rules only let the owner write there); removing it deletes the field.
-      allow update: if isSelf(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'avatarPath'])
-        && isValidDisplayName(request.resource.data.displayName)
-        && (!('avatarPath' in request.resource.data)
-            || (request.resource.data.avatarPath is string
-                && request.resource.data.avatarPath.matches('^avatars/' + uid + '/[A-Za-z0-9]{1,64}[.]jpg$')));
+      // Display name and profile photo are mutable. The photo must be in the
+      // owner's own avatars/ folder (storage rules only let the owner write
+      // there); removing it deletes the field.
+      // The username can change too, but only as one batch that claims the
+      // new name (usernames/{new} pointing at me) and releases the old one
+      // (usernames/{old} deleted), so a name is never held by two people and
+      // I never hold two names.
+      allow update: if isSelf(uid) && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'avatarPath'])
+          && isValidDisplayName(request.resource.data.displayName)
+          && (!('avatarPath' in request.resource.data)
+              || (request.resource.data.avatarPath is string
+                  && request.resource.data.avatarPath.matches('^avatars/' + uid + '/[A-Za-z0-9]{1,64}[.]jpg$'))))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username'])
+          && isValidUsername(request.resource.data.username)
+          && request.resource.data.username != resource.data.username
+          && getAfter(usernameDoc(request.resource.data.username)).data.uid == uid
+          && !existsAfter(usernameDoc(resource.data.username))));
 
       // Account deletion goes through a Cloud Function (step 5) so that the
       // user's posts, follows and photos are removed together.
@@ -281,18 +290,29 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if false;
 
-      // A user can claim exactly one username: only while creating their
-      // profile (profile must not exist yet, and must exist after the batch
-      // pointing back at this username). Create fails if already taken
-      // because the doc already exists (that would be an update).
+      // A user holds exactly one username. It's claimed while creating the
+      // profile (the profile doesn't exist yet, and after the batch points
+      // back at this username), or when changing it (the profile pointed at
+      // another name before the batch and at this one after; the old claim
+      // is released in the same batch, see users/{uid} update). Create fails
+      // if already taken because the doc already exists (that would be an
+      // update).
       allow create: if signedIn()
         && isValidUsername(username)
         && request.resource.data.keys().hasOnly(['uid'])
         && request.resource.data.uid == request.auth.uid
-        && !exists(userDoc(request.auth.uid))
-        && getAfter(userDoc(request.auth.uid)).data.username == username;
+        && getAfter(userDoc(request.auth.uid)).data.username == username
+        && (!exists(userDoc(request.auth.uid))
+            || get(userDoc(request.auth.uid)).data.username != username);
 
-      allow update, delete: if false;
+      // Releasing my old name: only in the batch that moves my profile to a
+      // new one. Nobody else's claim can be deleted or reassigned.
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && existsAfter(userDoc(request.auth.uid))
+        && getAfter(userDoc(request.auth.uid)).data.username != username;
+
+      allow update: if false;
     }
 
     // ---------- follows (friend requests / friendships) ----------

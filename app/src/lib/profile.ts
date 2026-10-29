@@ -109,6 +109,31 @@ export async function createProfile(
   }
 }
 
+/**
+ * Changes my username in one batch, as the rules require: the profile points
+ * at the new name, the new name is claimed, and the old one is released (so
+ * anyone can take it afterwards, and old invite links stop finding me).
+ */
+export async function changeUsername(db: Firestore, uid: string, from: string, to: string): Promise<void> {
+  const batch = writeBatch(db);
+  batch.update(doc(db, "users", uid), { username: to });
+  batch.set(doc(db, "usernames", to), { uid });
+  batch.delete(doc(db, "usernames", from));
+  try {
+    await batch.commit();
+  } catch (err) {
+    if (await getDoc(doc(db, "usernames", to)).then((s) => s.exists(), () => false)) {
+      throw new UsernameTakenError(to);
+    }
+    throw err;
+  }
+}
+
+/** Changes my display name (anyone signed in sees it, like the username). */
+export function changeDisplayName(db: Firestore, uid: string, name: string): Promise<void> {
+  return updateDoc(doc(db, "users", uid), { displayName: name.trim() });
+}
+
 export async function getProfile(db: Firestore, uid: string): Promise<Profile | null> {
   const snap = await getDoc(doc(db, "users", uid));
   if (!snap.exists()) return null;
