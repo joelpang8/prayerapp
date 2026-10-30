@@ -1,4 +1,5 @@
 import * as Location from "expo-location";
+import { uniquePlaceNames } from "./placeNames";
 import { MAX_PLACE } from "./posts";
 
 type Address = Pick<Location.LocationGeocodedAddress, "city" | "district" | "subregion" | "region" | "country">;
@@ -42,4 +43,22 @@ export async function currentPlaceName(): Promise<string> {
   const name = address ? placeName(address) : null;
   if (!name) throw new LocationUnavailableError("geocode");
   return name;
+}
+
+/**
+ * Town names matching what I typed, for "Where I'm from". Uses the phone's
+ * own place search (Apple's on iPhone): no location permission, and only
+ * town-level names come back; the coordinates are dropped straight away.
+ */
+export async function searchPlaceNames(query: string, max = 5): Promise<string[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const spots = (await Location.geocodeAsync(q).catch(() => [])).slice(0, max);
+  const names = await Promise.all(
+    spots.map(async (s) => {
+      const [address] = await Location.reverseGeocodeAsync({ latitude: s.latitude, longitude: s.longitude }).catch(() => []);
+      return address ? placeName(address) : null;
+    }),
+  );
+  return uniquePlaceNames(names);
 }

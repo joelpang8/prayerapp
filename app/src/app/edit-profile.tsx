@@ -10,6 +10,7 @@ import { RequestListEditor } from "../components/RequestListEditor";
 import { SelectField } from "../components/SelectField";
 import { joinRequests, MAX_REQUESTS, splitRequests } from "../lib/prayerRequests";
 import { BIBLE_VERSIONS, DENOMINATIONS, denominationLabel } from "../lib/faith";
+import { PlaceField } from "../components/PlaceField";
 import {
   ABOUT_LIMITS, aboutFields, aboutProblem, changeDisplayName, changeUsername, displayNameProblem, normalizeUsername, removeAvatar, saveAbout,
   setAvatar, usernameProblem, UsernameTakenError, watchAbout, type About, type AboutDoc,
@@ -148,7 +149,16 @@ export default function EditProfileScreen() {
           <Text style={styles.label}>{t("editProfile.birthday")}</Text>
           <BirthdayField value={form?.birthday ?? ""} onChange={set("birthday")} />
         </View>
-        {field("hometown", t("editProfile.hometown"), t("editProfile.hometownPlaceholder"))}
+        <View style={styles.field}>
+          <Text style={styles.label}>{t("editProfile.hometown")}</Text>
+          <PlaceField
+            value={form?.hometown ?? ""}
+            onChange={set("hometown")}
+            maxLength={ABOUT_LIMITS.hometown}
+            title={t("editProfile.hometown")}
+            placeholder={t("editProfile.hometownPlaceholder")}
+          />
+        </View>
 
         <View style={styles.field}>
           <View style={styles.fieldHeader}>

@@ -67,3 +67,12 @@ export function cleanRow(text: string): string {
 export function canAddRow(rows: readonly string[]): boolean {
   return rows.length < MAX_REQUESTS && rows.every((r) => r.trim() !== "");
 }
+
+/** Rows with one moved up (-1) or down (+1); out of range leaves them as they are. Ids follow the text, so moving keeps each request's count. */
+export function moveRow<T>(rows: readonly T[], index: number, delta: -1 | 1): T[] {
+  const to = index + delta;
+  if (index < 0 || index >= rows.length || to < 0 || to >= rows.length) return [...rows];
+  const next = [...rows];
+  [next[index], next[to]] = [next[to], next[index]];
+  return next;
+}
