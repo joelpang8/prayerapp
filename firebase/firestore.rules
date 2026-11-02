@@ -151,10 +151,31 @@ service cloud.firestore {
                && d.requestIds.join(',').matches('^[A-Za-z0-9]{8,32}(,[A-Za-z0-9]{8,32})*$'))
             : !('requestIds' in d);
         }
+        // Answered requests: answeredIds (each one of requestIds, no repeats)
+        // with answerNotes in the same order, each a note of up to 120
+        // characters (may be empty). Present together, or not at all.
+        function noteOk(notes, i) {
+          return notes.size() <= i || (notes[i] is string && notes[i].size() <= 120);
+        }
+        function validAnswers(d) {
+          return ('answeredIds' in d)
+            ? ('requestIds' in d
+               && d.answeredIds is list && d.answeredIds.size() >= 1 && d.answeredIds.size() <= 10
+               && allStrings(d.answeredIds)
+               && d.answeredIds.toSet().size() == d.answeredIds.size()
+               && d.requestIds.toSet().hasAll(d.answeredIds)
+               && d.answerNotes is list && d.answerNotes.size() == d.answeredIds.size()
+               && noteOk(d.answerNotes, 0) && noteOk(d.answerNotes, 1) && noteOk(d.answerNotes, 2)
+               && noteOk(d.answerNotes, 3) && noteOk(d.answerNotes, 4) && noteOk(d.answerNotes, 5)
+               && noteOk(d.answerNotes, 6) && noteOk(d.answerNotes, 7) && noteOk(d.answerNotes, 8)
+               && noteOk(d.answerNotes, 9))
+            : !('answerNotes' in d);
+        }
         allow create, update: if isSelf(uid)
           && docId == 'about'
-          && request.resource.data.keys().hasOnly(['bio', 'birthday', 'hometown', 'prayerRequests', 'requestIds', 'bibleVersion', 'denomination', 'church'])
+          && request.resource.data.keys().hasOnly(['bio', 'birthday', 'hometown', 'prayerRequests', 'requestIds', 'answeredIds', 'answerNotes', 'bibleVersion', 'denomination', 'church'])
           && validRequests(request.resource.data)
+          && validAnswers(request.resource.data)
           && (!('bio' in request.resource.data) || (request.resource.data.bio is string && request.resource.data.bio.size() <= 160))
           && validBirthday(request.resource.data)
           && optionalText(request.resource.data, 'prayerRequests', 500)
@@ -196,7 +217,9 @@ service cloud.firestore {
           && tapId == request.resource.data.itemId + '_' + request.auth.uid
           && request.resource.data.createdAt == request.time
           && areFriends(request.auth.uid, uid)
-          && request.resource.data.itemId in aboutData().get('requestIds', []);
+          && request.resource.data.itemId in aboutData().get('requestIds', [])
+          // An answered request doesn't take new "I'll pray for this" taps.
+          && !(request.resource.data.itemId in aboutData().get('answeredIds', []));
 
         allow update: if false;
         allow delete: if signedIn() && resource.data.friendUid == request.auth.uid;

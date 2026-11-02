@@ -81,6 +81,19 @@ describe("who can tap", () => {
   });
 });
 
+describe("answered requests", () => {
+  test("an answered request takes no new taps; others still do, and earlier taps stay", async () => {
+    await seedFriends(env, U.alice, U.bob);
+    await seedFriends(env, U.alice, U.carol);
+    await assertSucceeds(tap(U.carol, MUM));
+    await seed(env, (db) => updateDoc(doc(db, "users", U.alice, "friendsOnly", "about"), { answeredIds: [MUM], answerNotes: ["She's home!"] }));
+    await assertFails(tap(U.bob, MUM));
+    await assertSucceeds(tap(U.bob, WORK));
+    // Carol's tap from before is still hers to see (and the owner's to count).
+    await assertSucceeds(getDoc(tapRef(signedInAs(env, U.carol), U.alice, MUM, U.carol)));
+  });
+});
+
 describe("what a tap must be", () => {
   beforeEach(async () => { await seedFriends(env, U.alice, U.bob); });
 

@@ -172,6 +172,44 @@ describe("prayer requests: one id per line", () => {
   });
 });
 
+describe("answered prayer requests", () => {
+  const save = (data, uid = "alice") => setDoc(about(signedInAs(env, uid)), data);
+  const base = { prayerRequests: "One\nTwo\nThree", requestIds: ["req1aaaaaa", "req2bbbbbb", "req3cccccc"] };
+
+  test("the owner can mark requests answered, with an optional note, and unmark them", async () => {
+    await assertSucceeds(save({ ...base, answeredIds: ["req2bbbbbb"], answerNotes: ["The job came through!"] }));
+    await assertSucceeds(save({ ...base, answeredIds: ["req3cccccc", "req1aaaaaa"], answerNotes: ["", "Healed"] }));
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(updateDoc(about(db), { answeredIds: deleteField(), answerNotes: deleteField() }));
+  });
+
+  test("friends can read them (they're part of the friends-only details); strangers can't", async () => {
+    await seed(env, (db) => setDoc(about(db), { ...base, answeredIds: ["req1aaaaaa"], answerNotes: ["Thank you"] }));
+    await seedFriends(env, "alice", "bob");
+    await assertSucceeds(getDoc(about(signedInAs(env, "bob"))));
+    await assertFails(getDoc(about(signedInAs(env, "carol"))));
+  });
+
+  test("only ids of current requests, no repeats, notes in step and at most 120 characters", async () => {
+    await assertFails(save({ ...base, answeredIds: ["reqOTHER00"], answerNotes: [""] }));
+    await assertFails(save({ ...base, answeredIds: ["req1aaaaaa", "req1aaaaaa"], answerNotes: ["", ""] }));
+    await assertFails(save({ ...base, answeredIds: ["req1aaaaaa"], answerNotes: [] }));
+    await assertFails(save({ ...base, answeredIds: ["req1aaaaaa"] }));
+    await assertFails(save({ ...base, answerNotes: ["x"] }));
+    await assertFails(save({ ...base, answeredIds: [], answerNotes: [] }));
+    await assertFails(save({ ...base, answeredIds: ["req1aaaaaa"], answerNotes: ["x".repeat(121)] }));
+    await assertSucceeds(save({ ...base, answeredIds: ["req1aaaaaa"], answerNotes: ["x".repeat(120)] }));
+    await assertFails(save({ ...base, answeredIds: ["req1aaaaaa"], answerNotes: [7] }));
+    await assertFails(save({ answeredIds: ["req1aaaaaa"], answerNotes: [""] })); // no requests at all
+  });
+
+  test("nobody else can mark someone's request answered", async () => {
+    await seed(env, (db) => setDoc(about(db), base));
+    await seedFriends(env, "alice", "bob");
+    await assertFails(updateDoc(about(signedInAs(env, "bob")), { answeredIds: ["req1aaaaaa"], answerNotes: [""] }));
+  });
+});
+
 describe("profile photo path on the public profile", () => {
   test("owner can set, change and remove it", async () => {
     const db = signedInAs(env, "alice");

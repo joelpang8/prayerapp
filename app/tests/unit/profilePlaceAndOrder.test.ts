@@ -30,3 +30,17 @@ describe("Where I'm from", () => {
     expect(search).not.toMatch(/requestForegroundPermissionsAsync/); // typing a town needs no permission
   });
 });
+
+describe("answered requests: stored form", async () => {
+  const { answerFields, answersFromData } = await import("../../src/lib/prayerRequests");
+  test("ids with notes in the same order, only for current requests, notes trimmed to 120", () => {
+    const answers = new Map([["b", "  Yes!  "], ["gone", "x"], ["a", "y".repeat(200)]]);
+    expect(answerFields(answers, ["a", "b", "c"])).toEqual({ answeredIds: ["a", "b"], answerNotes: ["y".repeat(120), "Yes!"] });
+    expect(answerFields(new Map(), ["a"])).toBeNull();
+  });
+  test("reading back ignores anything malformed", () => {
+    expect([...answersFromData(["a", "b"], ["x", ""])]).toEqual([["a", "x"], ["b", ""]]);
+    expect(answersFromData(["a"], []).size).toBe(0);
+    expect(answersFromData("a", ["x"]).size).toBe(0);
+  });
+});

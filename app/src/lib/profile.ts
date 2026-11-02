@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, type FirebaseStorage } from "firebase/storage";
 import type { PhotoData } from "./posts";
-import { assignRequestIds, joinRequests, MAX_REQUESTS, requestItems, splitRequests, type PrayerRequest } from "./prayerRequests";
+import { answerFields, answersFromData, assignRequestIds, joinRequests, MAX_REQUESTS, requestItems, splitRequests, type PrayerRequest } from "./prayerRequests";
 import { locale, t } from "../i18n";
 
 /**
@@ -238,7 +238,9 @@ function aboutFromData(data: Record<string, unknown> | undefined): AboutDoc {
     if (typeof data?.[key] === "string") out[key] = data[key] as string;
   }
   const ids = Array.isArray(data?.requestIds) ? data.requestIds.filter((x): x is string => typeof x === "string") : [];
-  return { ...out, requests: requestItems(out.prayerRequests, ids) };
+  const answers = answersFromData(data?.answeredIds, data?.answerNotes);
+  const requests = requestItems(out.prayerRequests, ids).map((r) => ({ ...r, answered: r.id && answers.has(r.id) ? { note: answers.get(r.id)! } : null }));
+  return { ...out, requests };
 }
 
 /** Just the editable text fields of a stored about doc. */
@@ -279,8 +281,28 @@ export async function saveAbout(db: Firestore, uid: string, about: About, before
     data.prayerRequests = joinRequests(lines);
     // Firestore's auto-ids: 20 random letters and digits.
     data.requestIds = assignRequestIds(before?.requests ?? [], lines, () => doc(collection(db, "_")).id);
+    // Answered requests stay answered while their words (and so their id) stay.
+    const answered = answerFields(answersOf(before), data.requestIds);
+    if (answered) Object.assign(data, answered);
   }
   await setDoc(aboutDoc(db, uid), data);
+}
+
+function answersOf(about: AboutDoc | null): Map<string, string> {
+  return new Map((about?.requests ?? []).filter((r) => r.id && r.answered).map((r) => [r.id!, r.answered!.note]));
+}
+
+/**
+ * Marks one of my prayer requests answered (with an optional note), or
+ * unmarks it (note null). Friends who can see my requests see the mark.
+ */
+export async function setRequestAnswered(db: Firestore, uid: string, current: AboutDoc, requestId: string, note: string | null): Promise<void> {
+  const answers = answersOf(current);
+  if (note === null) answers.delete(requestId);
+  else answers.set(requestId, note);
+  const ids = current.requests.map((r) => r.id).filter((id): id is string => !!id);
+  const fields = answerFields(answers, ids);
+  await updateDoc(aboutDoc(db, uid), fields ?? { answeredIds: deleteField(), answerNotes: deleteField() });
 }
 
 export async function findByUsername(db: Firestore, input: string): Promise<Profile | null> {

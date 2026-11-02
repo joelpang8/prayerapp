@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { getBytes, ref } from "firebase/storage";
 import { follow, removeFriend } from "../src/lib/friends";
-import { aboutFields, EMPTY_ABOUT, getProfile, removeAvatar, saveAbout, setAvatar, watchAbout, type About, type AboutDoc } from "../src/lib/profile";
+import { aboutFields, EMPTY_ABOUT, getProfile, removeAvatar, saveAbout, setAvatar, setRequestAnswered, watchAbout, type About, type AboutDoc } from "../src/lib/profile";
 import type { Firestore } from "firebase/firestore";
 
 const saveBio = (db: Firestore, uid: string, bio: string) => saveAbout(db, uid, { ...EMPTY_ABOUT, bio });
@@ -113,7 +113,7 @@ describe("about details (friends only)", () => {
     try {
       await until(() => friend.state.about?.church === "Grace Church, Austin");
       expect(aboutFields(friend.state.about!)).toEqual({ ...details, prayerRequests: "Wisdom for a big decision." });
-      expect(friend.state.about!.requests).toEqual([{ id: expect.stringMatching(/^[A-Za-z0-9]{20}$/), text: "Wisdom for a big decision." }]);
+      expect(friend.state.about!.requests).toEqual([{ id: expect.stringMatching(/^[A-Za-z0-9]{20}$/), text: "Wisdom for a big decision.", answered: null }]);
       await until(() => stranger.state.error !== null);
       expect(stranger.state.about).toBeNull();
     } finally {
@@ -154,5 +154,42 @@ describe("profile photo (any signed-in user)", () => {
 
   test("can't upload into someone else's folder", async () => {
     await expect(setAvatar(dbAs(env, "bob"), storageAs(env, "bob"), "alice", JPEG, "x1")).rejects.toMatchObject({ code: "storage/unauthorized" });
+  });
+});
+
+describe("answered prayer requests", () => {
+  async function latest(uid: string): Promise<AboutDoc> {
+    let got: AboutDoc | null = null;
+    const stop = watchAbout(dbAs(env, uid), uid, (a) => { got = a; });
+    await until(() => got !== null);
+    stop();
+    return got!;
+  }
+
+  test("mark one answered with a note, keep it through an edit, lose it when reworded, and undo", async () => {
+    const db = dbAs(env, "alice");
+    await saveAbout(db, "alice", { ...EMPTY_ABOUT, prayerRequests: "Mum's health\nNew job" });
+    let about = await latest("alice");
+    const job = about.requests[1].id!;
+    await setRequestAnswered(db, "alice", about, job, "Started Monday!");
+    about = await latest("alice");
+    expect(about.requests.map((r) => r.answered)).toEqual([null, { note: "Started Monday!" }]);
+
+    // Reordering (or editing anything else) keeps it answered.
+    await saveAbout(db, "alice", { ...aboutFields(about), bio: "Hi", prayerRequests: "New job\nMum's health" }, about);
+    about = await latest("alice");
+    expect(about.requests.find((r) => r.text === "New job")?.answered).toEqual({ note: "Started Monday!" });
+
+    // Undo.
+    await setRequestAnswered(db, "alice", about, job, null);
+    about = await latest("alice");
+    expect(about.requests.every((r) => !r.answered)).toBe(true);
+
+    // Rewording a request starts it again, answered mark included.
+    await setRequestAnswered(db, "alice", about, job, "");
+    about = await latest("alice");
+    await saveAbout(db, "alice", { ...aboutFields(about), prayerRequests: "Mum's health\nA new job soon" }, about);
+    about = await latest("alice");
+    expect(about.requests.every((r) => !r.answered)).toBe(true);
   });
 });

@@ -107,7 +107,7 @@ export function ProfileView({ uid, actions }: { uid: string; actions?: ReactNode
           ))}
         </View>
       )}
-      {about && profile && <PrayerRequests uid={uid} name={profile.displayName} requests={about.requests} />}
+      {about && profile && <PrayerRequests uid={uid} name={profile.displayName} about={about} />}
       {actions}
     </View>
   );

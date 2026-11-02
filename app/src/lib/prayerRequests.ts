@@ -13,7 +13,29 @@ export type PrayerRequest = {
   /** null for requests saved before ids existed: shown, but can't be tapped until the owner saves again. */
   id: string | null;
   text: string;
+  /** Marked answered by the owner, with an optional note (may be ""); null if not. */
+  answered?: { note: string } | null;
 };
+
+/** Must match firestore.rules (validAnswers). */
+export const MAX_ANSWER_NOTE = 120;
+
+/** Stored answers (answeredIds with answerNotes in the same order) as id -> note. */
+export function answersFromData(ids: unknown, notes: unknown): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!Array.isArray(ids) || !Array.isArray(notes) || ids.length !== notes.length) return out;
+  ids.forEach((id, i) => {
+    if (typeof id === "string" && typeof notes[i] === "string") out.set(id, notes[i]);
+  });
+  return out;
+}
+
+/** The answers to store for these request ids (in request order); null when none are answered. */
+export function answerFields(answers: ReadonlyMap<string, string>, ids: readonly string[]): { answeredIds: string[]; answerNotes: string[] } | null {
+  const kept = ids.filter((id) => answers.has(id));
+  if (kept.length === 0) return null;
+  return { answeredIds: kept, answerNotes: kept.map((id) => answers.get(id)!.trim().slice(0, MAX_ANSWER_NOTE)) };
+}
 
 /** The requests, one per non-empty line, trimmed. */
 export function splitRequests(text: string): string[] {

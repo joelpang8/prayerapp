@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { db } from "../firebase";
-import type { PrayerRequest } from "../lib/prayerRequests";
+import { MAX_ANSWER_NOTE, type PrayerRequest } from "../lib/prayerRequests";
+import { setRequestAnswered, type AboutDoc } from "../lib/profile";
 import { prayFor, prayingByRequest, prayingCountText, prayingNamesText, stopPraying } from "../lib/praying";
 import { useShowPrayingNames } from "../lib/prayingPrefs";
 import { useMyPrayersFor, usePrayingForMe } from "../session/hooks";
 import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
-import { fonts, makeStyles, Muted, Text } from "./ui";
+import { Button, fonts, makeStyles, Muted, Text, TextInput } from "./ui";
 import { t } from "../i18n";
 import { haptics } from "../lib/haptics";
 
@@ -17,22 +18,57 @@ const BULLET_WIDTH = 12;
  * The "Prayer requests" part of a profile, as a bullet list.
  *  - My own: how many friends are praying for each (names only if I've
  *    turned that on in Settings). Nothing is ever sent to me about it.
+ *    I can mark one answered, with an optional note, or undo that.
  *  - A friend's: a gentle "I'll pray for this" toggle on each. Other
- *    friends never see who tapped or how many.
+ *    friends never see who tapped or how many. An answered one shows
+ *    "✦ Answered" (and its note) instead, and "You prayed for this" if I did.
  */
-export function PrayerRequests({ uid, name, requests }: { uid: string; name: string; requests: PrayerRequest[] }) {
+export function PrayerRequests({ uid, name, about }: { uid: string; name: string; about: AboutDoc }) {
   const styles = useStyles();
   const { profile: me } = useReadySession();
+  const requests = about.requests;
   if (requests.length === 0) return null;
   return (
     <View style={styles.card}>
       <Text style={styles.label} accessibilityRole="header">{t("requests.title")}</Text>
-      {uid === me.uid ? <MyRequests requests={requests} /> : <FriendRequests uid={uid} name={name} requests={requests} />}
+      {uid === me.uid ? <MyRequests about={about} /> : <FriendRequests uid={uid} name={name} requests={requests} />}
     </View>
   );
 }
 
-function MyRequests({ requests }: { requests: PrayerRequest[] }) {
+/** "✦ Answered", and the note under it if there is one. */
+function AnsweredMark({ note }: { note: string }) {
+  const styles = useStyles();
+  return (
+    <View style={[styles.answer, styles.indent]}>
+      <Text style={styles.answerTitle}>✦ {t("requests.answered")}</Text>
+      {!!note && <Text style={styles.answerNote}>{note}</Text>}
+    </View>
+  );
+}
+
+function MyRequests({ about }: { about: AboutDoc }) {
+  const requests = about.requests;
+  const { profile: me } = useReadySession();
+  const [marking, setMarking] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function setAnswered(id: string, value: string | null) {
+    setBusy(true);
+    try {
+      await setRequestAnswered(db, me.uid, about, id, value);
+      if (value !== null) haptics.done();
+      setMarking(null);
+      setNote("");
+    } catch (err) {
+      console.warn("answered request failed", err);
+      Alert.alert(t("requests.didntWork"), t("requests.tryAgain"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const styles = useStyles();
   const { graph } = useFriendGraph();
   const showNames = useShowPrayingNames();
@@ -46,9 +82,39 @@ function MyRequests({ requests }: { requests: PrayerRequest[] }) {
         const names = who.map((u) => people.get(u)?.displayName).filter((n): n is string => !!n);
         const line = who.length === 0 ? "" : showNames && names.length === who.length ? prayingNamesText(names) : prayingCountText(who.length);
         return (
-          <View key={r.id ?? `line${i}`} style={styles.request} accessible accessibilityLabel={line ? `${r.text}. ${line}.` : r.text}>
-            <Bullet text={r.text} />
-            {!!line && <Text style={[styles.praying, styles.indent]}>🙏 {line}</Text>}
+          <View key={r.id ?? `line${i}`} style={styles.request}>
+            <View accessible accessibilityLabel={[r.text, r.answered ? t("requests.answered") : "", line].filter(Boolean).join(". ")} style={styles.request}>
+              <Bullet text={r.text} />
+              {r.answered && <AnsweredMark note={r.answered.note} />}
+              {!!line && <Text style={[styles.praying, styles.indent]}>🙏 {line}</Text>}
+            </View>
+            {r.id && marking === r.id ? (
+              <View style={[styles.markBox, styles.indent]}>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder={t("requests.answerNotePlaceholder")}
+                  maxLength={MAX_ANSWER_NOTE}
+                  style={styles.noteInput}
+                  accessibilityLabel={t("requests.answerNotePlaceholder")}
+                />
+                <View style={styles.markActions}>
+                  <Button title={t("requests.markAnswered")} onPress={() => setAnswered(r.id!, note)} busy={busy} />
+                  <Button title={t("common.cancel")} kind="secondary" onPress={() => { setMarking(null); setNote(""); }} disabled={busy} />
+                </View>
+              </View>
+            ) : r.id && (
+              <Pressable
+                onPress={() => (r.answered ? setAnswered(r.id!, null) : (setMarking(r.id!), setNote("")))}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={r.answered ? t("requests.unmarkA11y", { text: r.text }) : t("requests.markA11y", { text: r.text })}
+                hitSlop={6}
+                style={[styles.markLink, styles.indent]}
+              >
+                <Text style={styles.markLinkText}>{r.answered ? t("requests.notAnswered") : t("requests.wasAnswered")}</Text>
+              </Pressable>
+            )}
           </View>
         );
       })}
@@ -86,6 +152,15 @@ function FriendRequests({ uid, name, requests }: { uid: string; name: string; re
     <>
       {requests.map((r, i) => {
         const praying = !!r.id && mine.has(r.id);
+        if (r.answered) {
+          return (
+            <View key={r.id ?? `line${i}`} style={styles.request} accessible accessibilityLabel={[r.text, t("requests.answered"), r.answered.note, praying ? t("requests.youPrayed") : ""].filter(Boolean).join(". ")}>
+              <Bullet text={r.text} />
+              <AnsweredMark note={r.answered.note} />
+              {praying && <Text style={[styles.praying, styles.indent]}>🙏 {t("requests.youPrayed")}</Text>}
+            </View>
+          );
+        }
         return (
           <View key={r.id ?? `line${i}`} style={styles.request}>
             <Bullet text={r.text} />
@@ -138,4 +213,13 @@ const useStyles = makeStyles((colors) => ({
   pray: { alignSelf: "flex-start", minHeight: 36, justifyContent: "center", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18, borderWidth: 1, borderColor: colors.accent },
   prayOn: { backgroundColor: colors.accentSoft },
   prayText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent },
+  // Answered: the same quiet gold as answered posts.
+  answer: { backgroundColor: colors.goldSoft, borderRadius: 10, borderLeftWidth: 3, borderLeftColor: colors.gold, paddingHorizontal: 10, paddingVertical: 6, gap: 2, alignSelf: "flex-start" },
+  answerTitle: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.gold },
+  answerNote: { fontSize: 15, lineHeight: 21, fontFamily: fonts.bodyItalic, color: colors.text },
+  markLink: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center" },
+  markLinkText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.muted },
+  markBox: { gap: 8 },
+  markActions: { flexDirection: "row", gap: 8 },
+  noteInput: { minHeight: 44, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 10, fontSize: 15, color: colors.text },
 }));
