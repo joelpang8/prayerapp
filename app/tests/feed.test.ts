@@ -126,3 +126,29 @@ describe("friend feed", () => {
     f.feed.stop();
   });
 });
+
+describe("a feed listener that fails recovers by itself", () => {
+  test("after an error it tries again, so new posts appear without reopening the app", async () => {
+    // A scope that lists alice before the friendship exists: the first
+    // listen is refused, as a dropped or refused connection would be.
+    const graph = { friends: new Set(["alice"]) };
+    const scope = {
+      register: () => () => {},
+      subscribe: (cb: (g: typeof graph) => void) => { cb(graph); return () => {}; },
+    };
+    const errors: Error[] = [];
+    const feed = new FeedStore(dbAs(env, "bob"), scope as never, { onError: (e) => errors.push(e) });
+    let authors: string[] = [];
+    feed.subscribe((p) => { authors = p.map((x) => x.authorId); });
+    feed.start();
+    try {
+      await until(() => errors.length === 1);
+      expect(authors).toEqual([]);
+      // Now they become friends; the retry (after FEED_RETRY_MS[0]) picks it up.
+      await befriend("bob", "alice");
+      await until(() => authors.includes("alice"), 15_000);
+    } finally {
+      feed.stop();
+    }
+  }, 30_000);
+});

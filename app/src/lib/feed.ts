@@ -10,7 +10,10 @@ import { postFromSnapshot, type Post } from "./posts";
  */
 export const FEED_CHUNK_SIZE = 5;
 
-type Chunk = { authors: Set<string>; unsubscribe: Unsubscribe | null };
+type Chunk = { authors: Set<string>; unsubscribe: Unsubscribe | null; retry: ReturnType<typeof setTimeout> | null; failures: number };
+
+/** After a listener fails (e.g. the network dropped), try again after these waits, then stop until something changes. */
+export const FEED_RETRY_MS = [5_000, 20_000, 60_000];
 
 /**
  * Friends' posts, newest first, live. Registered with FriendScope:
@@ -76,7 +79,10 @@ export class FeedStore implements FriendScopedCache {
   }
 
   clear(): void {
-    for (const chunk of this.chunks) chunk.unsubscribe?.();
+    for (const chunk of this.chunks) {
+      chunk.unsubscribe?.();
+      if (chunk.retry) clearTimeout(chunk.retry);
+    }
     this.chunks.length = 0;
     this.postsByAuthor.clear();
     this.publish();
@@ -101,7 +107,7 @@ export class FeedStore implements FriendScopedCache {
       if (present.has(uid)) continue;
       let chunk = this.chunks.find((c) => c.authors.size < size);
       if (!chunk) {
-        chunk = { authors: new Set(), unsubscribe: null };
+        chunk = { authors: new Set(), unsubscribe: null, retry: null, failures: 0 };
         this.chunks.push(chunk);
       }
       chunk.authors.add(uid);
@@ -114,6 +120,8 @@ export class FeedStore implements FriendScopedCache {
   private resubscribe(chunk: Chunk): void {
     chunk.unsubscribe?.();
     chunk.unsubscribe = null;
+    if (chunk.retry) clearTimeout(chunk.retry);
+    chunk.retry = null;
     if (chunk.authors.size === 0) {
       this.chunks.splice(this.chunks.indexOf(chunk), 1);
       return;
@@ -130,6 +138,7 @@ export class FeedStore implements FriendScopedCache {
         limit(this.options.perChunkLimit ?? 30),
       ),
       (snap) => {
+        chunk.failures = 0;
         // Only authors still in this chunk; a stale snapshot must not bring
         // back someone who was just evicted.
         const byAuthor = new Map<string, Post[]>(authors.filter((a) => chunk.authors.has(a)).map((a) => [a, []]));
@@ -142,11 +151,21 @@ export class FeedStore implements FriendScopedCache {
       },
       (err) => {
         // Typically permission-denied right after a friendship ended; the
-        // next sync from FriendScope rebuilds the chunk without them.
+        // next sync from FriendScope rebuilds the chunk without them. For
+        // anything else (a dropped connection), try again a few times so
+        // the feed doesn't stay frozen until the app is reopened.
         for (const a of authors) this.postsByAuthor.delete(a);
         chunk.unsubscribe = null;
         this.publish();
         this.options.onError?.(err);
+        const wait = FEED_RETRY_MS[chunk.failures];
+        chunk.failures++;
+        if (wait !== undefined) {
+          chunk.retry = setTimeout(() => {
+            chunk.retry = null;
+            if (this.chunks.includes(chunk) && !chunk.unsubscribe) this.resubscribe(chunk);
+          }, wait);
+        }
       },
     );
   }
