@@ -9,6 +9,7 @@ import { PromptCountdown } from "../../components/PromptCountdown";
 import { prayedCandleLeft } from "../../lib/prayedCandle";
 import { OPEN_FOR_MS } from "../../lib/prayShortcut";
 import { Candle } from "../../components/Candle";
+import { WhatsNew } from "../../components/WhatsNew";
 import { OfflineBanner } from "../../components/OfflineBanner";
 import { QueuedPostCard } from "../../components/QueuedPostCard";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text, useColors } from "../../components/ui";
@@ -68,6 +69,7 @@ export default function TodayScreen() {
       refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.accent} />}
     >
       <OfflineBanner />
+      <WhatsNew />
       {queued.filter((q) => q !== queuedForPrompt || !myPost).map((q) => (
         <View key={q.postId} style={styles.queued}><QueuedPostCard item={q} /></View>
       ))}

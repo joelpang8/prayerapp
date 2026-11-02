@@ -11,7 +11,7 @@ import { db, storage } from "../../firebase";
 import { makeExport } from "../../lib/exportPrayers";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../../lib/appearance";
 import { setLiveActivityEnabled, useLiveActivityEnabled } from "../../lib/liveActivity";
-import { openPrivacyPolicy } from "../../lib/links";
+import { openPrivacyPolicy, sendFeedback } from "../../lib/links";
 import { setReminderEnabled, useReminderEnabled } from "../../lib/reminder";
 import { setShowPrayingNames, useShowPrayingNames } from "../../lib/prayingPrefs";
 import { setTextSize, TEXT_SIZES, useTextSize } from "../../lib/textSize";
@@ -171,6 +171,7 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <Button title={t("settings.howItWorks")} kind="secondary" onPress={() => router.push("/welcome")} />
         <Button title={t("settings.privacy")} kind="secondary" onPress={openPrivacyPolicy} />
+        <Button title={t("settings.feedback")} kind="secondary" onPress={() => { void sendFeedback(); }} />
       </View>
 
       <DownloadMyPrayers />

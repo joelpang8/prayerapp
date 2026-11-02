@@ -44,6 +44,8 @@ cd ~/prayerapp/app && npm run ios:device
 
 ## 5. Testers (TestFlight)
 
+Before uploading a build with something worth announcing, ask Claude to update the **"What's new"** card (`app/src/lib/whatsNew.ts`: a new `id` and items, with English and Spanish wording). Everyone who had the app before sees it once on Today.
+
 ```sh
 cd ~/prayerapp/app && npm run ios:testflight
 ```
