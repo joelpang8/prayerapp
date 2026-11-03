@@ -115,6 +115,38 @@ describe("deleting an account", () => {
     expect(await exists(`users/${me}/private/verseIndex`)).toBe(false);
   });
 
+  e2e("prayer circles: their requests, marks, invites and memberships go; others' stay; a circle they lead is handed on", async () => {
+    const me = "circleme1";
+    const ann = "circleann1";
+    const ben = "circleben1";
+    await db.doc(`users/${me}`).set({ username: me, displayName: me, createdAt: t });
+    const circle = (id, leaderId, memberIds, invitedIds = []) => db.doc(`circles/${id}`).set({ name: id, leaderId, memberIds, invitedIds, createdAt: t });
+    await circle("ledShared", me, [me, ann, ben]);
+    await circle("ledAlone", me, [me]);
+    await circle("member", ann, [ann, me]);
+    await circle("invited", ben, [ben], [me, ann]);
+    const request = (c, id, authorId, prayedBy = []) => db.doc(`circles/${c}/circleRequests/${id}`).set({ authorId, text: "t", createdAt: t, prayedBy });
+    await request("member", "mine", me);
+    await request("member", "anns", ann, [me]);
+    await request("ledShared", "bens", ben, [me, ann]);
+    await request("ledAlone", "lonely", me);
+
+    await deleteAccountData(me, { db, deleteFiles: async () => {}, deleteAuthUser: async () => {} });
+
+    expect(await exists("circles/member/circleRequests/mine")).toBe(false);
+    expect((await db.doc("circles/member/circleRequests/anns").get()).get("prayedBy")).toEqual([]);
+    expect((await db.doc("circles/ledShared/circleRequests/bens").get()).get("prayedBy")).toEqual([ann]);
+    expect((await db.doc("circles/member").get()).get("memberIds")).toEqual([ann]);
+    expect((await db.doc("circles/invited").get()).get("invitedIds")).toEqual([ann]);
+    // The circle they led with others passes to the next member, requests intact.
+    const led = (await db.doc("circles/ledShared").get()).data();
+    expect(led).toMatchObject({ leaderId: ann, memberIds: [ann, ben] });
+    expect(await exists("circles/ledShared/circleRequests/bens")).toBe(true);
+    // The one they were alone in is gone, with its requests.
+    expect(await exists("circles/ledAlone")).toBe(false);
+    expect(await exists("circles/ledAlone/circleRequests/lonely")).toBe(false);
+  });
+
   e2e("deleting an account with nothing in it works too", async () => {
     const deletedAuth = [];
     await deleteAccountData("emptyuser1", { db, deleteFiles: (p) => bucket.deleteFiles({ prefix: p }), deleteAuthUser: async (u) => { deletedAuth.push(u); } });

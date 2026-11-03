@@ -412,17 +412,143 @@ service cloud.firestore {
     // Write-only for users; the project owner reviews them in the Firebase
     // console (the Admin SDK and console bypass these rules). A short text
     // excerpt is kept with the report so it survives the content's deletion.
+    // ---------- prayer circles ----------
+    // circles/{circleId}: { name, leaderId, memberIds, invitedIds, createdAt }
+    // A small named group (up to 30, members + invited) with a shared prayer
+    // list. Members see each other's names and the circle's requests even if
+    // they aren't friends; nothing else (profiles, posts) is shared through a
+    // circle. Only the leader invites, one friend at a time; nobody is a
+    // member until they accept. Leaving or being removed ends access at once
+    // (every read checks the live member list).
+    match /circles/{circleId} {
+      function validCircleName(n) {
+        return n is string && n.trim().size() >= 1 && n.size() <= 40;
+      }
+      function isLeader() {
+        return request.auth.uid == resource.data.leaderId;
+      }
+      function changed() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+      // One id left the list, nothing else changed or was added.
+      function removedOne(before, after) {
+        return after.size() == before.size() - 1 && before.toSet().hasAll(after) && after.toSet().size() == after.size();
+      }
+      function newestInvite() {
+        return request.resource.data.invitedIds[request.resource.data.invitedIds.size() - 1];
+      }
+
+      allow get, list: if signedIn()
+        && (request.auth.uid in resource.data.memberIds || request.auth.uid in resource.data.invitedIds);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'leaderId', 'memberIds', 'invitedIds', 'createdAt'])
+        && request.resource.data.keys().hasAll(['name', 'leaderId', 'memberIds', 'invitedIds', 'createdAt'])
+        && request.resource.data.leaderId == request.auth.uid
+        && request.resource.data.memberIds == [request.auth.uid]
+        && request.resource.data.invitedIds == []
+        && validCircleName(request.resource.data.name)
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if signedIn() && (
+        // The leader renames it.
+        (isLeader() && changed().hasOnly(['name']) && validCircleName(request.resource.data.name))
+        // The leader invites one current friend (not already in or invited), up to 30 in all.
+        || (isLeader() && changed().hasOnly(['invitedIds'])
+            && request.resource.data.invitedIds == resource.data.invitedIds.concat([newestInvite()])
+            && isValidUid(newestInvite())
+            && !(newestInvite() in resource.data.invitedIds)
+            && !(newestInvite() in resource.data.memberIds)
+            && areFriends(request.auth.uid, newestInvite())
+            && resource.data.memberIds.size() + request.resource.data.invitedIds.size() <= 30)
+        // The leader cancels an invitation.
+        || (isLeader() && changed().hasOnly(['invitedIds'])
+            && removedOne(resource.data.invitedIds, request.resource.data.invitedIds))
+        // The leader removes a member (never themselves).
+        || (isLeader() && changed().hasOnly(['memberIds'])
+            && removedOne(resource.data.memberIds, request.resource.data.memberIds)
+            && resource.data.leaderId in request.resource.data.memberIds)
+        // An invited person accepts: from invited to member.
+        || (request.auth.uid in resource.data.invitedIds
+            && changed().hasOnly(['invitedIds', 'memberIds'])
+            && request.resource.data.invitedIds == resource.data.invitedIds.removeAll([request.auth.uid])
+            && request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid]))
+        // An invited person declines.
+        || (request.auth.uid in resource.data.invitedIds
+            && changed().hasOnly(['invitedIds'])
+            && request.resource.data.invitedIds == resource.data.invitedIds.removeAll([request.auth.uid]))
+        // A member (not the leader) leaves.
+        || (!isLeader() && request.auth.uid in resource.data.memberIds
+            && changed().hasOnly(['memberIds'])
+            && request.resource.data.memberIds == resource.data.memberIds.removeAll([request.auth.uid]))
+      );
+
+      // The leader deletes the circle (the app deletes its requests first).
+      allow delete: if signedIn() && isLeader();
+
+      // circles/{circleId}/circleRequests/{requestId}:
+      //   { authorId, text, createdAt, prayedBy, answeredAt?, answerNote? }
+      // Only current members read or add them. Any other member can mark
+      // "I prayed" (their own uid in prayedBy, once) until it's answered;
+      // the author marks it answered (with an optional note) or undoes that.
+      // The author or the leader deletes one.
+      match /circleRequests/{requestId} {
+        function circleData() {
+          return get(/databases/$(database)/documents/circles/$(circleId)).data;
+        }
+        function isMember() {
+          return signedIn() && request.auth.uid in circleData().memberIds;
+        }
+        function reqChanged() {
+          return request.resource.data.diff(resource.data).affectedKeys();
+        }
+
+        allow get, list: if isMember();
+
+        allow create: if isMember()
+          && request.resource.data.keys().hasOnly(['authorId', 'text', 'createdAt', 'prayedBy'])
+          && request.resource.data.keys().hasAll(['authorId', 'text', 'createdAt', 'prayedBy'])
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.trim().size() >= 1
+          && request.resource.data.text.size() <= 300
+          && request.resource.data.prayedBy == []
+          && request.resource.data.createdAt == request.time;
+
+        allow update: if isMember() && (
+          (reqChanged().hasOnly(['prayedBy'])
+            && request.auth.uid != resource.data.authorId
+            && ((!('answeredAt' in resource.data)
+                 && !(request.auth.uid in resource.data.prayedBy)
+                 && request.resource.data.prayedBy == resource.data.prayedBy.concat([request.auth.uid]))
+                || (request.auth.uid in resource.data.prayedBy
+                 && request.resource.data.prayedBy == resource.data.prayedBy.removeAll([request.auth.uid]))))
+          || (request.auth.uid == resource.data.authorId
+            && reqChanged().hasOnly(['answeredAt', 'answerNote'])
+            && ((request.resource.data.answeredAt == request.time
+                 && (!('answerNote' in request.resource.data)
+                     || (request.resource.data.answerNote is string && request.resource.data.answerNote.size() <= 120)))
+                || (!('answeredAt' in request.resource.data) && !('answerNote' in request.resource.data))))
+        );
+
+        allow delete: if signedIn()
+          && (request.auth.uid == resource.data.authorId || request.auth.uid == circleData().leaderId);
+      }
+    }
+
     match /reports/{reportId} {
       allow read, update, delete: if false;
       allow create: if signedIn()
-        && request.resource.data.keys().hasOnly(['reporter', 'kind', 'targetUid', 'postId', 'commentId', 'reason', 'note', 'excerpt', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['reporter', 'kind', 'targetUid', 'postId', 'commentId', 'circleId', 'requestId', 'reason', 'note', 'excerpt', 'createdAt'])
         && request.resource.data.keys().hasAll(['reporter', 'kind', 'targetUid', 'reason', 'createdAt'])
         && request.resource.data.reporter == request.auth.uid
-        && request.resource.data.kind in ['user', 'post', 'comment']
+        && request.resource.data.kind in ['user', 'post', 'comment', 'circleRequest']
         && isValidUid(request.resource.data.targetUid)
         && request.resource.data.targetUid != request.auth.uid
         && request.resource.data.reason in ['spam', 'harassment', 'inappropriate', 'harm', 'other']
-        && (request.resource.data.kind == 'user' || request.resource.data.postId is string)
+        && (request.resource.data.kind in ['user', 'circleRequest'] || request.resource.data.postId is string)
+        && (request.resource.data.kind != 'circleRequest'
+            || (request.resource.data.circleId is string && request.resource.data.requestId is string))
         && (request.resource.data.kind != 'comment' || request.resource.data.commentId is string)
         && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 500))
         && (!('excerpt' in request.resource.data) || (request.resource.data.excerpt is string && request.resource.data.excerpt.size() <= 2000))
