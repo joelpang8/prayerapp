@@ -14,6 +14,7 @@ import { useFriendGraph } from "../../session/SessionProvider";
 import { useLiveActivity } from "../../session/useLiveActivity";
 import { useReminder } from "../../session/useReminder";
 import { useActivitySubscription } from "../../session/useActivityNotifications";
+import { useMyCircles } from "../../session/useCircles";
 import { t } from "../../i18n";
 import { PRAY_QUICK_ACTION_ID } from "../../lib/prayShortcut";
 
@@ -56,6 +57,8 @@ export default function TabsLayout() {
   const { graph } = useFriendGraph();
   const blocked = useBlocked();
   const requests = [...graph.incoming].filter((uid) => !blocked.has(uid)).length;
+  // Prayer circle invitations waiting for an answer, as a badge on Circles.
+  const circleInvites = useMyCircles().invites.length;
   // Tapping a "Time to pray" notification opens Today. (These tabs only
   // exist once signed in, so a tap while signed out just opens sign-in.)
   // An opt-in notification opens what it's about: the prayer, or my
@@ -109,6 +112,10 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: t("tabs.today"),
           headerRight: () => <ActivityBell />,
         }}
+      />
+      <Tabs.Screen
+        name="circles"
+        options={{ title: t("tabs.circles"), tabBarIcon: tabIcon("people-circle-outline", "people-circle"), tabBarBadge: circleInvites || undefined }}
       />
       <Tabs.Screen name="profile" options={{ title: t("tabs.profile"), tabBarIcon: tabIcon("person-circle-outline", "person-circle") }} />
       <Tabs.Screen name="settings" options={{ title: t("tabs.settings"), tabBarIcon: tabIcon("settings-outline", "settings") }} />

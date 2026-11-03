@@ -76,6 +76,26 @@ service firebase.storage {
       allow delete: if signedIn() && request.auth.uid == uid;
     }
 
+    // Prayer circle photos: circlePhotos/{circleId}/{photoId}.jpg
+    // Seen by the circle's current members and invited people (the same
+    // people who can see the circle), checked against the live circle doc.
+    // Only the leader uploads or removes one: a square JPEG under 2 MB.
+    match /circlePhotos/{circleId}/{photoId} {
+      function circleDoc() {
+        return firestore.get(/databases/(default)/documents/circles/$(circleId)).data;
+      }
+      allow get: if signedIn()
+        && (request.auth.uid in circleDoc().memberIds || request.auth.uid in circleDoc().invitedIds);
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.auth.uid == circleDoc().leaderId
+        && photoId.matches('^[A-Za-z0-9]{1,64}\\.jpg$')
+        && request.resource.size > 0
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg';
+      allow delete: if signedIn() && request.auth.uid == circleDoc().leaderId;
+    }
+
     // Everything else in the bucket is closed.
     match /{path=**} {
       allow read, write: if false;

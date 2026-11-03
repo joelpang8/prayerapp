@@ -26,3 +26,15 @@ describe("prayer circles (pure parts)", () => {
     expect(requestFromData("x", { authorId: "a", text: "t" }).answered).toBeNull();
   });
 });
+
+describe("circle photos", async () => {
+  const { circlePhotoPath, circleFromData } = await import("../../src/lib/circles");
+  test("stored in the circle's own folder, plain JPEG names only", () => {
+    expect(circlePhotoPath("c1", "abc123")).toBe("circlePhotos/c1/abc123.jpg");
+    expect(() => circlePhotoPath("c1", "../x")).toThrow();
+  });
+  test("read from the circle doc; missing means no photo", () => {
+    expect(circleFromData("c1", { name: "G", photoPath: "circlePhotos/c1/a.jpg" }).photoPath).toBe("circlePhotos/c1/a.jpg");
+    expect(circleFromData("c1", { name: "G" }).photoPath).toBeNull();
+  });
+});

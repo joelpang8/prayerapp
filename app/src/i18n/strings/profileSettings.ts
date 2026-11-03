@@ -8,6 +8,7 @@ export default defineStrings(
     "tabs.prayers": "Prayers",
     "tabs.today": "Today",
     "tabs.profile": "Profile",
+    "tabs.circles": "Circles",
     "tabs.settings": "Settings",
 
     // Settings
@@ -306,6 +307,7 @@ export default defineStrings(
     "tabs.prayers": "Oraciones",
     "tabs.today": "Hoy",
     "tabs.profile": "Perfil",
+    "tabs.circles": "Círculos",
     "tabs.settings": "Ajustes",
 
     "settings.notifications": "Notificaciones",

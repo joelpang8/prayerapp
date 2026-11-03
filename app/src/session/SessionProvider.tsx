@@ -7,6 +7,7 @@ import { ActivityStore } from "../lib/activity";
 import type { Outbox } from "../lib/outbox";
 import { haptics } from "../lib/haptics";
 import { createOutbox } from "../lib/outboxApp";
+import { prefetchProfiles } from "./useProfiles";
 import { FeedStore } from "../lib/feed";
 import { EMPTY_GRAPH, type FriendGraph } from "../lib/friends";
 import { FriendScope } from "../lib/friendScope";
@@ -85,9 +86,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // later from the outbox (only while the app is open).
     const offSent = scoped.outbox.onSent(() => { if (AppState.currentState === "active") haptics.amen(); });
     scoped.scope.start((err) => console.warn("friend graph listener failed", err));
+    // Load friends' (and requesters') names and photos as soon as we know
+    // who they are, so the Friends tab and the feed show them at once.
+    const offPrefetch = scoped.scope.subscribe((g) => prefetchProfiles([...g.friends, ...g.incoming, ...g.outgoing]));
     return () => {
       clearInterval(retry);
       foreground.remove();
+      offPrefetch();
       offSent();
       scoped.activity.stop();
       scoped.feed.stop();

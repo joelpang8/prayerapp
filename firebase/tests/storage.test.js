@@ -156,3 +156,30 @@ describe("private post photos (privatePhotos/)", () => {
     await assertFails(upload(alice, "privatePhotos/alice/big.jpg", new Uint8Array(5 * 1024 * 1024)));
   });
 });
+
+describe("prayer circle photos (circlePhotos/)", () => {
+  async function seedCircle() {
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.firestore().doc("circles/c1").set({ name: "Group", leaderId: "alice", memberIds: ["alice", "bob"], invitedIds: ["carol"], createdAt: new Date() }));
+  }
+
+  crossService("only the leader uploads and removes; members and invited people see it; nobody else", async () => {
+    await seedCircle();
+    await seedUser(env, "dave");
+    await assertSucceeds(upload(storageAs(env, "alice"), "circlePhotos/c1/k1.jpg"));
+    await assertFails(upload(storageAs(env, "bob"), "circlePhotos/c1/k2.jpg"));
+    await assertSucceeds(storageAs(env, "bob").ref("circlePhotos/c1/k1.jpg").getMetadata());
+    await assertSucceeds(storageAs(env, "carol").ref("circlePhotos/c1/k1.jpg").getMetadata());
+    await assertFails(storageAs(env, "dave").ref("circlePhotos/c1/k1.jpg").getMetadata());
+    await assertFails(storageAs(env, "bob").ref("circlePhotos/c1/k1.jpg").delete());
+    await assertSucceeds(storageAs(env, "alice").ref("circlePhotos/c1/k1.jpg").delete());
+  });
+
+  crossService("a JPEG under 2 MB with a plain name", async () => {
+    await seedCircle();
+    const alice = storageAs(env, "alice");
+    await assertFails(upload(alice, "circlePhotos/c1/x.png", JPEG, { contentType: "image/png" }));
+    await assertFails(upload(alice, "circlePhotos/c1/a b.jpg"));
+    await assertFails(upload(alice, "circlePhotos/c1/big.jpg", new Uint8Array(2 * 1024 * 1024)));
+  });
+});

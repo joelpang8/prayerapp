@@ -101,6 +101,18 @@ describe("inviting", () => {
   });
 });
 
+describe("the circle's photo", () => {
+  test("the leader sets, changes and removes it, only in the circle's own folder", async () => {
+    await seedCircle({ members: ["lead", "ann"] });
+    await assertSucceeds(updateDoc(circle(as("lead")), { photoPath: "circlePhotos/c1/abc123.jpg" }));
+    await assertSucceeds(updateDoc(circle(as("lead")), { photoPath: "circlePhotos/c1/def456.jpg" }));
+    await assertFails(updateDoc(circle(as("lead")), { photoPath: "circlePhotos/c2/abc123.jpg" }));
+    await assertFails(updateDoc(circle(as("lead")), { photoPath: "avatars/lead/a.jpg" }));
+    await assertFails(updateDoc(circle(as("ann")), { photoPath: "circlePhotos/c1/abc123.jpg" }));
+    await assertSucceeds(updateDoc(circle(as("lead")), { photoPath: deleteField() }));
+  });
+});
+
 describe("accepting, declining and leaving", () => {
   test("an invited person accepts and becomes a member", async () => {
     await seedCircle({ invited: ["ann"] });

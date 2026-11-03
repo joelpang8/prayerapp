@@ -2,12 +2,14 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
+import { CirclePhoto } from "../../components/CirclePhoto";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../../components/ui";
-import { db } from "../../firebase";
+import { db, storage } from "../../firebase";
+import { photoBlob, pickAvatar } from "../../lib/capture";
 import { t } from "../../i18n";
 import {
   cancelInvite, CIRCLE_NAME_MAX, circleNameProblem, deleteCircle, invitesLeft, inviteToCircle, leaveCircle, MAX_CIRCLE_PEOPLE,
-  removeMember, renameCircle,
+  removeCirclePhoto, removeMember, renameCircle, setCirclePhoto,
 } from "../../lib/circles";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
@@ -34,6 +36,7 @@ export default function CircleMembersScreen() {
   const [name, setName] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
 
   async function run(key: string, fn: () => Promise<void>) {
     setBusy(key);
@@ -45,6 +48,15 @@ export default function CircleMembersScreen() {
     } finally {
       setBusy(null);
     }
+  }
+
+  async function changePhoto(source: "camera" | "library") {
+    if (!circle) return;
+    const photo = await pickAvatar(source).catch(() => null);
+    if (!photo) return;
+    setPreview(photo.previewUri);
+    await run("photo", async () => setCirclePhoto(db, storage, circle, await photoBlob(photo.previewUri), photo.photoId));
+    setPreview(null);
   }
 
   if (loaded && gone) {
@@ -75,6 +87,22 @@ export default function CircleMembersScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: circle.name }} />
+
+      {leader && (
+        <View style={styles.block}>
+          <Text style={styles.label}>{t("circleMembers.photo")}</Text>
+          <View style={styles.photoRow}>
+            <CirclePhoto path={circle.photoPath} size={72} previewUri={preview} />
+            <View style={styles.photoButtons}>
+              <Button title={t("editProfile.takePhoto")} kind="secondary" onPress={() => changePhoto("camera")} disabled={busy === "photo"} />
+              <Button title={t("editProfile.choosePhoto")} kind="secondary" onPress={() => changePhoto("library")} busy={busy === "photo"} />
+              {circle.photoPath && (
+                <Button title={t("editProfile.remove")} kind="danger" onPress={() => run("photo", () => removeCirclePhoto(db, storage, circle))} disabled={busy === "photo"} />
+              )}
+            </View>
+          </View>
+        </View>
+      )}
 
       {leader && (
         <View style={styles.block}>
@@ -148,7 +176,7 @@ export default function CircleMembersScreen() {
               {
                 text: t("circleMembers.deleteCircle"),
                 style: "destructive",
-                onPress: () => run("delete", async () => { await deleteCircle(db, circle.id); router.navigate("/friends"); }),
+                onPress: () => run("delete", async () => { await deleteCircle(db, circle.id, { storage, path: circle.photoPath }); router.navigate("/circles"); }),
               },
             ])
           }
@@ -164,7 +192,7 @@ export default function CircleMembersScreen() {
               {
                 text: t("circleMembers.leave"),
                 style: "destructive",
-                onPress: () => run("leave", async () => { await leaveCircle(db, circle.id, me.uid); router.navigate("/friends"); }),
+                onPress: () => run("leave", async () => { await leaveCircle(db, circle.id, me.uid); router.navigate("/circles"); }),
               },
             ])
           }
@@ -184,4 +212,6 @@ const useStyles = makeStyles((colors) => ({
   names: { flex: 1, gap: 1 },
   name: { fontSize: 16, fontFamily: fonts.display, color: colors.text },
   spacer: { height: 12 },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  photoButtons: { flex: 1, gap: 8 },
 }));

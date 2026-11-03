@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
+import { CirclePhoto } from "../../components/CirclePhoto";
 import { EmptyState } from "../../components/EmptyState";
 import { MoreMenu } from "../../components/MoreMenu";
 import { Button, fonts, makeStyles, Muted, Text, TextInput } from "../../components/ui";
@@ -62,7 +63,10 @@ export default function CircleScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: circle.name }} />
-      <Text style={styles.title} accessibilityRole="header">{circle.name}</Text>
+      <View style={styles.titleRow}>
+        <CirclePhoto path={circle.photoPath} size={64} />
+        <Text style={styles.title} accessibilityRole="header">{circle.name}</Text>
+      </View>
       <Pressable
         onPress={() => router.push({ pathname: "/circle-members/[id]", params: { id } })}
         accessibilityRole="button"
@@ -199,7 +203,8 @@ function RequestCard({ circle, request: r, authorName, authorPhoto }: { circle: 
 const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
-  title: { fontSize: 26, fontFamily: fonts.displayBold, color: colors.text },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  title: { flex: 1, fontSize: 26, fontFamily: fonts.displayBold, color: colors.text },
   members: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap", minHeight: 44 },
   stack: { flexDirection: "row" },
   stackItem: { borderRadius: 17, borderWidth: 2, borderColor: colors.bg },

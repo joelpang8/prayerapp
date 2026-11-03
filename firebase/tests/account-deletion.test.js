@@ -131,8 +131,12 @@ describe("deleting an account", () => {
     await request("ledShared", "bens", ben, [me, ann]);
     await request("ledAlone", "lonely", me);
 
-    await deleteAccountData(me, { db, deleteFiles: async () => {}, deleteAuthUser: async () => {} });
+    const deletedPrefixes = [];
+    await deleteAccountData(me, { db, deleteFiles: async (p) => { deletedPrefixes.push(p); }, deleteAuthUser: async () => {} });
 
+    // The photo of the circle that was deleted goes; the handed-on circle keeps its own.
+    expect(deletedPrefixes).toContain("circlePhotos/ledAlone/");
+    expect(deletedPrefixes).not.toContain("circlePhotos/ledShared/");
     expect(await exists("circles/member/circleRequests/mine")).toBe(false);
     expect((await db.doc("circles/member/circleRequests/anns").get()).get("prayedBy")).toEqual([]);
     expect((await db.doc("circles/ledShared/circleRequests/bens").get()).get("prayedBy")).toEqual([ann]);

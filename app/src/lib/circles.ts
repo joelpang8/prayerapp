@@ -2,10 +2,14 @@ import {
   addDoc, arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDocs, limit, onSnapshot, orderBy, query,
   serverTimestamp, setDoc, updateDoc, where, writeBatch, type DocumentData, type Firestore, type Unsubscribe,
 } from "firebase/firestore";
+import { deleteObject, ref, uploadBytes, type FirebaseStorage } from "firebase/storage";
+import type { PhotoData } from "./posts";
 
 /**
  * Prayer circles: small named groups with a shared prayer list.
- *  - circles/{id}: { name, leaderId, memberIds, invitedIds, createdAt }
+ *  - circles/{id}: { name, leaderId, memberIds, invitedIds, createdAt, photoPath? }
+ *  - circlePhotos/{circleId}/{photoId}.jpg in Storage: the circle's photo,
+ *    seen by members and invited people, set by the leader
  *  - circles/{id}/circleRequests/{id}: { authorId, text, createdAt, prayedBy, answeredAt?, answerNote? }
  * Members see each other's names and the circle's requests even if they
  * aren't friends; nothing else (profiles, posts) is shared through a circle.
@@ -21,7 +25,7 @@ export const MAX_CIRCLE_PEOPLE = 30;
 export const CIRCLE_REQUEST_MAX = 300;
 export const CIRCLE_ANSWER_NOTE_MAX = 120;
 
-export type Circle = { id: string; name: string; leaderId: string; memberIds: string[]; invitedIds: string[] };
+export type Circle = { id: string; name: string; leaderId: string; memberIds: string[]; invitedIds: string[]; photoPath: string | null };
 
 export type CircleRequest = {
   id: string;
@@ -36,7 +40,10 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is
 const date = (v: unknown): Date | null => (v && typeof (v as { toDate?: unknown }).toDate === "function" ? (v as { toDate: () => Date }).toDate() : null);
 
 export function circleFromData(id: string, d: DocumentData): Circle {
-  return { id, name: String(d.name ?? ""), leaderId: String(d.leaderId ?? ""), memberIds: strings(d.memberIds), invitedIds: strings(d.invitedIds) };
+  return {
+    id, name: String(d.name ?? ""), leaderId: String(d.leaderId ?? ""), memberIds: strings(d.memberIds), invitedIds: strings(d.invitedIds),
+    photoPath: typeof d.photoPath === "string" ? d.photoPath : null,
+  };
 }
 
 export function requestFromData(id: string, d: DocumentData): CircleRequest {
@@ -149,8 +156,28 @@ export async function removeMember(db: Firestore, circleId: string, uid: string)
   await updateDoc(circleRef(db, circleId), { memberIds: arrayRemove(uid) });
 }
 
-/** The leader deletes the circle and every request in it. */
-export async function deleteCircle(db: Firestore, circleId: string): Promise<void> {
+export function circlePhotoPath(circleId: string, photoId: string): string {
+  if (!/^[A-Za-z0-9]{1,64}$/.test(photoId)) throw new Error(`bad photo id: ${photoId}`);
+  return `circlePhotos/${circleId}/${photoId}.jpg`;
+}
+
+/** The leader sets a new photo; the old one (if any) is deleted after. */
+export async function setCirclePhoto(db: Firestore, storage: FirebaseStorage, circle: Pick<Circle, "id" | "photoPath">, jpeg: PhotoData, photoId: string): Promise<void> {
+  const path = circlePhotoPath(circle.id, photoId);
+  await uploadBytes(ref(storage, path), jpeg, { contentType: "image/jpeg" });
+  await updateDoc(circleRef(db, circle.id), { photoPath: path });
+  if (circle.photoPath && circle.photoPath !== path) await deleteObject(ref(storage, circle.photoPath)).catch(() => {});
+}
+
+/** The leader removes the photo. */
+export async function removeCirclePhoto(db: Firestore, storage: FirebaseStorage, circle: Pick<Circle, "id" | "photoPath">): Promise<void> {
+  await updateDoc(circleRef(db, circle.id), { photoPath: deleteField() });
+  if (circle.photoPath) await deleteObject(ref(storage, circle.photoPath)).catch(() => {});
+}
+
+/** The leader deletes the circle, its photo and every request in it. */
+export async function deleteCircle(db: Firestore, circleId: string, photo?: { storage: FirebaseStorage; path: string | null }): Promise<void> {
+  if (photo?.path) await deleteObject(ref(photo.storage, photo.path)).catch(() => {});
   const snap = await getDocs(requestsOf(db, circleId));
   for (let i = 0; i < snap.docs.length; i += 400) {
     const batch = writeBatch(db);

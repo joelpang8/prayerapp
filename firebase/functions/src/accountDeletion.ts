@@ -86,7 +86,10 @@ export async function deleteAccountData(uid: string, deps: DeletionDeps): Promis
     const others = (d.get("memberIds") as string[]).filter((m) => m !== uid);
     if (d.get("leaderId") !== uid) await without(d.ref, "memberIds");
     else if (others.length > 0) await d.ref.update({ leaderId: others[0], memberIds: others });
-    else await db.recursiveDelete(d.ref);
+    else {
+      await db.recursiveDelete(d.ref);
+      await deps.deleteFiles(`circlePhotos/${d.id}/`);
+    }
   }
   summary.circles = circles.size;
   // Friendships, requests and blocks, both ways.

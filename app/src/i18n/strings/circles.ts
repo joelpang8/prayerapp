@@ -17,6 +17,8 @@ export default defineStrings(
     "circles.didntWork": "That didn't work. Please try again.",
 
     "circleNew.title": "New circle",
+    "circleNew.addPhoto": "Add a photo (optional)",
+    "circleNew.changePhoto": "Change photo",
     "circleNew.name": "Name",
     "circleNew.namePlaceholder": "e.g. Tuesday Small Group",
     "circleNew.invite": "Invite friends",
@@ -61,6 +63,7 @@ export default defineStrings(
     "circleMembers.invite": "Invite",
     "circleMembers.full": "This circle is full ({max} people).",
     "circleMembers.noOneToInvite": "All your friends are already in this circle or invited.",
+    "circleMembers.photo": "Circle photo",
     "circleMembers.name": "Circle name",
     "circleMembers.saveName": "Save name",
     "circleMembers.saved": "Saved",
@@ -86,6 +89,8 @@ export default defineStrings(
     "circles.didntWork": "No funcionó. Inténtalo de nuevo.",
 
     "circleNew.title": "Nuevo círculo",
+    "circleNew.addPhoto": "Agregar una foto (opcional)",
+    "circleNew.changePhoto": "Cambiar foto",
     "circleNew.name": "Nombre",
     "circleNew.namePlaceholder": "p. ej., Grupo de los martes",
     "circleNew.invite": "Invitar amigos",
@@ -130,6 +135,7 @@ export default defineStrings(
     "circleMembers.invite": "Invitar",
     "circleMembers.full": "Este círculo está lleno ({max} personas).",
     "circleMembers.noOneToInvite": "Todos tus amigos ya están en este círculo o invitados.",
+    "circleMembers.photo": "Foto del círculo",
     "circleMembers.name": "Nombre del círculo",
     "circleMembers.saveName": "Guardar nombre",
     "circleMembers.saved": "Guardado",

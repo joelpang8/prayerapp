@@ -413,7 +413,7 @@ service cloud.firestore {
     // console (the Admin SDK and console bypass these rules). A short text
     // excerpt is kept with the report so it survives the content's deletion.
     // ---------- prayer circles ----------
-    // circles/{circleId}: { name, leaderId, memberIds, invitedIds, createdAt }
+    // circles/{circleId}: { name, leaderId, memberIds, invitedIds, createdAt, photoPath? }
     // A small named group (up to 30, members + invited) with a shared prayer
     // list. Members see each other's names and the circle's requests even if
     // they aren't friends; nothing else (profiles, posts) is shared through a
@@ -453,6 +453,12 @@ service cloud.firestore {
       allow update: if signedIn() && (
         // The leader renames it.
         (isLeader() && changed().hasOnly(['name']) && validCircleName(request.resource.data.name))
+        // The leader sets or removes its photo (in its own circlePhotos/ folder,
+        // which only the leader can write to).
+        || (isLeader() && changed().hasOnly(['photoPath'])
+            && (!('photoPath' in request.resource.data)
+                || (request.resource.data.photoPath is string
+                    && request.resource.data.photoPath.matches('^circlePhotos/' + circleId + '/[A-Za-z0-9]{1,64}[.]jpg$'))))
         // The leader invites one current friend (not already in or invited), up to 30 in all.
         || (isLeader() && changed().hasOnly(['invitedIds'])
             && request.resource.data.invitedIds == resource.data.invitedIds.concat([newestInvite()])

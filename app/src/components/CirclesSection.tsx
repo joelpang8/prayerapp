@@ -8,6 +8,7 @@ import { acceptInvite, declineInvite, type Circle } from "../lib/circles";
 import { useReadySession } from "../session/SessionProvider";
 import { useCircleHasNew, useMyCircles } from "../session/useCircles";
 import { useProfiles } from "../session/useProfiles";
+import { CirclePhoto } from "./CirclePhoto";
 import { Button, fonts, makeStyles, Muted, Text, useColors } from "./ui";
 
 /**
@@ -46,7 +47,7 @@ function CircleRow({ circle }: { circle: Circle }) {
       accessibilityLabel={[circle.name, detail, hasNew ? t("circles.newDot") : ""].filter(Boolean).join(". ")}
       style={styles.row}
     >
-      <View style={styles.badge}><Ionicons name="people-circle-outline" size={26} color={colors.accent} /></View>
+      <CirclePhoto path={circle.photoPath} size={44} />
       <View style={styles.names}>
         <Text style={styles.name} numberOfLines={1}>{circle.name}</Text>
         <Muted>{detail}</Muted>
@@ -59,7 +60,6 @@ function CircleRow({ circle }: { circle: Circle }) {
 
 function InviteRow({ circle, leaderName }: { circle: Circle; leaderName: string }) {
   const styles = useStyles();
-  const colors = useColors();
   const { profile } = useReadySession();
   const [busy, setBusy] = useState(false);
   async function act(fn: () => Promise<void>) {
@@ -75,7 +75,7 @@ function InviteRow({ circle, leaderName }: { circle: Circle; leaderName: string 
   }
   return (
     <View style={[styles.row, styles.invite]}>
-      <View style={styles.badge}><Ionicons name="mail-outline" size={22} color={colors.accent} /></View>
+      <CirclePhoto path={circle.photoPath} size={44} />
       <View style={styles.names}>
         <Text style={styles.name} numberOfLines={1}>{circle.name}</Text>
         <Muted>{t("circles.invitedBy", { name: leaderName })}</Muted>
@@ -96,7 +96,6 @@ const useStyles = makeStyles((colors) => ({
   row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 12 },
   invite: { flexWrap: "wrap", borderStyle: "dashed", borderColor: colors.accent, backgroundColor: colors.accentSoft },
   inviteActions: { flexDirection: "row", gap: 8, width: "100%", justifyContent: "flex-end" },
-  badge: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: "center", justifyContent: "center" },
   names: { flex: 1, gap: 2 },
   name: { fontSize: 17, fontFamily: fonts.display, color: colors.text },
   dot: { fontSize: 12, fontFamily: fonts.bodySemiBold, color: colors.onAccent, backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" },

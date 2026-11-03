@@ -3,10 +3,12 @@ import { router, Stack } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
+import { CirclePhoto } from "../../components/CirclePhoto";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../../components/ui";
-import { db } from "../../firebase";
+import { db, storage } from "../../firebase";
+import { photoBlob, pickAvatar, type CapturedPhoto } from "../../lib/capture";
 import { t } from "../../i18n";
-import { CIRCLE_NAME_MAX, circleNameProblem, createCircle, MAX_CIRCLE_PEOPLE } from "../../lib/circles";
+import { CIRCLE_NAME_MAX, circleNameProblem, createCircle, MAX_CIRCLE_PEOPLE, setCirclePhoto } from "../../lib/circles";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
 import { useProfiles } from "../../session/useProfiles";
@@ -25,6 +27,7 @@ export default function NewCircleScreen() {
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<CapturedPhoto | null>(null);
   const problem = circleNameProblem(name);
   const maxInvites = MAX_CIRCLE_PEOPLE - 1;
 
@@ -41,6 +44,8 @@ export default function NewCircleScreen() {
     setError(null);
     try {
       const id = await createCircle(db, me.uid, name, [...picked]);
+      // The photo is optional: if it doesn't upload, the circle is still made.
+      if (photo) await setCirclePhoto(db, storage, { id, photoPath: null }, await photoBlob(photo.previewUri), photo.photoId).catch((err) => console.warn("circle photo failed", err));
       router.replace({ pathname: "/circle/[id]", params: { id } });
     } catch (err) {
       console.warn("create circle failed", err);
@@ -52,6 +57,14 @@ export default function NewCircleScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("circleNew.title") }} />
+      <View style={styles.photoRow}>
+        <CirclePhoto path={null} size={64} previewUri={photo?.previewUri ?? null} />
+        <Button
+          title={photo ? t("circleNew.changePhoto") : t("circleNew.addPhoto")}
+          kind="secondary"
+          onPress={() => { void pickAvatar("library").then((p) => { if (p) setPhoto(p); }, () => {}); }}
+        />
+      </View>
       <View style={styles.field}>
         <Text style={styles.label}>{t("circleNew.name")}</Text>
         <TextInput value={name} onChangeText={setName} placeholder={t("circleNew.namePlaceholder")} maxLength={CIRCLE_NAME_MAX + 5} style={styles.input} autoFocus />
@@ -88,6 +101,7 @@ const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20, gap: 10, paddingBottom: 48 },
   field: { gap: 6 },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginTop: 10 },
   label: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.8 },
   input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.card, fontSize: 17 },
