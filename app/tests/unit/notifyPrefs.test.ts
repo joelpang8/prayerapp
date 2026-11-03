@@ -3,7 +3,7 @@ import { expect, test, vi } from "vitest";
 
 vi.mock("@react-native-async-storage/async-storage", () => ({ default: {} }));
 
-const { anyOn, changeNotifyPrefs, newTopic, parseNotifyPrefs, TOPIC_PATTERN } = await import("../../src/lib/notifyPrefs");
+const { anyOn, changeCircleNotify, changeNotifyPrefs, newTopic, parseNotifyPrefs, TOPIC_PATTERN } = await import("../../src/lib/notifyPrefs");
 const { keysForAccount } = await import("../../src/lib/account");
 
 const bytes = (n: number) => Uint8Array.from({ length: n }, (_, i) => (i * 37) % 256);
@@ -18,12 +18,30 @@ test("a new secret topic matches what the rules and server accept", () => {
 
 test("all off until turned on; the topic is made once and kept", () => {
   const first = changeNotifyPrefs(null, "comments", true, "en", () => "n_" + "A".repeat(32));
-  expect(first).toEqual({ topic: "n_" + "A".repeat(32), taps: false, reactions: false, comments: true, lang: "en" });
+  expect(first).toEqual({ topic: "n_" + "A".repeat(32), taps: false, reactions: false, comments: true, lang: "en", circles: [] });
   const second = changeNotifyPrefs(first, "taps", true, "es", () => { throw new Error("no new topic"); });
   expect(second).toMatchObject({ topic: first.topic, taps: true, comments: true, lang: "es" });
   expect(anyOn(changeNotifyPrefs(second, "taps", false, "es", () => "") && { ...second, taps: false, comments: false })).toBe(false);
   expect(anyOn(null)).toBe(false);
   expect(parseNotifyPrefs({ topic: "prompt", taps: true })).toBeNull();
+});
+
+test("circle notifications: per circle, off until turned on, circles I've left are dropped", () => {
+  const topic = () => "n_" + "B".repeat(32);
+  const a = changeCircleNotify(null, "c1", true, "en", topic, () => true);
+  expect(a).toMatchObject({ circles: ["c1"], taps: false, reactions: false, comments: false });
+  expect(anyOn(a)).toBe(true);
+  const b = changeCircleNotify(a, "c2", true, "en", topic, (id) => id !== "c1");
+  expect(b.circles).toEqual(["c2"]);
+  expect(changeCircleNotify(b, "c2", false, "en", topic, () => true).circles).toEqual([]);
+  expect(changeCircleNotify(b, "c2", true, "en", topic, () => true).circles).toEqual(["c2"]);
+  expect(parseNotifyPrefs({ topic: topic(), circles: ["x", 3] })?.circles).toEqual(["x"]);
+  // Changing another switch keeps the circles (the whole doc is rewritten).
+  expect(changeNotifyPrefs(b, "taps", true, "en", topic).circles).toEqual(["c2"]);
+});
+
+test("tapping a circle notification opens the circle", () => {
+  expect(readFileSync("src/app/(tabs)/_layout.tsx", "utf8")).toContain('activity === "circle"');
 });
 
 test("the phone forgets the account's topic with the account", () => {

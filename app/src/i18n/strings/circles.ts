@@ -57,6 +57,8 @@ export default defineStrings(
     "circle.onlyMembers": "Only people in this circle see these requests.",
 
     "circleMembers.title": "Members",
+    "circleMembers.notify": "Notify me",
+    "circleMembers.notifyNote": "When someone adds a request here or marks one answered. Only on this phone's account; nobody else is told.",
     "circleMembers.leader": "Leader",
     "circleMembers.you": "You",
     "circleMembers.remove": "Remove",
@@ -164,6 +166,8 @@ export default defineStrings(
     "circle.onlyMembers": "Solo las personas de este círculo ven estas peticiones.",
 
     "circleMembers.title": "Miembros",
+    "circleMembers.notify": "Avisarme",
+    "circleMembers.notifyNote": "Cuando alguien agregue una petición aquí o marque una como respondida. Solo para tu cuenta; nadie más recibe aviso.",
     "circleMembers.leader": "Líder",
     "circleMembers.you": "Tú",
     "circleMembers.remove": "Quitar",

@@ -9,7 +9,11 @@ import type { TopicMessage } from "firebase-admin/messaging";
  */
 
 export type ActivityKind = "taps" | "reactions" | "comments";
-export type NotifyPrefs = { topic: string; taps: boolean; reactions: boolean; comments: boolean; lang: "en" | "es" };
+export type NotifyPrefs = {
+  topic: string; taps: boolean; reactions: boolean; comments: boolean; lang: "en" | "es";
+  /** Prayer circles I want told about (new requests, answered ones). */
+  circles: string[];
+};
 
 export const TOPIC_PATTERN = /^n_[A-Za-z0-9]{32}$/;
 
@@ -22,6 +26,43 @@ export function parseNotifyPrefs(d: Record<string, unknown> | undefined): Notify
     reactions: d.reactions === true,
     comments: d.comments === true,
     lang: d.lang === "es" ? "es" : "en",
+    circles: Array.isArray(d.circles) ? d.circles.filter((c): c is string => typeof c === "string") : [],
+  };
+}
+
+/** Whether to tell `member` about something `actor` did in a circle: opted in for that circle, never about themselves. */
+export function shouldNotifyCircle(prefs: NotifyPrefs | null, circleId: string, member: string, actor: string): prefs is NotifyPrefs {
+  return !!prefs && prefs.circles.includes(circleId) && member !== actor;
+}
+
+const CIRCLE_WORDING = {
+  en: {
+    newTitle: (circle: string) => `🙏 New request in ${circle}`,
+    answeredTitle: (name: string, circle: string) => `✦ ${name}'s request was answered (${circle})`,
+  },
+  es: {
+    newTitle: (circle: string) => `🙏 Nueva petición en ${circle}`,
+    answeredTitle: (name: string, circle: string) => `✦ La petición de ${name} fue respondida (${circle})`,
+  },
+};
+
+/** A prayer-circle notification: a new request, or one marked answered. Tapping opens the circle. */
+export function buildCircleMessage(
+  prefs: NotifyPrefs,
+  e: { kind: "new" | "answered"; circleId: string; circleName: string; name: string; text: string; note?: string },
+): TopicMessage {
+  const w = CIRCLE_WORDING[prefs.lang];
+  const circle = clip(e.circleName, 40);
+  const name = clip(e.name, 40);
+  const notification = e.kind === "new"
+    ? { title: w.newTitle(circle), body: `${name}: “${clip(e.text, 110)}”` }
+    : { title: w.answeredTitle(name, circle), body: clip(e.note || e.text, 120) };
+  return {
+    topic: prefs.topic,
+    notification,
+    data: { kind: "activity", activity: "circle", circleId: e.circleId },
+    apns: { payload: { aps: { sound: "default", "thread-id": `circle-${e.circleId}` } } },
+    android: { notification: { channelId: "activity" } },
   };
 }
 

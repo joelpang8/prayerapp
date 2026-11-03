@@ -36,6 +36,18 @@ describe("notification settings", () => {
     await assertFails(setDoc(ref(db), missing));
   });
 
+  test("circles to be told about: a list of up to 50 circle ids", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(setDoc(ref(db), prefs({ circles: [] })));
+    await assertSucceeds(setDoc(ref(db), prefs({ circles: ["abcDEF123", "zzz9"] })));
+    await assertSucceeds(updateDoc(ref(db), { circles: Array.from({ length: 50 }, (_, i) => `c${i}`) }));
+    await assertFails(updateDoc(ref(db), { circles: Array.from({ length: 51 }, (_, i) => `c${i}`) }));
+    await assertFails(updateDoc(ref(db), { circles: "abc" }));
+    await assertFails(updateDoc(ref(db), { circles: ["a,b"] }));
+    await assertFails(updateDoc(ref(db), { circles: ["../x"] }));
+    await assertFails(updateDoc(ref(db), { circles: [""] }));
+  });
+
   test("nobody else can read or write them, not even a friend", async () => {
     await seed(env, (db) => setDoc(ref(db), prefs()));
     await seedFriends(env, "alice", "bob");

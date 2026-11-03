@@ -10,7 +10,7 @@ import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWrit
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onTaskDispatched } from "firebase-functions/v2/tasks";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
-import { buildActivityMessage, parseNotifyPrefs, shouldNotify, type ActivityKind, type NotifyPrefs } from "./activityNotify";
+import { buildActivityMessage, buildCircleMessage, parseNotifyPrefs, shouldNotify, shouldNotifyCircle, type ActivityKind, type NotifyPrefs } from "./activityNotify";
 import { deleteAccountData, isRecentSignIn } from "./accountDeletion";
 import { buildPromptMessage, dateKeyIn, pickFireTime, PROMPT_WINDOW, verseForDate, windowEnd } from "./dailyPrompt";
 import { buildVerseIndex, staleTaps } from "./prayers";
@@ -330,5 +330,54 @@ export const notifyComment = onDocumentCreated("posts/{postId}/comments/{comment
   if (!comment || !post || typeof post.authorId !== "string" || typeof comment.authorId !== "string") return;
   await notifyOwner(post.authorId, "comments", comment.authorId, async (_prefs, name) => ({
     kind: "comments", name, text: String(comment.text ?? ""), postId: event.params.postId,
+  }));
+});
+
+/*
+ * Opt-in prayer-circle notifications: a new request in a circle, or one
+ * marked answered. Each member is told only if they turned it on for that
+ * circle, never about their own requests, and never about someone they've
+ * blocked. Counts only, logged: never who or what.
+ */
+async function notifyCircle(circleId: string, actor: string, build: (prefs: NotifyPrefs, name: string, circleName: string) => Parameters<typeof buildCircleMessage>[1]): Promise<void> {
+  const db = getFirestore();
+  const circle = (await db.doc(`circles/${circleId}`).get()).data();
+  if (!circle || !Array.isArray(circle.memberIds)) return;
+  const name = (await db.doc(`users/${actor}`).get()).get("displayName");
+  if (typeof name !== "string" || !name) return;
+  let sent = 0;
+  for (const member of circle.memberIds as unknown[]) {
+    if (typeof member !== "string") continue;
+    const prefs = parseNotifyPrefs((await db.doc(`users/${member}/private/notify`).get()).data());
+    if (!shouldNotifyCircle(prefs, circleId, member, actor)) continue;
+    if ((await db.doc(`blocks/${member}_${actor}`).get()).exists) continue;
+    const message = buildCircleMessage(prefs, build(prefs, name, String(circle.name ?? "")));
+    if (process.env.FUNCTIONS_EMULATOR === "true") {
+      await db.collection("_notifyDryRun").add({ owner: member, message });
+    } else {
+      await getMessaging().send(message).catch((err) => logger.warn("circle notification failed", { code: err?.code }));
+    }
+    sent++;
+  }
+  logger.info("circle notifications", { sent });
+}
+
+/** Someone added a request to a circle. */
+export const notifyCircleRequest = onDocumentCreated("circles/{circleId}/circleRequests/{requestId}", async (event) => {
+  const r = event.data?.data();
+  if (!r || typeof r.authorId !== "string") return;
+  await notifyCircle(event.params.circleId, r.authorId, (_p, name, circleName) => ({
+    kind: "new", circleId: event.params.circleId, circleName, name, text: String(r.text ?? ""),
+  }));
+});
+
+/** Someone marked their circle request answered (not when it's undone or re-marked). */
+export const notifyCircleAnswered = onDocumentUpdated("circles/{circleId}/circleRequests/{requestId}", async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (!before || !after || before.answeredAt !== undefined || after.answeredAt === undefined || typeof after.authorId !== "string") return;
+  await notifyCircle(event.params.circleId, after.authorId, (_p, name, circleName) => ({
+    kind: "answered", circleId: event.params.circleId, circleName, name, text: String(after.text ?? ""),
+    note: typeof after.answerNote === "string" ? after.answerNote : undefined,
   }));
 });

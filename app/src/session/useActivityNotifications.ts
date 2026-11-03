@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { currentLang } from "../i18n";
 import { useNotificationPermission } from "../lib/notifications";
-import { anyOn, changeNotifyPrefs, newTopic, saveNotifyPrefs, watchNotifyPrefs, type NotifyKind, type NotifyPrefs } from "../lib/notifyPrefs";
+import { anyOn, changeCircleNotify, changeNotifyPrefs, newTopic, saveNotifyPrefs, watchNotifyPrefs, type NotifyKind, type NotifyPrefs } from "../lib/notifyPrefs";
 import { pushAvailable, setActivitySubscription } from "../lib/push";
 import { useReadySession } from "./SessionProvider";
 
@@ -12,7 +12,12 @@ import { useReadySession } from "./SessionProvider";
 export const activityTopicKey = (uid: string) => `activityTopic.${uid}`;
 
 /** My opt-in notification settings, live, and a way to change one. */
-export function useNotifyPrefs(): { prefs: NotifyPrefs | null; loaded: boolean; set: (kind: NotifyKind, on: boolean) => Promise<void> } {
+export function useNotifyPrefs(): {
+  prefs: NotifyPrefs | null;
+  loaded: boolean;
+  set: (kind: NotifyKind, on: boolean) => Promise<void>;
+  setCircle: (circleId: string, on: boolean, stillIn: (id: string) => boolean) => Promise<void>;
+} {
   const { profile } = useReadySession();
   const [state, setState] = useState<{ prefs: NotifyPrefs | null; loaded: boolean }>({ prefs: null, loaded: false });
   useEffect(() => watchNotifyPrefs(db, profile.uid, (prefs) => setState({ prefs, loaded: true })), [profile.uid]);
@@ -20,6 +25,8 @@ export function useNotifyPrefs(): { prefs: NotifyPrefs | null; loaded: boolean; 
     ...state,
     set: (kind, on) =>
       saveNotifyPrefs(db, profile.uid, changeNotifyPrefs(state.prefs, kind, on, currentLang(), () => newTopic(Crypto.getRandomBytes))),
+    setCircle: (circleId, on, stillIn) =>
+      saveNotifyPrefs(db, profile.uid, changeCircleNotify(state.prefs, circleId, on, currentLang(), () => newTopic(Crypto.getRandomBytes), stillIn)),
   };
 }
 

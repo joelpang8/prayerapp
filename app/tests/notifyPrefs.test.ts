@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { changeNotifyPrefs, newTopic, saveNotifyPrefs, watchNotifyPrefs, type NotifyPrefs } from "../src/lib/notifyPrefs";
+import { changeCircleNotify, changeNotifyPrefs, newTopic, saveNotifyPrefs, watchNotifyPrefs, type NotifyPrefs } from "../src/lib/notifyPrefs";
 import { dbAs, seedUser, setupEnv, until } from "./env";
 
 let env: RulesTestEnvironment;
@@ -31,5 +31,20 @@ test("turning a notification on saves it under the real rules; nobody else can r
     await until(() => refused);
   } finally {
     stopBob();
+  }
+});
+
+test("turning on one circle's notifications saves under the real rules", async () => {
+  const db = dbAs(env, "alice");
+  let prefs: NotifyPrefs | null = null;
+  const stop = watchNotifyPrefs(db, "alice", (p) => { prefs = p; });
+  try {
+    await saveNotifyPrefs(db, "alice", changeCircleNotify(null, "circleAbc123", true, "en", () => newTopic(random), () => true));
+    await until(() => prefs?.circles.includes("circleAbc123") === true);
+    await saveNotifyPrefs(db, "alice", changeNotifyPrefs(prefs, "taps", true, "en", () => newTopic(random)));
+    await until(() => prefs?.taps === true);
+    expect(prefs!.circles).toEqual(["circleAbc123"]);
+  } finally {
+    stop();
   }
 });

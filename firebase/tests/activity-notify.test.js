@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { collection, doc, getDocs, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
-import { buildActivityMessage, parseNotifyPrefs, shouldNotify } from "../functions/lib/activityNotify.js";
+import { buildActivityMessage, buildCircleMessage, parseNotifyPrefs, shouldNotify, shouldNotifyCircle } from "../functions/lib/activityNotify.js";
 import { seed, seedFriends, seedUser, setupEnv, signedInAs } from "./helpers.js";
 
 // Opt-in notifications about my own things. Unit tests for the wording and
@@ -31,6 +31,25 @@ describe("wording and who gets told (unit)", () => {
     const r = buildActivityMessage(parseNotifyPrefs(prefs()), { kind: "reactions", name: "Sarah", reaction: "amen", postId: "p1", notes: "x".repeat(300) });
     expect(r.notification.title).toBe("🙌 Sarah reacted to your prayer");
     expect(r.notification.body.length).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("prayer circles (unit)", () => {
+  test("only the circles I turned on, never about my own requests", () => {
+    const p = parseNotifyPrefs(prefs({ circles: ["c1"] }));
+    expect(shouldNotifyCircle(p, "c1", "alice", "bob")).toBe(true);
+    expect(shouldNotifyCircle(p, "c2", "alice", "bob")).toBe(false);
+    expect(shouldNotifyCircle(p, "c1", "alice", "alice")).toBe(false);
+    expect(shouldNotifyCircle(parseNotifyPrefs(prefs()), "c1", "alice", "bob")).toBe(false);
+    expect(shouldNotifyCircle(null, "c1", "alice", "bob")).toBe(false);
+  });
+
+  test("wording for a new request and an answered one; tapping opens the circle", () => {
+    const en = buildCircleMessage(parseNotifyPrefs(prefs({ circles: ["c1"] })), { kind: "new", circleId: "c1", circleName: "Small group", name: "Grace", text: "Job interview" });
+    expect(en.notification).toEqual({ title: "🙏 New request in Small group", body: "Grace: “Job interview”" });
+    expect(en.data).toEqual({ kind: "activity", activity: "circle", circleId: "c1" });
+    const es = buildCircleMessage(parseNotifyPrefs(prefs({ lang: "es" })), { kind: "answered", circleId: "c1", circleName: "Grupo", name: "Grace", text: "Trabajo", note: "¡Me lo dieron!" });
+    expect(es.notification).toEqual({ title: "✦ La petición de Grace fue respondida (Grupo)", body: "¡Me lo dieron!" });
   });
 });
 
@@ -87,5 +106,25 @@ describe("sent when a friend acts (emulators)", () => {
     let all = [];
     await seed(env, async (db) => { all = (await getDocs(collection(db, "_notifyDryRun"))).docs; });
     expect(all).toHaveLength(0);
+  });
+
+  e2e("a new or answered circle request tells members who turned it on for that circle, not the author or someone who blocked them", async () => {
+    await seedUser(env, "cat");
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "circles", "c1"), { name: "Small group", leaderId: "alice", memberIds: ["alice", "bob", "cat"], invitedIds: [], createdAt: Timestamp.now() });
+      await setDoc(doc(db, "users", "alice", "private", "notify"), prefs({ circles: ["c1"] }));
+      await setDoc(doc(db, "users", "bob", "private", "notify"), prefs({ topic: "n_" + "b".repeat(32), circles: ["c1"] }));
+      await setDoc(doc(db, "users", "cat", "private", "notify"), prefs({ topic: "n_" + "c".repeat(32), circles: ["c1"] }));
+      await setDoc(doc(db, "blocks", "cat_bob"), { blocker: "cat", blocked: "bob", createdAt: Timestamp.now() });
+    });
+    const bob = signedInAs(env, "bob");
+    await setDoc(doc(bob, "circles", "c1", "circleRequests", "r1"), { authorId: "bob", text: "Job interview", createdAt: serverTimestamp(), prayedBy: [] });
+    const got = await sent("alice");
+    expect(got.map((g) => g.message.notification.title)).toEqual(["🙏 New request in Small group"]);
+    expect(got[0].message.data).toEqual({ kind: "activity", activity: "circle", circleId: "c1" });
+    await new Promise((r) => setTimeout(r, 2500));
+    let others = [];
+    await seed(env, async (db) => { others = (await getDocs(collection(db, "_notifyDryRun"))).docs.map((d) => d.data().owner).filter((o) => o !== "alice"); });
+    expect(others).toEqual([]);
   });
 });

@@ -1,9 +1,9 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { Alert, ScrollView, Switch, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
 import { CirclePhoto } from "../../components/CirclePhoto";
-import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../../components/ui";
+import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../../components/ui";
 import { db, storage } from "../../firebase";
 import { photoBlob, pickAvatar } from "../../lib/capture";
 import { locale, t } from "../../i18n";
@@ -16,7 +16,9 @@ import {
 } from "../../lib/circles";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
-import { useCircle, useJoinRequests } from "../../session/useCircles";
+import { useCircle, useJoinRequests, useMyCircles } from "../../session/useCircles";
+import { useNotifyPrefs } from "../../session/useActivityNotifications";
+import { useNotificationPermission } from "../../lib/notifications";
 import { shareCircleLink } from "../../lib/circleLink";
 import { useProfiles } from "../../session/useProfiles";
 
@@ -91,6 +93,8 @@ export default function CircleMembersScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: circle.name }} />
+
+      <NotifySwitch circleId={circle.id} />
 
       {leader && (
         <View style={styles.block}>
@@ -318,7 +322,41 @@ function PrayerTimeEditor({ circle }: { circle: Circle }) {
   );
 }
 
+/** My own opt-in: tell me about new and answered requests in this circle (off until turned on). */
+function NotifySwitch({ circleId }: { circleId: string }) {
+  const styles = useStyles();
+  const colors = useColors();
+  const { prefs, loaded, setCircle } = useNotifyPrefs();
+  const mine = useMyCircles();
+  const permission = useNotificationPermission();
+  const [error, setError] = useState(false);
+  const on = !!prefs?.circles.includes(circleId);
+  async function toggle(value: boolean) {
+    setError(false);
+    if (value && permission.status !== "granted") await permission.request();
+    const ids = new Set(mine.circles.map((c) => c.id));
+    await setCircle(circleId, value, (c) => !mine.loaded || ids.has(c)).catch(() => setError(true));
+  }
+  return (
+    <View style={styles.notifyRow}>
+      <View style={styles.names}>
+        <Text style={styles.name}>{t("circleMembers.notify")}</Text>
+        <Muted>{t("circleMembers.notifyNote")}</Muted>
+        {error && <ErrorText>{t("common.tryAgain")}</ErrorText>}
+      </View>
+      <Switch
+        value={on}
+        disabled={!loaded}
+        onValueChange={(v) => { void toggle(v); }}
+        trackColor={{ true: colors.accent, false: colors.border }}
+        accessibilityLabel={t("circleMembers.notify")}
+      />
+    </View>
+  );
+}
+
 const useStyles = makeStyles((colors) => ({
+  notifyRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12 },
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 10, paddingBottom: 48 },
   block: { gap: 8, marginBottom: 6 },
