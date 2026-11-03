@@ -1,7 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 import { db } from "../firebase";
-import { watchCircle, watchCircleInvites, watchCircleRequests, watchMyCircles, watchNewestRequest, type Circle, type CircleRequest } from "../lib/circles";
+import {
+  watchCircle, watchCircleInvites, watchCircleRequests, watchJoinRequests, watchMyCircles, watchNewestRequest, type Circle, type CircleRequest,
+  type JoinRequest,
+} from "../lib/circles";
 import { useReadySession } from "./SessionProvider";
 
 /** Circles I'm in and circles I'm invited to, live. */
@@ -65,4 +68,14 @@ export function useCircleHasNew(circleId: string): boolean {
   useEffect(refresh, [refresh, newest]);
   if (!newest || seenAt === null || newest.authorId === profile.uid || !newest.createdAt) return false;
   return newest.createdAt.getTime() > seenAt;
+}
+
+/** People asking to join with the invite link (only the leader can see them), live. */
+export function useJoinRequests(circleId: string, isLeader: boolean): JoinRequest[] {
+  const [state, setState] = useState<{ id: string; list: JoinRequest[] } | null>(null);
+  useEffect(() => {
+    if (!isLeader) return;
+    return watchJoinRequests(db, circleId, (list) => setState({ id: circleId, list }));
+  }, [circleId, isLeader]);
+  return isLeader && state?.id === circleId ? state.list : [];
 }

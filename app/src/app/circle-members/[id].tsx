@@ -11,11 +11,13 @@ import { SelectField } from "../../components/SelectField";
 import { prayerTimeFrom, weekdayNames } from "../../lib/circleTime";
 import {
   cancelInvite, CIRCLE_NAME_MAX, circleNameProblem, deleteCircle, invitesLeft, inviteToCircle, leaveCircle, MAX_CIRCLE_PEOPLE,
-  removeCirclePhoto, removeMember, renameCircle, setCirclePhoto, setPrayerTime, type Circle, type PrayerTime,
+  approveJoin, declineJoin, removeCirclePhoto, removeMember, renameCircle, setCirclePhoto, setPrayerTime, turnOffLink, turnOnLink,
+  type Circle, type PrayerTime,
 } from "../../lib/circles";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
-import { useCircle } from "../../session/useCircles";
+import { useCircle, useJoinRequests } from "../../session/useCircles";
+import { shareCircleLink } from "../../lib/circleLink";
 import { useProfiles } from "../../session/useProfiles";
 
 /**
@@ -106,6 +108,8 @@ export default function CircleMembersScreen() {
         </View>
       )}
 
+      {leader && <InviteLinkEditor circle={circle} />}
+
       {leader && <PrayerTimeEditor circle={circle} />}
 
       {leader && (
@@ -118,7 +122,7 @@ export default function CircleMembersScreen() {
             kind="secondary"
             busy={busy === "name"}
             disabled={!!nameProblem || editedName.trim() === circle.name}
-            onPress={() => run("name", async () => { await renameCircle(db, circle.id, editedName); setName(null); setSaved(true); })}
+            onPress={() => run("name", async () => { await renameCircle(db, circle.id, editedName, circle.linkCode); setName(null); setSaved(true); })}
           />
         </View>
       )}
@@ -180,7 +184,7 @@ export default function CircleMembersScreen() {
               {
                 text: t("circleMembers.deleteCircle"),
                 style: "destructive",
-                onPress: () => run("delete", async () => { await deleteCircle(db, circle.id, { storage, path: circle.photoPath }); router.navigate("/circles"); }),
+                onPress: () => run("delete", async () => { await deleteCircle(db, circle.id, { storage, path: circle.photoPath }, circle.linkCode); router.navigate("/circles"); }),
               },
             ])
           }
@@ -203,6 +207,66 @@ export default function CircleMembersScreen() {
         />
       )}
     </ScrollView>
+  );
+}
+
+/**
+ * The invite link: create, share or turn off; and the people who asked to
+ * join with it, to approve or decline. Requests from people I've blocked
+ * are left out (they aren't told).
+ */
+function InviteLinkEditor({ circle }: { circle: Circle }) {
+  const styles = useStyles();
+  const asks = useJoinRequests(circle.id, true);
+  const blocked = useBlocked();
+  const shown = asks.filter((a) => !blocked.has(a.uid));
+  const people = useProfiles(shown.map((a) => a.uid));
+  const [busy, setBusy] = useState<string | null>(null);
+  const full = invitesLeft(circle) === 0;
+  async function run(key: string, fn: () => Promise<void>) {
+    setBusy(key);
+    try {
+      await fn();
+    } catch (err) {
+      console.warn("invite link failed", err);
+      Alert.alert(t("circles.didntWork"));
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <View style={styles.block}>
+      <Text style={styles.label}>{t("circleLink.title")}</Text>
+      <Muted>{t("circleLink.note")}</Muted>
+      {circle.linkCode ? (
+        <View style={styles.photoButtons}>
+          <Button title={t("circleLink.share")} onPress={() => { void shareCircleLink(circle.name, circle.linkCode!).catch(() => {}); }} />
+          <Button title={t("circleLink.off")} kind="secondary" busy={busy === "off"} onPress={() => run("off", () => turnOffLink(db, circle))} />
+        </View>
+      ) : (
+        <Button title={t("circleLink.create")} kind="secondary" busy={busy === "on"} onPress={() => run("on", async () => {
+          const code = await turnOnLink(db, circle);
+          await shareCircleLink(circle.name, code).catch(() => {});
+        })} />
+      )}
+      {shown.length > 0 && (
+        <>
+          <Text style={styles.label}>{t("circleLink.asked")} ({shown.length})</Text>
+          {full && <Muted>{t("circleMembers.full", { max: MAX_CIRCLE_PEOPLE })}</Muted>}
+          {shown.map((a) => (
+            <View key={a.uid} style={styles.row}>
+              <Avatar path={people.get(a.uid)?.avatarPath ?? null} name={people.get(a.uid)?.displayName ?? ""} size={40} />
+              <View style={styles.names}>
+                <Text style={styles.name} numberOfLines={1}>{people.get(a.uid)?.displayName ?? "…"}</Text>
+                {people.get(a.uid) && <Muted>@{people.get(a.uid)!.username}</Muted>}
+              </View>
+              <Button title={t("circleLink.approve")} busy={busy === a.uid} disabled={full} onPress={() => run(a.uid, () => approveJoin(db, circle.id, a.uid))} />
+              <Button title={t("circleLink.decline")} kind="secondary" disabled={busy === a.uid} onPress={() => run(a.uid, () => declineJoin(db, circle.id, a.uid))} />
+            </View>
+          ))}
+        </>
+      )}
+    </View>
   );
 }
 

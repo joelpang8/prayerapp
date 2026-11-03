@@ -414,7 +414,7 @@ service cloud.firestore {
     // excerpt is kept with the report so it survives the content's deletion.
     // ---------- prayer circles ----------
     // circles/{circleId}: { name, leaderId, memberIds, invitedIds, createdAt,
-    //   photoPath?, pinnedRequestId?, prayerTime? }
+    //   photoPath?, pinnedRequestId?, prayerTime?, linkCode? }
     // A small named group (up to 30, members + invited) with a shared prayer
     // list. Members see each other's names and the circle's requests even if
     // they aren't friends; nothing else (profiles, posts) is shared through a
@@ -442,6 +442,9 @@ service cloud.firestore {
           && p.hour is int && p.hour >= 0 && p.hour <= 23
           && p.minute is int && p.minute >= 0 && p.minute <= 59
           && p.timeZone is string && p.timeZone.matches('^[A-Za-z_]+(/[A-Za-z0-9_+-]+){0,2}$') && p.timeZone.size() <= 64;
+      }
+      function newestMember() {
+        return request.resource.data.memberIds[request.resource.data.memberIds.size() - 1];
       }
       function newestInvite() {
         return request.resource.data.invitedIds[request.resource.data.invitedIds.size() - 1];
@@ -471,6 +474,19 @@ service cloud.firestore {
         // Monday ... 7 = Sunday), an hour and minute, in the leader's time zone.
         || (isLeader() && changed().hasOnly(['prayerTime'])
             && (!('prayerTime' in request.resource.data) || validPrayerTime(request.resource.data.prayerTime)))
+        // The leader turns the invite link on (pointing at its circleLinks
+        // card, made in the same batch) or off.
+        || (isLeader() && changed().hasOnly(['linkCode'])
+            && (!('linkCode' in request.resource.data)
+                || (request.resource.data.linkCode is string
+                    && getAfter(/databases/$(database)/documents/circleLinks/$(request.resource.data.linkCode)).data.circleId == circleId)))
+        // The leader approves someone who asked to join with the link.
+        || (isLeader() && changed().hasOnly(['memberIds'])
+            && request.resource.data.memberIds == resource.data.memberIds.concat([newestMember()])
+            && exists(/databases/$(database)/documents/circles/$(circleId)/joinRequests/$(newestMember()))
+            && !(newestMember() in resource.data.memberIds)
+            && !(newestMember() in resource.data.invitedIds)
+            && request.resource.data.memberIds.size() + resource.data.invitedIds.size() <= 30)
         // The leader sets or removes its photo (in its own circlePhotos/ folder,
         // which only the leader can write to).
         || (isLeader() && changed().hasOnly(['photoPath'])
@@ -509,6 +525,31 @@ service cloud.firestore {
 
       // The leader deletes the circle (the app deletes its requests first).
       allow delete: if signedIn() && isLeader();
+
+      // circles/{circleId}/joinRequests/{uid}: someone with the circle's
+      // invite link asks to join: { uid, code, createdAt }. Only while the
+      // link is on (the code matches), and not if they're already in or
+      // invited. The leader sees and removes them (approve or decline);
+      // the person sees and can cancel their own. Nobody else sees them.
+      match /joinRequests/{uid} {
+        function circleNow() {
+          return get(/databases/$(database)/documents/circles/$(circleId)).data;
+        }
+        allow get: if signedIn() && (request.auth.uid == uid || request.auth.uid == circleNow().leaderId);
+        allow list: if signedIn() && request.auth.uid == circleNow().leaderId;
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'code', 'createdAt'])
+          && request.resource.data.keys().hasAll(['uid', 'code', 'createdAt'])
+          && request.resource.data.uid == uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.code is string
+          && request.resource.data.code == circleNow().get('linkCode', '')
+          && !(uid in circleNow().memberIds)
+          && !(uid in circleNow().invitedIds);
+        allow update: if false;
+        allow delete: if signedIn() && (request.auth.uid == uid || request.auth.uid == circleNow().leaderId);
+      }
 
       // circles/{circleId}/circleRequests/{requestId}:
       //   { authorId, text, createdAt, prayedBy, answeredAt?, answerNote? }
@@ -558,6 +599,33 @@ service cloud.firestore {
         allow delete: if signedIn()
           && (request.auth.uid == resource.data.authorId || request.auth.uid == circleData().leaderId);
       }
+    }
+
+    // ---------- prayer circle invite links ----------
+    // circleLinks/{code}: { circleId, name, createdAt }. The card behind a
+    // circle's invite link: anyone signed in who has the link (the random
+    // code) can read it, to see the circle's name and ask to join. No list,
+    // so codes can't be found. Only the circle's leader makes, renames or
+    // removes one.
+    match /circleLinks/{code} {
+      function linkLeader(circleId) {
+        return get(/databases/$(database)/documents/circles/$(circleId)).data.leaderId;
+      }
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && code.matches('^[A-Za-z0-9]{20,40}$')
+        && request.resource.data.keys().hasOnly(['circleId', 'name', 'createdAt'])
+        && request.resource.data.keys().hasAll(['circleId', 'name', 'createdAt'])
+        && request.resource.data.circleId is string
+        && request.auth.uid == linkLeader(request.resource.data.circleId)
+        && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && request.auth.uid == linkLeader(resource.data.circleId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40;
+      allow delete: if signedIn() && request.auth.uid == linkLeader(resource.data.circleId);
     }
 
     match /reports/{reportId} {

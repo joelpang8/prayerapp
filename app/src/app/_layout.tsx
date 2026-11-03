@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
-import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, type Theme } from "expo-router";
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, type Href, type Theme } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +16,7 @@ import { loadReminderPref } from "../lib/reminder";
 import { loadLangPref, useLang } from "../i18n/prefs";
 import { t } from "../i18n";
 import { usernameFromLink } from "../lib/invite";
+import { circleCodeFromLink } from "../lib/circleLink";
 import { configureNotifications } from "../lib/notifications";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 
@@ -43,16 +44,19 @@ function RootNavigator() {
   const url = Linking.useLinkingURL();
   const pendingInvite = useRef<string | null>(null);
   useEffect(() => {
+    if (ready) return;
     const name = usernameFromLink(url);
-    if (name && !ready) pendingInvite.current = name;
+    const code = circleCodeFromLink(url);
+    if (name) pendingInvite.current = `/u/${name}`;
+    else if (code) pendingInvite.current = `/circle-join/${code}`;
   }, [url, ready]);
   useEffect(() => {
     if (session.status === "loading") return;
     if (ready && wasReady.current === false) {
       router.replace("/");
-      const name = pendingInvite.current;
+      const path = pendingInvite.current;
       pendingInvite.current = null;
-      if (name) router.push(`/u/${name}`);
+      if (path) router.push(path as Href);
       // A brand-new account sees "How PrayAlong works" once, over Today.
       if (justFinishedProfile(previousStatus.current, session.status)) router.push("/welcome");
     }
@@ -92,6 +96,7 @@ function RootNavigator() {
         <Stack.Screen name="circle/new" options={{ ...pushed, title: t("circleNew.title") }} />
         <Stack.Screen name="circle/[id]" options={{ ...pushed, title: t("circles.title") }} />
         <Stack.Screen name="circle-members/[id]" options={{ ...pushed, title: t("circleMembers.title") }} />
+        <Stack.Screen name="circle-join/[code]" options={{ ...pushed, title: t("circleJoin.title") }} />
         <Stack.Screen name="welcome" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
         <Stack.Screen name="delete-account" options={{ ...pushed, title: t("titles.deleteAccount") }} />
       </Stack.Protected>

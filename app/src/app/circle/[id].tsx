@@ -19,7 +19,7 @@ import {
 import { haptics } from "../../lib/haptics";
 import { useBlocked, useHidden } from "../../session/hooks";
 import { useReadySession } from "../../session/SessionProvider";
-import { useCircle, useMarkCircleSeen } from "../../session/useCircles";
+import { useCircle, useJoinRequests, useMarkCircleSeen } from "../../session/useCircles";
 import { useProfiles } from "../../session/useProfiles";
 
 /**
@@ -39,6 +39,8 @@ export default function CircleScreen() {
   const shown = visibleRequests(requests, blocked, (requestId) => isHidden({ circleId: id, requestId }));
   const people = useProfiles(new Set([...(circle?.memberIds ?? []), ...shown.map((r) => r.authorId)]));
   const arranged = arrangeRequests(shown, circle?.pinnedRequestId ?? null);
+  // People asking to join with the invite link (the leader sees them; blocked people never show).
+  const asks = useJoinRequests(id, circle?.leaderId === me.uid).filter((a) => !blocked.has(a.uid));
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -89,6 +91,11 @@ export default function CircleScreen() {
         <Text style={styles.link}>{t("circle.membersButton")} ›</Text>
       </Pressable>
 
+      {asks.length > 0 && (
+        <Pressable onPress={() => router.push({ pathname: "/circle-members/[id]", params: { id } })} accessibilityRole="button" style={styles.askBanner}>
+          <Text style={styles.askText}>{tn("circleLink.askedBanner", asks.length)} ›</Text>
+        </Pressable>
+      )}
       {circle.prayerTime && <PrayerTimeRow circle={circle} />}
 
       <View style={styles.addRow}>
@@ -253,6 +260,8 @@ const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  askBanner: { backgroundColor: colors.accentSoft, borderRadius: 12, padding: 12 },
+  askText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent },
   timeRow: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12 },
   timeText: { flex: 1, gap: 2 },
   timeLine: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.text },

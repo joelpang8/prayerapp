@@ -81,6 +81,7 @@ export async function deleteAccountData(uid: string, deps: DeletionDeps): Promis
   const invited = await db.collection("circles").where("invitedIds", "array-contains", uid).get();
   for (const d of invited.docs) await without(d.ref, "invitedIds");
   summary.circleInvites = invited.size;
+  summary.circleJoinRequests = await deleteAll(db.collectionGroup("joinRequests").where("uid", "==", uid));
   const circles = await db.collection("circles").where("memberIds", "array-contains", uid).get();
   for (const d of circles.docs) {
     const others = (d.get("memberIds") as string[]).filter((m) => m !== uid);
@@ -89,6 +90,7 @@ export async function deleteAccountData(uid: string, deps: DeletionDeps): Promis
     else {
       await db.recursiveDelete(d.ref);
       await deps.deleteFiles(`circlePhotos/${d.id}/`);
+      await deleteAll(db.collection("circleLinks").where("circleId", "==", d.id));
     }
   }
   summary.circles = circles.size;

@@ -1,5 +1,5 @@
 import {
-  addDoc, arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDocs, limit, onSnapshot, orderBy, query,
+  addDoc, arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query,
   serverTimestamp, setDoc, updateDoc, where, writeBatch, type DocumentData, type Firestore, type Unsubscribe,
 } from "firebase/firestore";
 import { deleteObject, ref, uploadBytes, type FirebaseStorage } from "firebase/storage";
@@ -37,6 +37,8 @@ export type Circle = {
   photoPath: string | null;
   pinnedRequestId: string | null;
   prayerTime: PrayerTime | null;
+  /** The invite link's code while the link is on. */
+  linkCode: string | null;
 };
 
 function prayerTimeFrom(v: unknown): PrayerTime | null {
@@ -65,6 +67,7 @@ export function circleFromData(id: string, d: DocumentData): Circle {
     photoPath: typeof d.photoPath === "string" ? d.photoPath : null,
     pinnedRequestId: typeof d.pinnedRequestId === "string" ? d.pinnedRequestId : null,
     prayerTime: prayerTimeFrom(d.prayerTime),
+    linkCode: typeof d.linkCode === "string" ? d.linkCode : null,
   };
 }
 
@@ -180,8 +183,84 @@ export function setPrayerTime(db: Firestore, circleId: string, time: PrayerTime 
   return updateDoc(circleRef(db, circleId), { prayerTime: time ?? deleteField() });
 }
 
-export function renameCircle(db: Firestore, circleId: string, name: string): Promise<void> {
-  return updateDoc(circleRef(db, circleId), { name: name.trim() });
+/** Renames the circle (and its invite link's card, so people with the link see the new name). */
+export async function renameCircle(db: Firestore, circleId: string, name: string, linkCode: string | null = null): Promise<void> {
+  const batch = writeBatch(db);
+  batch.update(circleRef(db, circleId), { name: name.trim() });
+  if (linkCode) batch.update(doc(db, "circleLinks", linkCode), { name: name.trim() });
+  await batch.commit();
+}
+
+// ---------- invite links ----------
+// circleLinks/{code}: { circleId, name, createdAt }, readable by anyone
+// signed in who has the code (it's in the link); the circle doc's linkCode
+// says which one is on. Anyone with the link can ask to join
+// (circles/{id}/joinRequests/{uid}); the leader approves or declines.
+
+export type LinkCard = { code: string; circleId: string; name: string };
+export type JoinRequest = { uid: string; createdAt: Date | null };
+
+/** The leader turns the invite link on (a fresh code each time, replacing any old one). */
+export async function turnOnLink(db: Firestore, circle: Pick<Circle, "id" | "name" | "linkCode">): Promise<string> {
+  const code = doc(collection(db, "_")).id + doc(collection(db, "_")).id.slice(0, 8);
+  const batch = writeBatch(db);
+  batch.set(doc(db, "circleLinks", code), { circleId: circle.id, name: circle.name, createdAt: serverTimestamp() });
+  batch.update(circleRef(db, circle.id), { linkCode: code });
+  if (circle.linkCode) batch.delete(doc(db, "circleLinks", circle.linkCode));
+  await batch.commit();
+  return code;
+}
+
+/** The leader turns the link off: old links stop working. */
+export async function turnOffLink(db: Firestore, circle: Pick<Circle, "id" | "linkCode">): Promise<void> {
+  if (!circle.linkCode) return;
+  const batch = writeBatch(db);
+  batch.update(circleRef(db, circle.id), { linkCode: deleteField() });
+  batch.delete(doc(db, "circleLinks", circle.linkCode));
+  await batch.commit();
+}
+
+/** The card behind a link, or null if the link is off or wrong. */
+export async function readLinkCard(db: Firestore, code: string): Promise<LinkCard | null> {
+  if (!/^[A-Za-z0-9]{20,40}$/.test(code)) return null;
+  const snap = await getDoc(doc(db, "circleLinks", code)).catch(() => null);
+  if (!snap?.exists()) return null;
+  const d = snap.data();
+  return typeof d.circleId === "string" ? { code, circleId: d.circleId, name: String(d.name ?? "") } : null;
+}
+
+const joinRef = (db: Firestore, circleId: string, uid: string) => doc(db, "circles", circleId, "joinRequests", uid);
+
+export function askToJoin(db: Firestore, card: LinkCard, me: string): Promise<void> {
+  return setDoc(joinRef(db, card.circleId, me), { uid: me, code: card.code, createdAt: serverTimestamp() });
+}
+
+/** Whether I've already asked to join (and haven't been answered). */
+export async function haveAskedToJoin(db: Firestore, circleId: string, me: string): Promise<boolean> {
+  return getDoc(joinRef(db, circleId, me)).then((s) => s.exists(), () => false);
+}
+
+export function cancelAskToJoin(db: Firestore, circleId: string, me: string): Promise<void> {
+  return deleteDoc(joinRef(db, circleId, me));
+}
+
+/** People asking to join (the leader only), oldest first, live. */
+export function watchJoinRequests(db: Firestore, circleId: string, on: (r: JoinRequest[]) => void): Unsubscribe {
+  return onSnapshot(collection(db, "circles", circleId, "joinRequests"),
+    (snap) => on(snap.docs
+      .map((d) => ({ uid: d.id, createdAt: d.data({ serverTimestamps: "estimate" }).createdAt?.toDate?.() ?? null }))
+      .sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0))),
+    () => on([]));
+}
+
+/** The leader lets someone in who asked with the link. */
+export async function approveJoin(db: Firestore, circleId: string, uid: string): Promise<void> {
+  await updateDoc(circleRef(db, circleId), { memberIds: arrayUnion(uid) });
+  await deleteDoc(joinRef(db, circleId, uid));
+}
+
+export function declineJoin(db: Firestore, circleId: string, uid: string): Promise<void> {
+  return deleteDoc(joinRef(db, circleId, uid));
 }
 
 /** Their requests in this circle (to remove with them). */
@@ -221,9 +300,12 @@ export async function removeCirclePhoto(db: Firestore, storage: FirebaseStorage,
   if (circle.photoPath) await deleteObject(ref(storage, circle.photoPath)).catch(() => {});
 }
 
-/** The leader deletes the circle, its photo and every request in it. */
-export async function deleteCircle(db: Firestore, circleId: string, photo?: { storage: FirebaseStorage; path: string | null }): Promise<void> {
+/** The leader deletes the circle, its photo, invite link, join requests and every request in it. */
+export async function deleteCircle(db: Firestore, circleId: string, photo?: { storage: FirebaseStorage; path: string | null }, linkCode?: string | null): Promise<void> {
   if (photo?.path) await deleteObject(ref(photo.storage, photo.path)).catch(() => {});
+  if (linkCode) await deleteDoc(doc(db, "circleLinks", linkCode)).catch(() => {});
+  const asks = await getDocs(collection(db, "circles", circleId, "joinRequests")).catch(() => null);
+  for (const d of asks?.docs ?? []) await deleteDoc(d.ref).catch(() => {});
   const snap = await getDocs(requestsOf(db, circleId));
   for (let i = 0; i < snap.docs.length; i += 400) {
     const batch = writeBatch(db);

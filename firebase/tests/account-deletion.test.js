@@ -130,6 +130,10 @@ describe("deleting an account", () => {
     await request("member", "anns", ann, [me]);
     await request("ledShared", "bens", ben, [me, ann]);
     await request("ledAlone", "lonely", me);
+    await db.doc("circles/other/joinRequests/" + me).set({ uid: me, code: "c", createdAt: t });
+    await db.doc("circles/other/joinRequests/" + ann).set({ uid: ann, code: "c", createdAt: t });
+    await db.doc("circleLinks/alonelinkcode0000000000").set({ circleId: "ledAlone", name: "x", createdAt: t });
+    await db.doc("circleLinks/sharedlinkcode000000000").set({ circleId: "ledShared", name: "x", createdAt: t });
 
     const deletedPrefixes = [];
     await deleteAccountData(me, { db, deleteFiles: async (p) => { deletedPrefixes.push(p); }, deleteAuthUser: async () => {} });
@@ -149,6 +153,12 @@ describe("deleting an account", () => {
     // The one they were alone in is gone, with its requests.
     expect(await exists("circles/ledAlone")).toBe(false);
     expect(await exists("circles/ledAlone/circleRequests/lonely")).toBe(false);
+    // Their request to join another circle goes; someone else's stays.
+    expect(await exists(`circles/other/joinRequests/${me}`)).toBe(false);
+    expect(await exists(`circles/other/joinRequests/${ann}`)).toBe(true);
+    // The deleted circle's invite link goes; the handed-on circle's stays.
+    expect(await exists("circleLinks/alonelinkcode0000000000")).toBe(false);
+    expect(await exists("circleLinks/sharedlinkcode000000000")).toBe(true);
   });
 
   e2e("deleting an account with nothing in it works too", async () => {

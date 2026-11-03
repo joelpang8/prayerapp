@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, test } from "vitest";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import {
   arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, serverTimestamp, setDoc,
-  Timestamp, updateDoc, where,
+  Timestamp, updateDoc, where, writeBatch,
 } from "firebase/firestore";
 import { seed, seedFriends, seedUser, setupEnv, signedInAs, signedOut } from "./helpers.js";
 
@@ -249,5 +249,84 @@ describe("reporting a circle request", () => {
   test("a reported request can be hidden from my own view", async () => {
     await assertSucceeds(setDoc(doc(as("ben"), "users", "ben", "hidden", "circle_c1_r1"), { createdAt: serverTimestamp() }));
     await assertFails(setDoc(doc(as("ben"), "users", "ben", "hidden", "circlex_c1"), { createdAt: serverTimestamp() }));
+  });
+});
+
+describe("invite links and asking to join", () => {
+  const CODE = "abcdefghijklmnopqrstuv12";
+  const linkDoc = (db, code = CODE) => doc(db, "circleLinks", code);
+  const joinReq = (db, uid, c = "c1") => doc(db, "circles", c, "joinRequests", uid);
+  const ask = (uid, code = CODE) => setDoc(joinReq(as(uid), uid), { uid, code, createdAt: serverTimestamp() });
+
+  async function turnOnLink() {
+    const db = as("lead");
+    const batch = writeBatch(db);
+    batch.set(linkDoc(db), { circleId: "c1", name: "Small group", createdAt: serverTimestamp() });
+    batch.update(circle(db), { linkCode: CODE });
+    return batch.commit();
+  }
+
+  test("only the leader turns a link on (card and code together) and off", async () => {
+    await seedCircle({ members: ["lead", "ann"] });
+    const ann = as("ann");
+    const b = writeBatch(ann);
+    b.set(linkDoc(ann), { circleId: "c1", name: "Mine", createdAt: serverTimestamp() });
+    b.update(circle(ann), { linkCode: CODE });
+    await assertFails(b.commit());
+    await assertFails(updateDoc(circle(as("lead")), { linkCode: CODE })); // no card behind it
+    await assertSucceeds(turnOnLink());
+    await assertFails(setDoc(linkDoc(as("lead"), "short"), { circleId: "c1", name: "x", createdAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(circle(as("lead")), { linkCode: deleteField() }));
+    await assertSucceeds(deleteDoc(linkDoc(as("lead"))));
+  });
+
+  test("anyone signed in with the link sees the card; nobody can list cards", async () => {
+    await seedCircle();
+    await assertSucceeds(turnOnLink());
+    await assertSucceeds(getDoc(linkDoc(as("dan"))));
+    await assertFails(getDocs(collection(as("dan"), "circleLinks")));
+    await assertFails(getDoc(linkDoc(signedOut(env))));
+  });
+
+  test("with the link on, a stranger asks to join; a wrong or old code doesn't work", async () => {
+    await seedCircle({ members: ["lead", "ann"], invited: ["ben"] });
+    await assertFails(ask("dan")); // link not on yet
+    await assertSucceeds(turnOnLink());
+    await assertFails(ask("dan", "wrongcodewrongcodewrong1"));
+    await assertFails(setDoc(joinReq(as("dan"), "cat"), { uid: "cat", code: CODE, createdAt: serverTimestamp() })); // for someone else
+    await assertFails(ask("ann")); // already in
+    await assertFails(ask("ben")); // already invited
+    await assertSucceeds(ask("dan"));
+    // Turning the link off stops new requests.
+    await assertSucceeds(updateDoc(circle(as("lead")), { linkCode: deleteField() }));
+    await assertFails(ask("cat"));
+  });
+
+  test("the leader sees requests and approves one; the asker sees and cancels only their own", async () => {
+    await seedCircle({ members: ["lead", "ann"] });
+    await assertSucceeds(turnOnLink());
+    await assertSucceeds(ask("dan"));
+    await assertSucceeds(ask("cat"));
+    await assertSucceeds(getDocs(collection(as("lead"), "circles", "c1", "joinRequests")));
+    await assertFails(getDocs(collection(as("ann"), "circles", "c1", "joinRequests")));
+    await assertFails(getDoc(joinReq(as("dan"), "cat")));
+    await assertSucceeds(getDoc(joinReq(as("dan"), "dan")));
+    await assertSucceeds(deleteDoc(joinReq(as("cat"), "cat")));
+    // Approve Dan: added as a member (not a friend of the leader: allowed through a request).
+    await assertSucceeds(updateDoc(circle(as("lead")), { memberIds: arrayUnion("dan") }));
+    // Cat cancelled, so can't be added that way.
+    await assertFails(updateDoc(circle(as("lead")), { memberIds: arrayUnion("cat") }));
+    // A member can't approve.
+    await assertSucceeds(ask("cat"));
+    await assertFails(updateDoc(circle(as("ann")), { memberIds: arrayUnion("cat") }));
+    await assertSucceeds(deleteDoc(joinReq(as("lead"), "cat"))); // leader declines
+  });
+
+  test("approving still respects the 30-person limit", async () => {
+    const members = ["lead", ...Array.from({ length: 29 }, (_, i) => `m${i}`)];
+    await seedCircle({ members });
+    await assertSucceeds(turnOnLink());
+    await assertSucceeds(ask("dan"));
+    await assertFails(updateDoc(circle(as("lead")), { memberIds: arrayUnion("dan") }));
   });
 });
