@@ -6,10 +6,12 @@ import { CirclePhoto } from "../../components/CirclePhoto";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../../components/ui";
 import { db, storage } from "../../firebase";
 import { photoBlob, pickAvatar } from "../../lib/capture";
-import { t } from "../../i18n";
+import { locale, t } from "../../i18n";
+import { SelectField } from "../../components/SelectField";
+import { prayerTimeFrom, weekdayNames } from "../../lib/circleTime";
 import {
   cancelInvite, CIRCLE_NAME_MAX, circleNameProblem, deleteCircle, invitesLeft, inviteToCircle, leaveCircle, MAX_CIRCLE_PEOPLE,
-  removeCirclePhoto, removeMember, renameCircle, setCirclePhoto,
+  removeCirclePhoto, removeMember, renameCircle, setCirclePhoto, setPrayerTime, type Circle, type PrayerTime,
 } from "../../lib/circles";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
@@ -103,6 +105,8 @@ export default function CircleMembersScreen() {
           </View>
         </View>
       )}
+
+      {leader && <PrayerTimeEditor circle={circle} />}
 
       {leader && (
         <View style={styles.block}>
@@ -202,6 +206,54 @@ export default function CircleMembersScreen() {
   );
 }
 
+/** Every 15 minutes, as "HH:MM" values with the phone's way of writing times. */
+const TIMES = Array.from({ length: 96 }, (_, i) => {
+  const hour = Math.floor(i / 4);
+  const minute = (i % 4) * 15;
+  return { hour, minute, value: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` };
+});
+
+/** The leader sets the circle's weekly prayer time (in their own time zone) or removes it. */
+function PrayerTimeEditor({ circle }: { circle: Circle }) {
+  const styles = useStyles();
+  const current = circle.prayerTime;
+  const [day, setDay] = useState(String(current?.weekday ?? 2));
+  const [time, setTime] = useState(current ? `${String(current.hour).padStart(2, "0")}:${String(current.minute).padStart(2, "0")}` : "19:00");
+  const [busy, setBusy] = useState(false);
+  const days = weekdayNames(locale());
+  const label = (h: number, m: number) => new Date(2026, 0, 5, h, m).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
+  async function save(value: PrayerTime | null) {
+    setBusy(true);
+    try {
+      await setPrayerTime(db, circle.id, value);
+    } catch (err) {
+      console.warn("prayer time failed", err);
+      Alert.alert(t("circles.didntWork"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const [hh, mm] = time.split(":").map(Number);
+  const chosen = prayerTimeFrom(Number(day), hh, mm);
+  const unchanged = !!current && current.weekday === chosen.weekday && current.hour === chosen.hour && current.minute === chosen.minute && current.timeZone === chosen.timeZone;
+  return (
+    <View style={styles.block}>
+      <Text style={styles.label}>{t("circleTime.title")}</Text>
+      <Muted>{t("circleTime.leaderNote")}</Muted>
+      <View style={styles.timePickers}>
+        <View style={styles.timePicker}>
+          <SelectField title={t("circleTime.day")} value={day} onChange={setDay} options={days.map((d, i) => ({ value: String(i + 1), label: d }))} placeholder={t("circleTime.day")} noneLabel={null} />
+        </View>
+        <View style={styles.timePicker}>
+          <SelectField title={t("circleTime.time")} value={time} onChange={setTime} options={TIMES.map((x) => ({ value: x.value, label: label(x.hour, x.minute) }))} placeholder={t("circleTime.time")} noneLabel={null} />
+        </View>
+      </View>
+      <Button title={t("circleTime.save")} kind="secondary" onPress={() => save(chosen)} busy={busy} disabled={unchanged} />
+      {current && <Button title={t("circleTime.clear")} kind="secondary" onPress={() => save(null)} disabled={busy} />}
+    </View>
+  );
+}
+
 const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 10, paddingBottom: 48 },
@@ -213,5 +265,7 @@ const useStyles = makeStyles((colors) => ({
   name: { fontSize: 16, fontFamily: fonts.display, color: colors.text },
   spacer: { height: 12 },
   photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  timePickers: { flexDirection: "row", gap: 8 },
+  timePicker: { flex: 1 },
   photoButtons: { flex: 1, gap: 8 },
 }));

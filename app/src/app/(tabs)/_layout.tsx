@@ -15,6 +15,7 @@ import { useLiveActivity } from "../../session/useLiveActivity";
 import { useReminder } from "../../session/useReminder";
 import { useActivitySubscription } from "../../session/useActivityNotifications";
 import { useMyCircles } from "../../session/useCircles";
+import { useCircleReminders } from "../../session/useCircleReminders";
 import { t } from "../../i18n";
 import { PRAY_QUICK_ACTION_ID } from "../../lib/prayShortcut";
 
@@ -58,12 +59,20 @@ export default function TabsLayout() {
   const blocked = useBlocked();
   const requests = [...graph.incoming].filter((uid) => !blocked.has(uid)).length;
   // Prayer circle invitations waiting for an answer, as a badge on Circles.
-  const circleInvites = useMyCircles().invites.length;
+  const myCircles = useMyCircles();
+  const circleInvites = myCircles.invites.length;
+  // Weekly circle prayer-time reminders I've turned on, on this phone.
+  useCircleReminders(myCircles.circles, myCircles.loaded);
   // Tapping a "Time to pray" notification opens Today. (These tabs only
   // exist once signed in, so a tap while signed out just opens sign-in.)
   // An opt-in notification opens what it's about: the prayer, or my
   // profile for "praying for your request"; everything else opens Today.
   const openFromNotification = useCallback((data?: Record<string, unknown>) => {
+    // A circle reminder (or circle notification) opens that circle.
+    if ((data?.kind === "circle" || data?.activity === "circle") && typeof data.circleId === "string") {
+      router.push({ pathname: "/circle/[id]", params: { id: data.circleId } });
+      return;
+    }
     if (data?.kind === "activity") {
       if (typeof data.postId === "string") router.push(`/post/${data.postId}`);
       else router.navigate("/profile");

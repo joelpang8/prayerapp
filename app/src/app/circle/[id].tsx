@@ -1,11 +1,15 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, Switch, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
 import { CirclePhoto } from "../../components/CirclePhoto";
 import { EmptyState } from "../../components/EmptyState";
 import { MoreMenu } from "../../components/MoreMenu";
-import { Button, fonts, makeStyles, Muted, Text, TextInput } from "../../components/ui";
+import { Button, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../../components/ui";
+import { setCircleReminder, useCircleReminderIds } from "../../lib/circleReminders";
+import { describePrayerTime } from "../../lib/circleTime";
+import { useNotificationPermission } from "../../lib/notifications";
 import { db } from "../../firebase";
 import { locale, t, tn } from "../../i18n";
 import {
@@ -85,6 +89,8 @@ export default function CircleScreen() {
         <Text style={styles.link}>{t("circle.membersButton")} ›</Text>
       </Pressable>
 
+      {circle.prayerTime && <PrayerTimeRow circle={circle} />}
+
       <View style={styles.addRow}>
         <TextInput
           value={text}
@@ -112,6 +118,37 @@ export default function CircleScreen() {
       )}
       <Muted>{t("circle.onlyMembers")}</Muted>
     </ScrollView>
+  );
+}
+
+/** "Prays together every Tuesday at 7:00 PM" (in my time), with my own reminder switch. */
+function PrayerTimeRow({ circle }: { circle: Circle }) {
+  const styles = useStyles();
+  const colors = useColors();
+  const { profile: me } = useReadySession();
+  const reminders = useCircleReminderIds(me.uid);
+  const permission = useNotificationPermission();
+  const on = reminders.has(circle.id);
+  const [now] = useState(() => new Date());
+  const { day, time } = describePrayerTime(circle.prayerTime!, now, locale());
+  async function toggle(value: boolean) {
+    if (value && permission.status !== "granted") await permission.request();
+    setCircleReminder(me.uid, circle.id, value);
+  }
+  return (
+    <View style={styles.timeRow}>
+      <Ionicons name="time-outline" size={20} color={colors.accent} />
+      <View style={styles.timeText}>
+        <Text style={styles.timeLine}>{t("circleTime.every", { day, time })}</Text>
+        <Muted>{t("circleTime.remindNote")}</Muted>
+      </View>
+      <Switch
+        value={on}
+        onValueChange={(v) => { void toggle(v); }}
+        trackColor={{ true: colors.accent, false: colors.border }}
+        accessibilityLabel={t("circleTime.remindMe")}
+      />
+    </View>
   );
 }
 
@@ -216,6 +253,9 @@ const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  timeRow: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  timeText: { flex: 1, gap: 2 },
+  timeLine: { fontSize: 16, fontFamily: fonts.bodySemiBold, color: colors.text },
   title: { flex: 1, fontSize: 26, fontFamily: fonts.displayBold, color: colors.text },
   members: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap", minHeight: 44 },
   stack: { flexDirection: "row" },
