@@ -38,3 +38,28 @@ describe("circle photos", async () => {
     expect(circleFromData("c1", { name: "G" }).photoPath).toBeNull();
   });
 });
+
+describe("arranging a circle's list", async () => {
+  const { arrangeRequests, circleFromData, requestFromData: from } = await import("../../src/lib/circles");
+  const open = (id: string) => from(id, { authorId: "a", text: id, prayedBy: [] });
+  const answered = (id: string, ms: number) => ({ ...from(id, { authorId: "a", text: id, prayedBy: [], answeredAt: null }), answered: { at: new Date(ms), note: "" } });
+
+  test("pinned first, then open, then answered (most recently answered first)", () => {
+    const r = arrangeRequests([open("o1"), answered("a1", 1000), open("p"), answered("a2", 2000), open("o2")], "p");
+    expect(r.pinned?.id).toBe("p");
+    expect(r.open.map((x) => x.id)).toEqual(["o1", "o2"]);
+    expect(r.answered.map((x) => x.id)).toEqual(["a2", "a1"]);
+  });
+
+  test("a pin that's gone or answered is ignored", () => {
+    expect(arrangeRequests([open("o1")], "gone").pinned).toBeNull();
+    const r = arrangeRequests([answered("a1", 1)], "a1");
+    expect(r.pinned).toBeNull();
+    expect(r.answered).toHaveLength(1);
+  });
+
+  test("a weekly prayer time is read back only when it's valid", () => {
+    expect(circleFromData("c", { prayerTime: { weekday: 2, hour: 19, minute: 0, timeZone: "America/Chicago" } }).prayerTime).toEqual({ weekday: 2, hour: 19, minute: 0, timeZone: "America/Chicago" });
+    expect(circleFromData("c", { prayerTime: { weekday: 9, hour: 19, minute: 0, timeZone: "x" } }).prayerTime).toBeNull();
+  });
+});

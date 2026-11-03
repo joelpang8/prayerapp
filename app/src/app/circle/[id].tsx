@@ -9,7 +9,7 @@ import { Button, fonts, makeStyles, Muted, Text, TextInput } from "../../compone
 import { db } from "../../firebase";
 import { locale, t, tn } from "../../i18n";
 import {
-  addCircleRequest, CIRCLE_ANSWER_NOTE_MAX, CIRCLE_REQUEST_MAX, deleteCircleRequest, setCircleRequestAnswered, setPrayed,
+  addCircleRequest, arrangeRequests, CIRCLE_ANSWER_NOTE_MAX, CIRCLE_REQUEST_MAX, deleteCircleRequest, pinRequest, setCircleRequestAnswered, setPrayed,
   visibleRequests, type Circle, type CircleRequest,
 } from "../../lib/circles";
 import { haptics } from "../../lib/haptics";
@@ -34,6 +34,7 @@ export default function CircleScreen() {
   useMarkCircleSeen(id);
   const shown = visibleRequests(requests, blocked, (requestId) => isHidden({ circleId: id, requestId }));
   const people = useProfiles(new Set([...(circle?.memberIds ?? []), ...shown.map((r) => r.authorId)]));
+  const arranged = arrangeRequests(shown, circle?.pinnedRequestId ?? null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -98,9 +99,17 @@ export default function CircleScreen() {
       </View>
 
       {shown.length === 0 && <EmptyState icon="people-circle-outline" title={t("circle.emptyTitle")} message={t("circle.emptyBody")} />}
-      {shown.map((r) => (
-        <RequestCard key={r.id} circle={circle} request={r} authorName={people.get(r.authorId)?.displayName ?? "…"} authorPhoto={people.get(r.authorId)?.avatarPath ?? null} />
+      {[...(arranged.pinned ? [arranged.pinned] : []), ...arranged.open].map((r) => (
+        <RequestCard key={r.id} circle={circle} request={r} pinned={r === arranged.pinned} authorName={people.get(r.authorId)?.displayName ?? "…"} authorPhoto={people.get(r.authorId)?.avatarPath ?? null} />
       ))}
+      {arranged.answered.length > 0 && (
+        <>
+          <Text style={styles.answeredHeader} accessibilityRole="header">✦ {tn("circle.answeredSection", arranged.answered.length)}</Text>
+          {arranged.answered.map((r) => (
+            <RequestCard key={r.id} circle={circle} request={r} pinned={false} authorName={people.get(r.authorId)?.displayName ?? "…"} authorPhoto={people.get(r.authorId)?.avatarPath ?? null} />
+          ))}
+        </>
+      )}
       <Muted>{t("circle.onlyMembers")}</Muted>
     </ScrollView>
   );
@@ -111,12 +120,12 @@ function when(d: Date | null): string {
   return d.toLocaleDateString(locale(), { month: "short", day: "numeric" });
 }
 
-function RequestCard({ circle, request: r, authorName, authorPhoto }: { circle: Circle; request: CircleRequest; authorName: string; authorPhoto: string | null }) {
+function RequestCard({ circle, request: r, pinned, authorName, authorPhoto }: { circle: Circle; request: CircleRequest; pinned: boolean; authorName: string; authorPhoto: string | null }) {
   const styles = useStyles();
   const { profile: me } = useReadySession();
   const mine = r.authorId === me.uid;
   const prayed = r.prayedBy.includes(me.uid);
-  const canDelete = mine || circle.leaderId === me.uid;
+  const leader = circle.leaderId === me.uid;
   const [marking, setMarking] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -140,7 +149,8 @@ function RequestCard({ circle, request: r, authorName, authorPhoto }: { circle: 
     ]);
 
   return (
-    <View style={[styles.card, r.answered && styles.cardAnswered]}>
+    <View style={[styles.card, r.answered && styles.cardAnswered, pinned && styles.cardPinned]}>
+      {pinned && <Text style={styles.pinnedLabel}>📌 {t("circle.pinned")}</Text>}
       <View style={styles.who}>
         <Avatar path={authorPhoto} name={authorName} size={28} />
         <Text style={styles.author} numberOfLines={1}>{authorName}</Text>
@@ -172,20 +182,22 @@ function RequestCard({ circle, request: r, authorName, authorPhoto }: { circle: 
         )}
         {r.prayedBy.length > 0 && <Muted>{tn("circle.prayedCount", r.prayedBy.length)}</Muted>}
       </View>
-      {mine && !marking && (
+      {!marking && (mine || leader) && (
         <View style={styles.ownActions}>
-          <Pressable onPress={() => (r.answered ? run(() => setCircleRequestAnswered(db, circle.id, r.id, null)) : (setMarking(true), setNote("")))} disabled={busy} accessibilityRole="button" hitSlop={6}>
-            <Text style={styles.small}>{r.answered ? t("circle.notAnswered") : t("circle.wasAnswered")}</Text>
-          </Pressable>
+          {mine && (
+            <Pressable onPress={() => (r.answered ? run(() => setCircleRequestAnswered(db, circle.id, r.id, null)) : (setMarking(true), setNote("")))} disabled={busy} accessibilityRole="button" hitSlop={6}>
+              <Text style={styles.small}>{r.answered ? t("circle.notAnswered") : t("circle.wasAnswered")}</Text>
+            </Pressable>
+          )}
+          {leader && !r.answered && (
+            <Pressable onPress={() => run(() => pinRequest(db, circle.id, pinned ? null : r.id))} disabled={busy} accessibilityRole="button" hitSlop={6}>
+              <Text style={styles.small}>{pinned ? t("circle.unpin") : t("circle.pin")}</Text>
+            </Pressable>
+          )}
           <Pressable onPress={confirmDelete} disabled={busy} accessibilityRole="button" hitSlop={6}>
             <Text style={styles.small}>{t("circle.delete")}</Text>
           </Pressable>
         </View>
-      )}
-      {!mine && canDelete && (
-        <Pressable onPress={confirmDelete} disabled={busy} accessibilityRole="button" hitSlop={6} style={styles.ownActions}>
-          <Text style={styles.small}>{t("circle.delete")}</Text>
-        </Pressable>
       )}
       {mine && marking && (
         <View style={styles.markBox}>
@@ -214,6 +226,9 @@ const useStyles = makeStyles((colors) => ({
   addInput: { minHeight: 60, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.card, fontSize: 16 },
   card: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 8 },
   cardAnswered: { borderColor: colors.gold },
+  cardPinned: { borderColor: colors.accent, borderWidth: 2 },
+  pinnedLabel: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.accent },
+  answeredHeader: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.gold, marginTop: 8 },
   who: { flexDirection: "row", alignItems: "center", gap: 8 },
   author: { flex: 1, fontSize: 16, fontFamily: fonts.display, color: colors.text },
   text: { fontSize: 16, lineHeight: 23, color: colors.text },

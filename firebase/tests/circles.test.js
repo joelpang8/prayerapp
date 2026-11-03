@@ -113,6 +113,28 @@ describe("the circle's photo", () => {
   });
 });
 
+describe("pinning a request and the weekly prayer time", () => {
+  test("the leader pins an existing request and unpins it; members can't", async () => {
+    await seedCircle({ members: ["lead", "ann"] });
+    await seedRequest("ann");
+    await assertSucceeds(updateDoc(circle(as("lead")), { pinnedRequestId: "r1" }));
+    await assertFails(updateDoc(circle(as("lead")), { pinnedRequestId: "nope" }));
+    await assertFails(updateDoc(circle(as("ann")), { pinnedRequestId: "r1" }));
+    await assertSucceeds(updateDoc(circle(as("lead")), { pinnedRequestId: deleteField() }));
+  });
+
+  test("the leader sets a weekly time (weekday, hour, minute, time zone) or clears it", async () => {
+    await seedCircle({ members: ["lead", "ann"] });
+    const time = { weekday: 2, hour: 19, minute: 0, timeZone: "America/Chicago" };
+    await assertSucceeds(updateDoc(circle(as("lead")), { prayerTime: time }));
+    await assertFails(updateDoc(circle(as("ann")), { prayerTime: time }));
+    for (const bad of [{ ...time, weekday: 8 }, { ...time, hour: 24 }, { ...time, minute: 60 }, { ...time, timeZone: "<x>" }, { ...time, extra: 1 }, { weekday: 2, hour: 19 }, { ...time, hour: "19" }]) {
+      await assertFails(updateDoc(circle(as("lead")), { prayerTime: bad }));
+    }
+    await assertSucceeds(updateDoc(circle(as("lead")), { prayerTime: deleteField() }));
+  });
+});
+
 describe("accepting, declining and leaving", () => {
   test("an invited person accepts and becomes a member", async () => {
     await seedCircle({ invited: ["ann"] });

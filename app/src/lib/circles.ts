@@ -25,7 +25,27 @@ export const MAX_CIRCLE_PEOPLE = 30;
 export const CIRCLE_REQUEST_MAX = 300;
 export const CIRCLE_ANSWER_NOTE_MAX = 120;
 
-export type Circle = { id: string; name: string; leaderId: string; memberIds: string[]; invitedIds: string[]; photoPath: string | null };
+/** A weekly time the circle prays together: 1 = Monday ... 7 = Sunday, in the leader's time zone. */
+export type PrayerTime = { weekday: number; hour: number; minute: number; timeZone: string };
+
+export type Circle = {
+  id: string;
+  name: string;
+  leaderId: string;
+  memberIds: string[];
+  invitedIds: string[];
+  photoPath: string | null;
+  pinnedRequestId: string | null;
+  prayerTime: PrayerTime | null;
+};
+
+function prayerTimeFrom(v: unknown): PrayerTime | null {
+  if (!v || typeof v !== "object") return null;
+  const p = v as Record<string, unknown>;
+  const ok = (n: unknown, lo: number, hi: number) => Number.isInteger(n) && (n as number) >= lo && (n as number) <= hi;
+  if (!ok(p.weekday, 1, 7) || !ok(p.hour, 0, 23) || !ok(p.minute, 0, 59) || typeof p.timeZone !== "string") return null;
+  return { weekday: p.weekday as number, hour: p.hour as number, minute: p.minute as number, timeZone: p.timeZone };
+}
 
 export type CircleRequest = {
   id: string;
@@ -43,6 +63,8 @@ export function circleFromData(id: string, d: DocumentData): Circle {
   return {
     id, name: String(d.name ?? ""), leaderId: String(d.leaderId ?? ""), memberIds: strings(d.memberIds), invitedIds: strings(d.invitedIds),
     photoPath: typeof d.photoPath === "string" ? d.photoPath : null,
+    pinnedRequestId: typeof d.pinnedRequestId === "string" ? d.pinnedRequestId : null,
+    prayerTime: prayerTimeFrom(d.prayerTime),
   };
 }
 
@@ -76,6 +98,20 @@ export function invitesLeft(c: Pick<Circle, "memberIds" | "invitedIds">): number
  */
 export function visibleRequests(requests: readonly CircleRequest[], blocked: ReadonlySet<string>, hidden: (requestId: string) => boolean): CircleRequest[] {
   return requests.filter((r) => !blocked.has(r.authorId) && !hidden(r.id));
+}
+
+/**
+ * How a circle's list is shown: the pinned request first (if it's still
+ * there and not answered), then the open ones, newest first, then a separate
+ * "Answered" section, most recently answered first.
+ */
+export function arrangeRequests(requests: readonly CircleRequest[], pinnedId: string | null): { pinned: CircleRequest | null; open: CircleRequest[]; answered: CircleRequest[] } {
+  const pinned = requests.find((r) => r.id === pinnedId && !r.answered) ?? null;
+  const open = requests.filter((r) => !r.answered && r !== pinned);
+  const answered = requests
+    .filter((r) => r.answered)
+    .sort((a, b) => (b.answered!.at?.getTime() ?? 0) - (a.answered!.at?.getTime() ?? 0));
+  return { pinned, open, answered };
 }
 
 const circleRef = (db: Firestore, id: string) => doc(db, "circles", id);
@@ -132,6 +168,16 @@ export function acceptInvite(db: Firestore, circleId: string, me: string): Promi
 
 export function declineInvite(db: Firestore, circleId: string, me: string): Promise<void> {
   return updateDoc(circleRef(db, circleId), { invitedIds: arrayRemove(me) });
+}
+
+/** The leader pins a request to the top (or unpins with null). */
+export function pinRequest(db: Firestore, circleId: string, requestId: string | null): Promise<void> {
+  return updateDoc(circleRef(db, circleId), { pinnedRequestId: requestId ?? deleteField() });
+}
+
+/** The leader sets the weekly prayer time (or clears it with null). */
+export function setPrayerTime(db: Firestore, circleId: string, time: PrayerTime | null): Promise<void> {
+  return updateDoc(circleRef(db, circleId), { prayerTime: time ?? deleteField() });
 }
 
 export function renameCircle(db: Firestore, circleId: string, name: string): Promise<void> {
