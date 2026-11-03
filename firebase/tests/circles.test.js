@@ -211,4 +211,9 @@ describe("reporting a circle request", () => {
     }));
     await assertFails(getDoc(doc(as("ben"), "reports", "rep_ben")));
   });
+
+  test("a reported request can be hidden from my own view", async () => {
+    await assertSucceeds(setDoc(doc(as("ben"), "users", "ben", "hidden", "circle_c1_r1"), { createdAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(as("ben"), "users", "ben", "hidden", "circlex_c1"), { createdAt: serverTimestamp() }));
+  });
 });

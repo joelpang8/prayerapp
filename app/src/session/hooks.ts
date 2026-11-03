@@ -250,8 +250,8 @@ const useHiddenFor = sharedListener<ReadonlySet<string>>(EMPTY_SET, (uid, on) =>
 const useBlockedFor = sharedListener<ReadonlySet<string>>(EMPTY_SET, (uid, on) =>
   watchBlocked(db, uid, on, (err) => console.warn("blocked list failed", err)));
 
-/** Posts and comments I've reported, which stay hidden from me. */
-export function useHidden(): { isHidden: (t: { postId: string; commentId?: string }) => boolean } {
+/** Posts, comments and circle requests I've reported, which stay hidden from me. */
+export function useHidden(): { isHidden: (t: Parameters<typeof hiddenKey>[0]) => boolean } {
   const { profile } = useReadySession();
   const keys = useHiddenFor(profile.uid);
   return { isHidden: (t) => keys.has(hiddenKey(t)) };

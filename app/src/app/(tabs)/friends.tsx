@@ -2,6 +2,7 @@ import { router, useScrollToTop } from "expo-router";
 import { useState, useRef } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Avatar } from "../../components/Avatar";
+import { CirclesSection } from "../../components/CirclesSection";
 import { EmptyState } from "../../components/EmptyState";
 import { Button, ErrorText, fonts, makeStyles, Muted, SectionTitle, Text, TextInput } from "../../components/ui";
 import { db } from "../../firebase";
@@ -69,6 +70,7 @@ export default function FriendsScreen() {
 
   return (
     <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <CirclesSection />
       <Button title={t("profile.invite")} onPress={() => shareInvite(me.username).catch(() => {})} />
       <Muted>{t("friends.inviteNote")}</Muted>
       <View style={styles.spacer} />

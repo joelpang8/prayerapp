@@ -2,6 +2,7 @@ import common from "./strings/common";
 import posting from "./strings/posting";
 import prayers from "./strings/prayers";
 import profileSettings from "./strings/profileSettings";
+import circles from "./strings/circles";
 import scripture from "./strings/scripture";
 
 /**
@@ -22,7 +23,7 @@ export const SPANISH_REVIEWED = false;
 export type Lang = "en" | "es";
 export const LANGS: readonly Lang[] = ["en", "es"];
 
-const AREAS = [common, posting, prayers, profileSettings, scripture] as const;
+const AREAS = [common, posting, prayers, profileSettings, scripture, circles] as const;
 
 type Area = (typeof AREAS)[number];
 type AllEn = Area extends infer A ? (A extends { en: infer E } ? E : never) : never;

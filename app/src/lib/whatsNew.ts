@@ -11,6 +11,7 @@ export const WHATS_NEW = {
   /** The day these notes were written; also the cut-off for "new account". */
   id: "2026-11-02",
   items: [
+    "whatsNew.item.circles",
     "whatsNew.item.answeredRequests",
     "whatsNew.item.reorder",
     "whatsNew.item.hometown",

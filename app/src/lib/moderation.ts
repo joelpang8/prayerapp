@@ -28,10 +28,14 @@ export type ReportReason = (typeof REPORT_REASONS)[number]["id"];
 export type ReportTarget =
   | { kind: "user"; targetUid: string }
   | { kind: "post"; targetUid: string; postId: string; excerpt?: string }
-  | { kind: "comment"; targetUid: string; postId: string; commentId: string; excerpt?: string };
+  | { kind: "comment"; targetUid: string; postId: string; commentId: string; excerpt?: string }
+  | { kind: "circleRequest"; targetUid: string; circleId: string; requestId: string; excerpt?: string };
 
-/** The key in users/{me}/hidden for a reported post or comment. */
-export function hiddenKey(t: { postId: string; commentId?: string }): string {
+type Hideable = { postId: string; commentId?: string } | { circleId: string; requestId: string };
+
+/** The key in users/{me}/hidden for a reported post, comment or circle request. */
+export function hiddenKey(t: Hideable): string {
+  if ("circleId" in t) return `circle_${t.circleId}_${t.requestId}`;
   return t.commentId ? `comment_${t.postId}_${t.commentId}` : `post_${t.postId}`;
 }
 
@@ -46,8 +50,9 @@ export async function fileReport(db: Firestore, me: string, target: ReportTarget
     reporter: me,
     kind: target.kind,
     targetUid: target.targetUid,
-    ...(target.kind !== "user" ? { postId: target.postId } : {}),
+    ...(target.kind === "post" || target.kind === "comment" ? { postId: target.postId } : {}),
     ...(target.kind === "comment" ? { commentId: target.commentId } : {}),
+    ...(target.kind === "circleRequest" ? { circleId: target.circleId, requestId: target.requestId } : {}),
     ...(target.kind !== "user" && target.excerpt ? { excerpt: target.excerpt.slice(0, 2000) } : {}),
     reason,
     ...(trimmed ? { note: trimmed.slice(0, 500) } : {}),
@@ -56,7 +61,7 @@ export async function fileReport(db: Firestore, me: string, target: ReportTarget
   if (target.kind !== "user") await hide(db, me, target);
 }
 
-export function hide(db: Firestore, me: string, t: { postId: string; commentId?: string }): Promise<void> {
+export function hide(db: Firestore, me: string, t: Hideable): Promise<void> {
   return setDoc(doc(db, "users", me, "hidden", hiddenKey(t)), { createdAt: serverTimestamp() });
 }
 

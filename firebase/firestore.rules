@@ -103,13 +103,13 @@ service cloud.firestore {
       // users/{uid}/friendsOnly/about: { bio } (up to 160 characters).
       // Same boundary as posts: only the owner and CURRENT mutual friends,
       // checked against the live follow docs on every read.
-      // Posts and comments I've reported, hidden from my own view. Only I
-      // can read or change this list. Key: "post_{postId}" or
-      // "comment_{postId}_{commentId}".
+      // Posts, comments and circle requests I've reported, hidden from my
+      // own view. Only I can read or change this list. Key: "post_{postId}",
+      // "comment_{postId}_{commentId}" or "circle_{circleId}_{requestId}".
       match /hidden/{key} {
         allow get, list, delete: if isSelf(uid);
         allow create: if isSelf(uid)
-          && key.matches('^(post_[A-Za-z0-9_]{1,200}|comment_[A-Za-z0-9_]{1,200})$')
+          && key.matches('^(post_[A-Za-z0-9_]{1,200}|comment_[A-Za-z0-9_]{1,200}|circle_[A-Za-z0-9_]{1,200})$')
           && request.resource.data.keys().hasOnly(['createdAt'])
           && request.resource.data.createdAt == request.time;
         allow update: if false;

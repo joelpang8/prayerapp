@@ -9,11 +9,14 @@ import { t } from "../i18n";
 
 type Kind = ReportTarget["kind"];
 // Whole phrases per kind (Spanish nouns have genders, so no word swapping).
-const thisThing = (kind: Exclude<Kind, "user">) => t(kind === "post" ? "more.thisPrayer" : "more.thisComment");
-const optionsFor = (kind: Kind, name: string) =>
-  kind === "user" ? t("more.optionsForPerson", { name }) : t(kind === "post" ? "more.optionsForPrayer" : "more.optionsForComment");
-const reportTitle = (kind: Kind, name: string) =>
-  kind === "user" ? t("more.reportPerson", { name }) : t(kind === "post" ? "more.reportThisPrayer" : "more.reportThisComment");
+const PHRASES = {
+  post: { thing: "more.thisPrayer", options: "more.optionsForPrayer", title: "more.reportThisPrayer", action: "more.reportPrayerAction", wontSee: "more.wontSeePrayer" },
+  comment: { thing: "more.thisComment", options: "more.optionsForComment", title: "more.reportThisComment", action: "more.reportCommentAction", wontSee: "more.wontSeeComment" },
+  circleRequest: { thing: "more.thisRequest", options: "more.optionsForRequest", title: "more.reportThisRequest", action: "more.reportRequestAction", wontSee: "more.wontSeeRequest" },
+} as const;
+const thisThing = (kind: Exclude<Kind, "user">) => t(PHRASES[kind].thing);
+const optionsFor = (kind: Kind, name: string) => (kind === "user" ? t("more.optionsForPerson", { name }) : t(PHRASES[kind].options));
+const reportTitle = (kind: Kind, name: string) => (kind === "user" ? t("more.reportPerson", { name }) : t(PHRASES[kind].title));
 
 /** Block someone after confirming; ends the friendship. Returns a function to call. */
 export function useBlock() {
@@ -51,7 +54,7 @@ export function MoreMenu({ target, name }: { target: ReportTarget; name: string 
 
   const open = () =>
     Alert.alert(target.kind === "user" ? name : thisThing(target.kind), undefined, [
-      { text: t(target.kind === "user" ? "more.reportPersonAction" : target.kind === "post" ? "more.reportPrayerAction" : "more.reportCommentAction"), onPress: () => setReporting(true) },
+      { text: t(target.kind === "user" ? "more.reportPersonAction" : PHRASES[target.kind].action), onPress: () => setReporting(true) },
       { text: t("more.blockName", { name }), style: "destructive", onPress: () => block(target.targetUid, name) },
       { text: t("common.cancel"), style: "cancel" },
     ]);
@@ -94,7 +97,7 @@ function ReportSheet({ target, name, onClose }: { target: ReportTarget; name: st
         t("more.thanksTitle"),
         [
           t("more.willReview"),
-          target.kind !== "user" ? t(target.kind === "post" ? "more.wontSeePrayer" : "more.wontSeeComment") : "",
+          target.kind !== "user" ? t(PHRASES[target.kind].wontSee) : "",
           alsoBlock ? t("more.isBlocked", { name }) : "",
           reason === "harm" ? `\n\n${t("more.emergency")}` : "",
         ].filter(Boolean).join(" "),
