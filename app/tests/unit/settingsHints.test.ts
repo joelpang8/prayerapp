@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 
-const settings = readFileSync("src/app/(tabs)/settings.tsx", "utf8");
+const settings = readFileSync("src/app/settings.tsx", "utf8");
 const infoLabel = readFileSync("src/components/InfoLabel.tsx", "utf8");
 
 test("Settings explanations sit behind an ⓘ next to each setting; a blocked-notifications warning stays visible", () => {

@@ -11,7 +11,7 @@ test("the privacy policy is published with Firebase Hosting at the app's link", 
 });
 
 test("it's linked from Settings and from sign-in", () => {
-  expect(readFileSync("src/app/(tabs)/settings.tsx", "utf8")).toContain("onPress={openPrivacyPolicy}");
+  expect(readFileSync("src/app/settings.tsx", "utf8")).toContain("onPress={openPrivacyPolicy}");
   expect(readFileSync("src/app/sign-in.tsx", "utf8")).toContain("onPress={openPrivacyPolicy}");
 });
 

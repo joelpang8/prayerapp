@@ -6,6 +6,7 @@ import { useQuickActionRouting } from "expo-quick-actions/router";
 import { View, type ColorValue } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
 import { ActivityBell } from "../../components/ActivityBell";
+import { SettingsGear } from "../../components/SettingsGear";
 import { navigationFonts, useColors } from "../../components/ui";
 import { useNotificationPermission, useNotificationsEnabled, useNotificationTaps } from "../../lib/notifications";
 import { usePromptSubscription, usePushTaps } from "../../lib/push";
@@ -107,7 +108,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: navigationFonts.tabBarLabelStyle,
       }}
     >
-      {/* Today sits in the middle, the app's main place. */}
+      {/* Five tabs, so Today sits exactly in the middle (Settings opens from the gear on Profile). */}
       <Tabs.Screen
         name="friends"
         options={{ title: t("tabs.friends"), tabBarIcon: tabIcon("people-outline", "people"), tabBarBadge: requests || undefined }}
@@ -126,8 +127,10 @@ export default function TabsLayout() {
         name="circles"
         options={{ title: t("tabs.circles"), tabBarIcon: tabIcon("people-circle-outline", "people-circle"), tabBarBadge: circleInvites || undefined }}
       />
-      <Tabs.Screen name="profile" options={{ title: t("tabs.profile"), tabBarIcon: tabIcon("person-circle-outline", "person-circle") }} />
-      <Tabs.Screen name="settings" options={{ title: t("tabs.settings"), tabBarIcon: tabIcon("settings-outline", "settings") }} />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: t("tabs.profile"), tabBarIcon: tabIcon("person-circle-outline", "person-circle"), headerRight: () => <SettingsGear /> }}
+      />
     </Tabs>
   );
 }
