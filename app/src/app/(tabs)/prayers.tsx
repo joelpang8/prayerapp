@@ -5,6 +5,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { MonthCalendar } from "../../components/MonthCalendar";
 import { OwnPostActions } from "../../components/OwnPostActions";
 import { PostCard } from "../../components/PostCard";
+import { PrayForToday } from "../../components/PrayForToday";
 import { SavedVerses } from "../../components/SavedVerses";
 import { SelectField } from "../../components/SelectField";
 import { Button, fonts, makeStyles, Muted, SectionTitle, Text, TextInput, useColors } from "../../components/ui";
@@ -81,6 +82,7 @@ export default function PrayersScreen() {
         <SearchResults uid={profile.uid} search={search} />
       ) : (
       <>
+      <PrayForToday />
       <OnThisDay uid={profile.uid} />
       <SavedVerses />
       {loaded && <MonthInPrayer month={month} posts={posts} />}

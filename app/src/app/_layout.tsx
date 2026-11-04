@@ -98,6 +98,8 @@ function RootNavigator() {
         <Stack.Screen name="circle-members/[id]" options={{ ...pushed, title: t("circleMembers.title") }} />
         <Stack.Screen name="circle-join/[code]" options={{ ...pushed, title: t("circleJoin.title") }} />
         <Stack.Screen name="welcome" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
+        <Stack.Screen name="prayer-list/index" options={{ ...pushed, title: t("plist.title") }} />
+        <Stack.Screen name="prayer-list/edit" options={{ ...pushed, title: t("plist.addTitle") }} />
         <Stack.Screen name="settings" options={{ ...pushed, title: t("tabs.settings") }} />
         <Stack.Screen name="delete-account" options={{ ...pushed, title: t("titles.deleteAccount") }} />
       </Stack.Protected>

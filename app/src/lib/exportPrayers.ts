@@ -4,6 +4,7 @@ import { locale, t, tn } from "../i18n";
 import { bytesToBase64 } from "./base64";
 import { storageLoader } from "./photoCache";
 import { postFromSnapshot, type Post } from "./posts";
+import { parseItem, type PrayerItem } from "./prayerList";
 import { formatReference, parseRefId } from "./scripture/reference";
 import { getPassage, plainText } from "./scripture/text";
 import { TRANSLATIONS, type TranslationId } from "./scripture/translations";
@@ -12,12 +13,14 @@ import { TRANSLATIONS, type TranslationId } from "./scripture/translations";
  * "Download my prayers" (Settings): a copy of my own prayers as one web page
  * file that opens anywhere and can be printed. It holds only my own things:
  * my posts (private ones included) with their photos, notes, places, verses
- * and answers, and my saved verses. Never anyone else's comments, reactions
+ * and answers, my saved verses and my prayer list. Never anyone else's comments, reactions
  * or names. The file is made on the phone, handed to the share sheet, and
  * deleted from the phone afterwards; where it goes is the person's choice.
  */
 
 export type ExportPost = Pick<Post, "promptId" | "createdAt" | "notes" | "place" | "visibility" | "answeredAt" | "answerNote" | "verseRef" | "photoPath">;
+
+export type ExportListItem = { name: string; note: string; group: string; answeredAt: Date | null; answerNote: string };
 
 export type ExportInput = {
   name: string;
@@ -27,6 +30,8 @@ export type ExportInput = {
   /** Verse reference -> its text in my translation, where available. */
   verseText: ReadonlyMap<string, string>;
   savedVerses: readonly string[];
+  /** My prayer list (names I typed in), if any. */
+  prayerList?: readonly ExportListItem[];
   translation: TranslationId;
   madeAt: Date;
 };
@@ -76,6 +81,12 @@ ${verse}
   const saved = input.savedVerses.length
     ? `<section><h2>${escape(t("export.savedVerses"))}</h2><ul>${input.savedVerses.map((r) => `<li>${escape(refLabel(r))}</li>`).join("")}</ul></section>`
     : "";
+  const listItems = input.prayerList ?? [];
+  const list = listItems.length
+    ? `<section><h2>${escape(t("plist.title"))}</h2><ul>${listItems.map((i) => `<li><strong>${escape(i.name)}</strong> (${escape(i.group)})${i.note ? ` · ${escape(i.note)}` : ""}${
+      i.answeredAt ? ` · ✦ ${escape(t("plist.answeredOn", { date: i.answeredAt.toLocaleDateString(locale(), { year: "numeric", month: "long", day: "numeric" }) }))}${i.answerNote ? ` · ${escape(i.answerNote)}` : ""}` : ""
+    }</li>`).join("")}</ul></section>`
+    : "";
   return `<!doctype html>
 <html lang="${locale().startsWith("es") ? "es" : "en"}">
 <head>
@@ -103,6 +114,7 @@ section { border-top: 1px solid #E6E1DA; padding-top: 1.25rem; }
 <p class="intro">${escape(t("export.intro", { prayers: tn("prayers.count", posts.length), date: made, translation: TRANSLATIONS.find((x) => x.id === input.translation)?.name ?? input.translation }))}</p>
 ${entries.join("\n")}
 ${saved}
+${list}
 </body>
 </html>
 `;
@@ -120,6 +132,17 @@ async function loadSavedVerses(db: Firestore, uid: string): Promise<string[]> {
   return snap.docs.map((d) => d.id);
 }
 
+/** My prayer list, by group then name, with preset groups in my language. */
+async function loadPrayerList(db: Firestore, uid: string): Promise<ExportListItem[]> {
+  const snap = await getDocs(collection(db, "users", uid, "prayerList"));
+  const presets: Record<string, string> = { family: t("plist.group.family"), friends: t("plist.group.friends"), church: t("plist.group.church"), world: t("plist.group.world") };
+  return snap.docs
+    .map((d) => parseItem(d.id, d.data()))
+    .filter((i): i is PrayerItem => !!i)
+    .map((i) => ({ name: i.name, note: i.note, group: presets[i.group] ?? i.group, answeredAt: i.answered?.at ?? null, answerNote: i.answered?.note ?? "" }))
+    .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
+}
+
 /**
  * Gathers my prayers and builds the page. Photos are fetched one at a time
  * (they're mine, so the rules allow it), reporting progress; a photo that
@@ -130,7 +153,11 @@ export async function makeExport(
   me: { uid: string; name: string; translation: TranslationId },
   opts: { photos: boolean; onProgress?: (done: number, total: number) => void },
 ): Promise<{ html: string; count: number }> {
-  const [posts, savedVerses] = await Promise.all([loadAllMyPosts(services.db, me.uid), loadSavedVerses(services.db, me.uid)]);
+  const [posts, savedVerses, prayerList] = await Promise.all([
+    loadAllMyPosts(services.db, me.uid),
+    loadSavedVerses(services.db, me.uid),
+    loadPrayerList(services.db, me.uid).catch(() => []),
+  ]);
   const photos = new Map<string, string>();
   if (opts.photos) {
     const load = storageLoader(services.storage);
@@ -154,7 +181,7 @@ export async function makeExport(
     }
   }
   return {
-    html: buildExportHtml({ name: me.name, posts, photos, verseText, savedVerses, translation: me.translation, madeAt: new Date() }),
+    html: buildExportHtml({ name: me.name, posts, photos, verseText, savedVerses, prayerList, translation: me.translation, madeAt: new Date() }),
     count: posts.length,
   };
 }

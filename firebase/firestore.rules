@@ -310,6 +310,33 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isSelf(uid);
       }
+
+      // ---------- my prayer list ----------
+      // users/{uid}/prayerList/{itemId}: people and things I pray for. Only
+      // the owner can see or change it; nobody else, ever (not friends, not
+      // circles). Names are typed in, never linked to anyone's account.
+      match /prayerList/{itemId} {
+        function validItem(d) {
+          return d.keys().hasOnly(['name', 'note', 'group', 'often', 'order', 'createdAt', 'answeredAt', 'answerNote'])
+            && d.keys().hasAll(['name', 'note', 'group', 'often', 'order', 'createdAt'])
+            && d.name is string && d.name.trim().size() > 0 && d.name.size() <= 60
+            && d.note is string && d.note.size() <= 200
+            && d.group is string && d.group.trim().size() > 0 && d.group.size() <= 30
+            && d.often in ['daily', 'weekly', 'monthly']
+            && d.order is int && d.order >= 0 && d.order <= 1000000
+            && (!('answeredAt' in d) || d.answeredAt is timestamp)
+            && (!('answerNote' in d) || (d.answerNote is string && d.answerNote.size() <= 120 && 'answeredAt' in d));
+        }
+        allow get, list: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && itemId.matches('^[A-Za-z0-9]{1,40}$')
+          && validItem(request.resource.data)
+          && request.resource.data.createdAt == request.time;
+        allow update: if isSelf(uid)
+          && validItem(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isSelf(uid);
+      }
     }
 
     // ---------- username -> uid index ----------

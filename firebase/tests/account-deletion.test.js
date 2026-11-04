@@ -46,6 +46,7 @@ describe("deleting an account", () => {
     await db.doc(`users/${me}/private/settings`).set({ bibleVersion: "KJV" });
     await db.doc(`users/${me}/private/verseIndex`).set({ books: { PSA: 1 }, refs: { "PSA.145.18": 1 } });
     await db.doc(`users/${me}/savedVerses/PSA.46.10`).set({ verseRef: "PSA.46.10", savedAt: new Date() });
+    await db.doc(`users/${me}/prayerList/item1`).set({ name: "Mum", note: "", group: "family", often: "weekly", order: 0, createdAt: new Date() });
     await db.doc(`users/${me}/starts/20261001`).set({ startedAt: new Date() });
     await db.doc(`users/${me}/hidden/post_x`).set({ createdAt: t });
     // Friendships and blocks, both ways.
@@ -86,7 +87,7 @@ describe("deleting an account", () => {
 
     // Everything of mine is gone.
     for (const path of [
-      `users/${me}`, `users/${me}/friendsOnly/about`, `users/${me}/private/settings`, `users/${me}/private/verseIndex`, `users/${me}/savedVerses/PSA.46.10`, `users/${me}/starts/20261001`,
+      `users/${me}`, `users/${me}/friendsOnly/about`, `users/${me}/private/settings`, `users/${me}/private/verseIndex`, `users/${me}/savedVerses/PSA.46.10`, `users/${me}/prayerList/item1`, `users/${me}/starts/20261001`,
       `users/${me}/hidden/post_x`, `users/${me}/prayingFor/reqmumhealth1_${keep}`, `usernames/${me}`,
       `posts/20261001_${me}`, `posts/20261002_${me}`, `posts/20261001_${me}/comments/c1`, `posts/20261001_${me}/reactions/${keep}`,
       `posts/20261001_${keep}/comments/mine`, `posts/20261001_${keep}/reactions/${me}`, `users/${keep}/prayingFor/reqkeep1_${me}`,
