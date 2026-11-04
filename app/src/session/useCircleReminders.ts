@@ -45,7 +45,14 @@ export function useCircleReminders(circles: readonly Circle[], loaded: boolean):
         const when = localWeeklyTrigger(c.time, new Date());
         await Notifications.scheduleNotificationAsync({
           identifier: circleReminderId(c.id),
-          content: { title: t("circleTime.reminderTitle", { name: c.name }), body: t("circleTime.reminderBody"), data: { kind: "circle", circleId: c.id } },
+          content: {
+            title: t("circleTime.reminderTitle", { name: c.name }),
+            body: t("circleTime.reminderBody"),
+            data: { kind: "circle", circleId: c.id },
+            sound: "default",
+            // Like the daily Pray now: gets through Focus (the member turned this on themselves).
+            interruptionLevel: "timeSensitive",
+          },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, ...when },
         }).catch((err) => console.warn("circle reminder failed", err));
       }
