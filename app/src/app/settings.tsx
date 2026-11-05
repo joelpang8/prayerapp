@@ -193,6 +193,7 @@ function ActivitySwitches() {
     taps: t("settings.notifyTaps"),
     reactions: t("settings.notifyReactions"),
     comments: t("settings.notifyComments"),
+    requests: t("settings.notifyRequests"),
   };
   return (
     <>

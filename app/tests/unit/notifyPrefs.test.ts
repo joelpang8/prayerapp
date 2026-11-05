@@ -18,7 +18,7 @@ test("a new secret topic matches what the rules and server accept", () => {
 
 test("all off until turned on; the topic is made once and kept", () => {
   const first = changeNotifyPrefs(null, "comments", true, "en", () => "n_" + "A".repeat(32));
-  expect(first).toEqual({ topic: "n_" + "A".repeat(32), taps: false, reactions: false, comments: true, lang: "en", circles: [] });
+  expect(first).toEqual({ topic: "n_" + "A".repeat(32), taps: false, reactions: false, comments: true, requests: false, lang: "en", circles: [] });
   const second = changeNotifyPrefs(first, "taps", true, "es", () => { throw new Error("no new topic"); });
   expect(second).toMatchObject({ topic: first.topic, taps: true, comments: true, lang: "es" });
   expect(anyOn(changeNotifyPrefs(second, "taps", false, "es", () => "") && { ...second, taps: false, comments: false })).toBe(false);
@@ -53,4 +53,13 @@ test("tapping one opens the prayer (or my profile for prayer requests)", () => {
   expect(layout).toContain('router.push(`/post/${data.postId}`)');
   expect(layout).toContain('router.navigate("/profile")');
   expect(layout).toContain("useActivitySubscription();");
+});
+
+test("friend request notifications: a switch in Settings, and the tap opens Activity", () => {
+  const p = changeNotifyPrefs(null, "requests", true, "en", () => "n_" + "C".repeat(32));
+  expect(p.requests).toBe(true);
+  expect(anyOn(p)).toBe(true);
+  expect(readFileSync("src/app/settings.tsx", "utf8")).toContain('requests: t("settings.notifyRequests")');
+  expect(readFileSync("src/app/(tabs)/_layout.tsx", "utf8")).toContain('if (data.activity === "requests") router.push("/activity");');
+  expect(readFileSync("../firebase/functions/src/activityNotify.ts", "utf8")).toContain("requests: d.requests === true");
 });

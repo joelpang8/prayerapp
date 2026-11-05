@@ -34,6 +34,19 @@ describe("wording and who gets told (unit)", () => {
   });
 });
 
+describe("friend requests (unit)", () => {
+  test("off until turned on; names who asked; tapping opens Activity", () => {
+    expect(shouldNotify(parseNotifyPrefs(prefs()), "requests", "alice", "bob")).toBe(false);
+    const p = parseNotifyPrefs(prefs({ requests: true }));
+    expect(shouldNotify(p, "requests", "alice", "bob")).toBe(true);
+    const en = buildActivityMessage(p, { kind: "requests", name: "Sarah" });
+    expect(en.notification).toEqual({ title: "👋 Sarah wants to be friends", body: "Open PrayAlong to accept or decline." });
+    expect(en.data).toEqual({ kind: "activity", activity: "requests" });
+    const es = buildActivityMessage(parseNotifyPrefs(prefs({ requests: true, lang: "es" })), { kind: "requests", name: "Sarah" });
+    expect(es.notification.title).toBe("👋 Sarah quiere ser tu amigo");
+  });
+});
+
 describe("prayer circles (unit)", () => {
   test("only the circles I turned on, never about my own requests", () => {
     const p = parseNotifyPrefs(prefs({ circles: ["c1"] }));
@@ -126,5 +139,23 @@ describe("sent when a friend acts (emulators)", () => {
     let others = [];
     await seed(env, async (db) => { others = (await getDocs(collection(db, "_notifyDryRun"))).docs.map((d) => d.data().owner).filter((o) => o !== "alice"); });
     expect(others).toEqual([]);
+  });
+
+  e2e("a friend request notifies only if turned on, never from someone blocked, and not when accepting", async () => {
+    await seedUser(env, "cat");
+    await seedUser(env, "dan");
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "users", "cat", "private", "notify"), prefs({ topic: "n_" + "c".repeat(32), requests: true }));
+      await setDoc(doc(db, "blocks", "cat_dan"), { blocker: "cat", blocked: "dan", createdAt: Timestamp.now() });
+    });
+    await setDoc(doc(signedInAs(env, "bob"), "follows", "bob_cat"), { followerId: "bob", followeeId: "cat", createdAt: serverTimestamp() });
+    await setDoc(doc(signedInAs(env, "dan"), "follows", "dan_cat"), { followerId: "dan", followeeId: "cat", createdAt: serverTimestamp() });
+    const got = await sent("cat");
+    expect(got.map((g) => g.message.notification.title)).toEqual(["👋 bob wants to be friends"]);
+    // Cat accepting Bob's request doesn't notify Bob (and Bob hasn't turned it on anyway).
+    await new Promise((r) => setTimeout(r, 2500));
+    let all = [];
+    await seed(env, async (db) => { all = (await getDocs(collection(db, "_notifyDryRun"))).docs.map((d) => d.data().owner); });
+    expect(all).toEqual(["cat"]);
   });
 });

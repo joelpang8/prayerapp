@@ -2,15 +2,17 @@ import type { TopicMessage } from "firebase-admin/messaging";
 
 /**
  * Opt-in notifications about my own things: a friend praying for one of my
- * requests, reacting to my prayer, or commenting on it. Each kind is off
+ * requests, reacting to my prayer, or commenting on it; a new friend request. Each kind is off
  * until I turn it on (users/{me}/private/notify). Sent to my secret topic,
  * which only my phone listens on; no push tokens are stored. Messages name
  * the friend (they're already my friend and can see this anyway).
  */
 
-export type ActivityKind = "taps" | "reactions" | "comments";
+export type ActivityKind = "taps" | "reactions" | "comments" | "requests";
 export type NotifyPrefs = {
   topic: string; taps: boolean; reactions: boolean; comments: boolean; lang: "en" | "es";
+  /** New friend requests. */
+  requests: boolean;
   /** Prayer circles I want told about (new requests, answered ones). */
   circles: string[];
 };
@@ -25,6 +27,7 @@ export function parseNotifyPrefs(d: Record<string, unknown> | undefined): Notify
     taps: d.taps === true,
     reactions: d.reactions === true,
     comments: d.comments === true,
+    requests: d.requests === true,
     lang: d.lang === "es" ? "es" : "en",
     circles: Array.isArray(d.circles) ? d.circles.filter((c): c is string => typeof c === "string") : [],
   };
@@ -84,12 +87,16 @@ const WORDING = {
     tapBody: (request: string) => (request ? `For: “${request}”` : "For one of your prayer requests"),
     reactionTitle: (name: string, emoji: string) => `${emoji} ${name} reacted to your prayer`,
     commentTitle: (name: string) => `💬 ${name} commented on your prayer`,
+    requestTitle: (name: string) => `👋 ${name} wants to be friends`,
+    requestBody: "Open PrayAlong to accept or decline.",
   },
   es: {
     tapTitle: (name: string) => `🙏 ${name} está orando por ti`,
     tapBody: (request: string) => (request ? `Por: “${request}”` : "Por una de tus peticiones de oración"),
     reactionTitle: (name: string, emoji: string) => `${emoji} ${name} reaccionó a tu oración`,
     commentTitle: (name: string) => `💬 ${name} comentó tu oración`,
+    requestTitle: (name: string) => `👋 ${name} quiere ser tu amigo`,
+    requestBody: "Abre PrayAlong para aceptar o rechazar.",
   },
 };
 
@@ -98,7 +105,8 @@ export function buildActivityMessage(
   e:
     | { kind: "taps"; name: string; requestText: string }
     | { kind: "reactions"; name: string; reaction: string; postId: string; notes: string }
-    | { kind: "comments"; name: string; text: string; postId: string },
+    | { kind: "comments"; name: string; text: string; postId: string }
+    | { kind: "requests"; name: string },
 ): TopicMessage {
   const w = WORDING[prefs.lang];
   const name = clip(e.name, 40);
@@ -107,12 +115,15 @@ export function buildActivityMessage(
       ? { title: w.tapTitle(name), body: w.tapBody(clip(e.requestText, 80)) }
       : e.kind === "reactions"
         ? { title: w.reactionTitle(name, EMOJI[e.reaction] ?? "🙏"), body: clip(e.notes, 100) }
-        : { title: w.commentTitle(name), body: `“${clip(e.text, 120)}”` };
+        : e.kind === "comments"
+          ? { title: w.commentTitle(name), body: `“${clip(e.text, 120)}”` }
+          : { title: w.requestTitle(name), body: w.requestBody };
   return {
     topic: prefs.topic,
     notification,
-    // Tapping opens the post (reactions, comments) or my profile (prayer requests).
-    data: { kind: "activity", activity: e.kind, ...(e.kind === "taps" ? {} : { postId: e.postId }) },
+    // Tapping opens the post (reactions, comments), my profile (prayer
+    // requests) or Activity, where friend requests are answered.
+    data: { kind: "activity", activity: e.kind, ...(e.kind === "reactions" || e.kind === "comments" ? { postId: e.postId } : {}) },
     apns: { payload: { aps: { sound: "default", "thread-id": "activity" } } },
     android: { notification: { channelId: "activity" } },
   };

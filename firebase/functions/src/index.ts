@@ -287,6 +287,8 @@ async function notifyOwner(owner: string, kind: ActivityKind, actor: string, bui
   const db = getFirestore();
   const prefs = parseNotifyPrefs((await db.doc(`users/${owner}/private/notify`).get()).data());
   if (!shouldNotify(prefs, kind, owner, actor)) return;
+  // Never about someone the owner has blocked (they can still send a request, unknowingly).
+  if ((await db.doc(`blocks/${owner}_${actor}`).get()).exists) return;
   const name = (await db.doc(`users/${actor}`).get()).get("displayName");
   if (typeof name !== "string" || !name) return;
   const event = await build(prefs, name);
@@ -380,4 +382,17 @@ export const notifyCircleAnswered = onDocumentUpdated("circles/{circleId}/circle
     kind: "answered", circleId: event.params.circleId, circleName, name, text: String(after.text ?? ""),
     note: typeof after.answerNote === "string" ? after.answerNote : undefined,
   }));
+});
+
+/**
+ * A new friend request: someone followed me and I don't follow them yet (if
+ * I did, this is them accepting mine, which isn't notified). Opt-in, like
+ * the others; never from someone I've blocked.
+ */
+export const notifyFriendRequest = onDocumentCreated("follows/{followId}", async (event) => {
+  const f = event.data?.data();
+  if (!f || typeof f.followerId !== "string" || typeof f.followeeId !== "string") return;
+  const back = await getFirestore().doc(`follows/${f.followeeId}_${f.followerId}`).get();
+  if (back.exists) return;
+  await notifyOwner(f.followeeId, "requests", f.followerId, async (_prefs, name) => ({ kind: "requests", name }));
 });

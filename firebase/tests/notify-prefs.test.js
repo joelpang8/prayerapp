@@ -36,6 +36,13 @@ describe("notification settings", () => {
     await assertFails(setDoc(ref(db), missing));
   });
 
+  test("friend requests: an optional true/false switch", async () => {
+    const db = signedInAs(env, "alice");
+    await assertSucceeds(setDoc(ref(db), prefs({ requests: true })));
+    await assertSucceeds(updateDoc(ref(db), { requests: false }));
+    await assertFails(updateDoc(ref(db), { requests: "yes" }));
+  });
+
   test("circles to be told about: a list of up to 50 circle ids", async () => {
     const db = signedInAs(env, "alice");
     await assertSucceeds(setDoc(ref(db), prefs({ circles: [] })));

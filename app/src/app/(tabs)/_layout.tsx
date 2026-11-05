@@ -75,7 +75,9 @@ export default function TabsLayout() {
       return;
     }
     if (data?.kind === "activity") {
-      if (typeof data.postId === "string") router.push(`/post/${data.postId}`);
+      // A friend request opens Activity, to accept or decline right there.
+      if (data.activity === "requests") router.push("/activity");
+      else if (typeof data.postId === "string") router.push(`/post/${data.postId}`);
       else router.navigate("/profile");
       return;
     }
