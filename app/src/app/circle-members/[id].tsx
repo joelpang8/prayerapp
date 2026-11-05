@@ -7,11 +7,12 @@ import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors
 import { db, storage } from "../../firebase";
 import { photoBlob, pickAvatar } from "../../lib/capture";
 import { locale, t } from "../../i18n";
+import { errorReason } from "../../lib/errors";
 import { SelectField } from "../../components/SelectField";
 import { prayerTimeFrom, weekdayNames } from "../../lib/circleTime";
 import {
   cancelInvite, CIRCLE_NAME_MAX, circleNameProblem, deleteCircle, invitesLeft, inviteToCircle, leaveCircle, MAX_CIRCLE_PEOPLE,
-  approveJoin, declineJoin, removeCirclePhoto, removeMember, renameCircle, setCirclePhoto, setPrayerTime, turnOffLink, turnOnLink,
+  approveJoin, declineJoin, makeLeader, removeCirclePhoto, removeMember, renameCircle, setCirclePhoto, setPrayerTime, turnOffLink, turnOnLink,
   type Circle, type PrayerTime,
 } from "../../lib/circles";
 import { useBlocked } from "../../session/hooks";
@@ -50,7 +51,7 @@ export default function CircleMembersScreen() {
       await fn();
     } catch (err) {
       console.warn("circle change failed", err);
-      Alert.alert(t("circles.didntWork"));
+      Alert.alert(t("circles.didntWork"), errorReason(err));
     } finally {
       setBusy(null);
     }
@@ -136,17 +137,30 @@ export default function CircleMembersScreen() {
         person(
           uid,
           leader && uid !== me.uid ? (
-            <Button
-              title={t("circleMembers.remove")}
-              kind="danger"
-              busy={busy === uid}
-              onPress={() =>
-                Alert.alert(t("circleMembers.removeTitle", { name: nameOf(uid) }), t("circleMembers.removeBody"), [
-                  { text: t("common.cancel"), style: "cancel" },
-                  { text: t("circleMembers.remove"), style: "destructive", onPress: () => run(uid, () => removeMember(db, circle.id, uid)) },
-                ])
-              }
-            />
+            <View style={styles.memberActions}>
+              <Button
+                title={t("circleMembers.makeLeader")}
+                kind="secondary"
+                disabled={busy === uid}
+                onPress={() =>
+                  Alert.alert(t("circleMembers.makeLeaderTitle", { name: nameOf(uid) }), t("circleMembers.makeLeaderBody"), [
+                    { text: t("common.cancel"), style: "cancel" },
+                    { text: t("circleMembers.makeLeader"), onPress: () => run(uid, () => makeLeader(db, circle.id, uid)) },
+                  ])
+                }
+              />
+              <Button
+                title={t("circleMembers.remove")}
+                kind="danger"
+                busy={busy === uid}
+                onPress={() =>
+                  Alert.alert(t("circleMembers.removeTitle", { name: nameOf(uid) }), t("circleMembers.removeBody"), [
+                    { text: t("common.cancel"), style: "cancel" },
+                    { text: t("circleMembers.remove"), style: "destructive", onPress: () => run(uid, () => removeMember(db, circle.id, uid)) },
+                  ])
+                }
+              />
+            </View>
           ) : null,
           [uid === circle.leaderId ? t("circleMembers.leader") : "", uid === me.uid ? t("circleMembers.you") : ""].filter(Boolean).join(" · "),
         ),
@@ -177,6 +191,7 @@ export default function CircleMembersScreen() {
       )}
 
       <View style={styles.spacer} />
+      {leader && circle.memberIds.length > 1 && <Muted>{t("circleMembers.leaderLeaveHint")}</Muted>}
       {leader ? (
         <Button
           title={t("circleMembers.deleteCircle")}
@@ -233,7 +248,7 @@ function InviteLinkEditor({ circle }: { circle: Circle }) {
       await fn();
     } catch (err) {
       console.warn("invite link failed", err);
-      Alert.alert(t("circles.didntWork"));
+      Alert.alert(t("circles.didntWork"), errorReason(err));
     } finally {
       setBusy(null);
     }
@@ -296,7 +311,7 @@ function PrayerTimeEditor({ circle }: { circle: Circle }) {
       await setPrayerTime(db, circle.id, value);
     } catch (err) {
       console.warn("prayer time failed", err);
-      Alert.alert(t("circles.didntWork"));
+      Alert.alert(t("circles.didntWork"), errorReason(err));
     } finally {
       setBusy(false);
     }
@@ -366,6 +381,7 @@ const useStyles = makeStyles((colors) => ({
   names: { flex: 1, gap: 1 },
   name: { fontSize: 16, fontFamily: fonts.display, color: colors.text },
   spacer: { height: 12 },
+  memberActions: { gap: 6 },
   photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   timePickers: { flexDirection: "row", gap: 8 },
   timePicker: { flex: 1 },

@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput } from "../../components/ui";
 import { db } from "../../firebase";
 import { t } from "../../i18n";
+import { saveLater } from "../../lib/saveLater";
 import { haptics } from "../../lib/haptics";
 import {
   addItem, ANSWER_NOTE_MAX, customGroups, editItem, GROUP_MAX, itemProblem, NAME_MAX, NOTE_MAX, OFTEN, PRESET_GROUPS, removeItem, setAnswered,
@@ -29,40 +30,25 @@ export default function EditPrayerItemScreen() {
   const [typingGroup, setTypingGroup] = useState(false);
   const [answerNote, setAnswerNote] = useState("");
   const [marking, setMarking] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const problem = itemProblem(form);
   const groups = [...PRESET_GROUPS, ...customGroups(items)];
   const newGroup = typingGroup || !groups.includes(form.group);
 
-  async function run(key: string, fn: () => Promise<void>, after?: () => void) {
-    setBusy(key);
-    try {
-      await fn();
-      after?.();
-    } catch (err) {
-      console.warn("prayer list change failed", err);
-      Alert.alert(t("plist.didntWork"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
   function save() {
     setTried(true);
     if (problem) return;
-    void run("save", async () => {
-      if (item) await editItem(db, profile.uid, item.id, form);
-      else await addItem(db, profile.uid, form, items);
-      haptics.done();
-    }, () => router.back());
+    // Saved on the phone at once; sent when there's a connection.
+    saveLater(item ? editItem(db, profile.uid, item.id, form) : addItem(db, profile.uid, form, items), t("plist.didntWork"), "prayer list save failed");
+    haptics.done();
+    router.back();
   }
 
   if (id && loaded && !item) {
     return (
       <View style={[styles.root, styles.content]}>
         <Stack.Screen options={{ title: t("plist.editTitle") }} />
-        <Muted>{t("plist.didntWork")}</Muted>
+        <Muted>{t("errors.gone")}</Muted>
       </View>
     );
   }
@@ -73,7 +59,7 @@ export default function EditPrayerItemScreen() {
         options={{
           title: item ? t("plist.editTitle") : t("plist.addTitle"),
           headerRight: () => (
-            <Pressable onPress={save} disabled={busy !== null} accessibilityRole="button" hitSlop={10}>
+            <Pressable onPress={save} accessibilityRole="button" hitSlop={10}>
               <Text style={styles.headerButton}>{t("plist.save")}</Text>
             </Pressable>
           ),
@@ -105,19 +91,18 @@ export default function EditPrayerItemScreen() {
         {OFTEN.map((o: Often) => <Chip key={o} label={t(`plist.often.${o}`)} on={form.often === o} onPress={() => set({ often: o })} />)}
       </View>
 
-      <Button title={t("plist.save")} onPress={save} busy={busy === "save"} disabled={busy !== null} size="large" />
+      <Button title={t("plist.save")} onPress={save} size="large" />
 
       {item && (
         <View style={styles.more}>
           {item.answered ? (
-            <Button title={t("plist.notAnswered")} kind="secondary" busy={busy === "answer"} onPress={() => run("answer", () => setAnswered(db, profile.uid, item.id, false))} />
+            <Button title={t("plist.notAnswered")} kind="secondary" onPress={() => saveLater(setAnswered(db, profile.uid, item.id, false), t("plist.didntWork"), "prayer list answer failed")} />
           ) : marking ? (
             <>
               <TextInput value={answerNote} onChangeText={setAnswerNote} placeholder={t("plist.answerNotePlaceholder")} maxLength={ANSWER_NOTE_MAX} style={styles.input} autoFocus />
               <Button
                 title={`✦ ${t("plist.confirmAnswered")}`}
-                busy={busy === "answer"}
-                onPress={() => run("answer", async () => { await setAnswered(db, profile.uid, item.id, true, answerNote); haptics.done(); }, () => router.back())}
+                onPress={() => { saveLater(setAnswered(db, profile.uid, item.id, true, answerNote), t("plist.didntWork"), "prayer list answer failed"); haptics.done(); router.back(); }}
               />
             </>
           ) : (
@@ -126,11 +111,10 @@ export default function EditPrayerItemScreen() {
           <Button
             title={t("plist.remove")}
             kind="danger"
-            busy={busy === "remove"}
             onPress={() =>
               Alert.alert(t("plist.removeTitle", { name: item.name }), t("plist.removeBody"), [
                 { text: t("common.cancel"), style: "cancel" },
-                { text: t("plist.remove"), style: "destructive", onPress: () => run("remove", () => removeItem(db, profile.uid, item.id), () => router.back()) },
+                { text: t("plist.remove"), style: "destructive", onPress: () => { saveLater(removeItem(db, profile.uid, item.id), t("plist.didntWork"), "prayer list remove failed"); router.back(); } },
               ])
             }
           />

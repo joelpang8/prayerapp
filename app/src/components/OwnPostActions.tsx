@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import { deletePost, setAnswered, type Post } from "../lib/posts";
 import { Button, makeStyles } from "./ui";
 import { t } from "../i18n";
+import { errorReason } from "../lib/errors";
 import { haptics } from "../lib/haptics";
 
 export function OwnPostActions({ post }: { post: Post }) {
@@ -36,7 +37,7 @@ export function OwnPostActions({ post }: { post: Post }) {
       haptics.done();
     } catch (err) {
       console.warn(err);
-      Alert.alert(t("common.didntWork"), t("common.tryAgain"));
+      Alert.alert(t("common.didntWork"), errorReason(err));
     } finally {
       setBusy(false);
     }

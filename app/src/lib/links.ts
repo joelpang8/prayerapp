@@ -2,9 +2,10 @@ import * as Application from "expo-application";
 import { Alert, Linking, Platform } from "react-native";
 import { t } from "../i18n";
 import { FEEDBACK_EMAIL, feedbackMail } from "./feedback";
+import { WEB_URL } from "./webLinks";
 
 /** PrayAlong's privacy policy, on Firebase Hosting (firebase/hosting/privacy/). */
-export const PRIVACY_URL = "https://prayerapp-4ce99.web.app/privacy";
+export const PRIVACY_URL = `${WEB_URL}/privacy`;
 
 export function openPrivacyPolicy(): void {
   Linking.openURL(PRIVACY_URL).catch(() => {});

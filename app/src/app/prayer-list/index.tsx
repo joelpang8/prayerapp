@@ -6,6 +6,7 @@ import { initialOf } from "../../components/PrayForToday";
 import { fonts, makeStyles, Muted, Text, useColors } from "../../components/ui";
 import { db } from "../../firebase";
 import { locale, t } from "../../i18n";
+import { errorReason } from "../../lib/errors";
 import { arrangeList, swapOrder, type PrayerItem } from "../../lib/prayerList";
 import { useReadySession } from "../../session/SessionProvider";
 import { groupLabel, usePrayerList } from "../../session/usePrayerList";
@@ -25,7 +26,7 @@ export default function PrayerListScreen() {
   function move(list: PrayerItem[], i: number, by: -1 | 1) {
     const other = list[i + by];
     if (!other) return;
-    swapOrder(db, profile.uid, list[i], other).catch(() => Alert.alert(t("plist.didntWork")));
+    swapOrder(db, profile.uid, list[i], other).catch((err) => Alert.alert(t("plist.didntWork"), errorReason(err)));
   }
 
   return (

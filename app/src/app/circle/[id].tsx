@@ -12,6 +12,7 @@ import { describePrayerTime } from "../../lib/circleTime";
 import { useNotificationPermission } from "../../lib/notifications";
 import { db } from "../../firebase";
 import { locale, t, tn } from "../../i18n";
+import { saveLater } from "../../lib/saveLater";
 import {
   addCircleRequest, arrangeRequests, CIRCLE_ANSWER_NOTE_MAX, CIRCLE_REQUEST_MAX, deleteCircleRequest, pinRequest, setCircleRequestAnswered, setPrayed,
   visibleRequests, type Circle, type CircleRequest,
@@ -42,20 +43,12 @@ export default function CircleScreen() {
   // People asking to join with the invite link (the leader sees them; blocked people never show).
   const asks = useJoinRequests(id, circle?.leaderId === me.uid).filter((a) => !blocked.has(a.uid));
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  async function add() {
-    setBusy(true);
-    try {
-      await addCircleRequest(db, id, me.uid, text);
-      setText("");
-      haptics.tap();
-    } catch (err) {
-      console.warn("add circle request failed", err);
-      Alert.alert(t("circles.didntWork"));
-    } finally {
-      setBusy(false);
-    }
+  // Shown at once and sent when there's a connection (no spinner with no signal).
+  function add() {
+    saveLater(addCircleRequest(db, id, me.uid, text), t("circles.didntWork"), "add circle request failed");
+    setText("");
+    haptics.tap();
   }
 
   if (loaded && gone) {
@@ -108,7 +101,7 @@ export default function CircleScreen() {
           style={styles.addInput}
           accessibilityLabel={t("circle.addPlaceholder")}
         />
-        <Button title={t("circle.add")} onPress={add} busy={busy} disabled={!text.trim()} />
+        <Button title={t("circle.add")} onPress={add} disabled={!text.trim()} />
       </View>
 
       {shown.length === 0 && <EmptyState icon="people-circle-outline" title={t("circle.emptyTitle")} message={t("circle.emptyBody")} />}
@@ -172,18 +165,10 @@ function RequestCard({ circle, request: r, pinned, authorName, authorPhoto }: { 
   const leader = circle.leaderId === me.uid;
   const [marking, setMarking] = useState(false);
   const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  async function run(fn: () => Promise<void>) {
-    setBusy(true);
-    try {
-      await fn();
-    } catch (err) {
-      console.warn("circle request action failed", err);
-      Alert.alert(t("circles.didntWork"));
-    } finally {
-      setBusy(false);
-    }
+  // Shown at once and sent when there's a connection; told if the server refuses.
+  function run(fn: () => Promise<void>) {
+    saveLater(fn(), t("circles.didntWork"), "circle request action failed");
   }
 
   const confirmDelete = () =>
@@ -213,8 +198,7 @@ function RequestCard({ circle, request: r, pinned, authorName, authorPhoto }: { 
       <View style={styles.actions}>
         {!mine && !r.answered && (
           <Pressable
-            onPress={() => { haptics.tap(); void run(() => setPrayed(db, circle.id, r.id, me.uid, !prayed)); }}
-            disabled={busy}
+            onPress={() => { haptics.tap(); run(() => setPrayed(db, circle.id, r.id, me.uid, !prayed)); }}
             accessibilityRole="button"
             accessibilityState={{ selected: prayed }}
             accessibilityLabel={prayed ? t("circle.prayedA11y") : t("circle.willPrayA11y")}
@@ -229,16 +213,16 @@ function RequestCard({ circle, request: r, pinned, authorName, authorPhoto }: { 
       {!marking && (mine || leader) && (
         <View style={styles.ownActions}>
           {mine && (
-            <Pressable onPress={() => (r.answered ? run(() => setCircleRequestAnswered(db, circle.id, r.id, null)) : (setMarking(true), setNote("")))} disabled={busy} accessibilityRole="button" hitSlop={6}>
+            <Pressable onPress={() => (r.answered ? run(() => setCircleRequestAnswered(db, circle.id, r.id, null)) : (setMarking(true), setNote("")))} accessibilityRole="button" hitSlop={6}>
               <Text style={styles.small}>{r.answered ? t("circle.notAnswered") : t("circle.wasAnswered")}</Text>
             </Pressable>
           )}
           {leader && !r.answered && (
-            <Pressable onPress={() => run(() => pinRequest(db, circle.id, pinned ? null : r.id))} disabled={busy} accessibilityRole="button" hitSlop={6}>
+            <Pressable onPress={() => run(() => pinRequest(db, circle.id, pinned ? null : r.id))} accessibilityRole="button" hitSlop={6}>
               <Text style={styles.small}>{pinned ? t("circle.unpin") : t("circle.pin")}</Text>
             </Pressable>
           )}
-          <Pressable onPress={confirmDelete} disabled={busy} accessibilityRole="button" hitSlop={6}>
+          <Pressable onPress={confirmDelete} accessibilityRole="button" hitSlop={6}>
             <Text style={styles.small}>{t("circle.delete")}</Text>
           </Pressable>
         </View>
@@ -247,8 +231,8 @@ function RequestCard({ circle, request: r, pinned, authorName, authorPhoto }: { 
         <View style={styles.markBox}>
           <TextInput value={note} onChangeText={setNote} placeholder={t("circle.answerPlaceholder")} maxLength={CIRCLE_ANSWER_NOTE_MAX} style={styles.noteInput} accessibilityLabel={t("circle.answerPlaceholder")} />
           <View style={styles.ownActions}>
-            <Button title={t("circle.markAnswered")} onPress={() => run(async () => { await setCircleRequestAnswered(db, circle.id, r.id, note); haptics.done(); setMarking(false); })} busy={busy} />
-            <Button title={t("common.cancel")} kind="secondary" onPress={() => setMarking(false)} disabled={busy} />
+            <Button title={t("circle.markAnswered")} onPress={() => { run(() => setCircleRequestAnswered(db, circle.id, r.id, note)); haptics.done(); setMarking(false); }} />
+            <Button title={t("common.cancel")} kind="secondary" onPress={() => setMarking(false)} />
           </View>
         </View>
       )}

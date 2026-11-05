@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PrayAlong invite</title>
+<style>
+  :root { --bg: #FAF8F5; --card: #FFFFFF; --text: #1F1B16; --muted: #6B645C; --border: #E6E1DA; --accent: #5B4B8A; --on-accent: #FFFFFF; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15130F; --card: #1F1C17; --text: #EEE7DB; --muted: #A69D90; --border: #38332C; --accent: #B9AAE6; --on-accent: #15130F; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 18px/1.55 -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 440px; margin: 0 auto; padding: 56px 16px; text-align: center; }
+  h1 { font: 600 30px/1.2 Georgia, serif; margin: 0 0 10px; }
+  p { color: var(--muted); margin: 0 0 18px; }
+  .open { display: block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 600; border-radius: 14px; padding: 15px; margin: 24px 0 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: left; font-size: 16px; }
+  .card p { margin: 0; }
+  .card strong { color: var(--text); }
+  a.small { color: var(--accent); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+<h1 id="title">You're invited to PrayAlong</h1>
+<p id="lead">Pray with friends, once a day, at the same moment.</p>
+<a class="open" id="open" href="/">Open in PrayAlong</a>
+<div class="card">
+  <p><strong>Don't have PrayAlong yet?</strong> It's in testing on iPhone. Ask the person who sent you this link for a TestFlight invite, install it, then come back and tap <strong>Open in PrayAlong</strong>.</p>
+</div>
+<p style="margin-top:24px"><a class="small" href="/privacy">Privacy policy</a></p>
+</main>
+<script>
+  // /c/{code}: a prayer circle invite. /u/{username}: a friend invite.
+  // Nothing is looked up here; the app does that after it opens.
+  (function () {
+    var parts = location.pathname.split("/").filter(Boolean);
+    var kind = parts[0], value = parts[1] || "";
+    var app = null;
+    if (kind === "c" && /^[A-Za-z0-9]{20,40}$/.test(value)) {
+      app = "prayerapp://circle-join/" + value;
+      document.getElementById("title").textContent = "You're invited to a prayer circle";
+      document.getElementById("lead").textContent = "Open it in PrayAlong to ask to join. The circle's leader approves who joins.";
+    } else if (kind === "u" && /^[A-Za-z0-9_.]{1,30}$/.test(value)) {
+      app = "prayerapp://u/" + value.toLowerCase();
+      document.getElementById("title").textContent = "@" + value.toLowerCase() + " invited you to PrayAlong";
+      document.getElementById("lead").textContent = "Open it in PrayAlong to add them as a friend.";
+    }
+    var open = document.getElementById("open");
+    if (app) open.href = app; else open.style.display = "none";
+  })();
+</script>
+</body>
+</html>

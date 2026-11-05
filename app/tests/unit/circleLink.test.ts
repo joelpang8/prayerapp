@@ -14,8 +14,17 @@ const { circleCodeFromLink, circleLinkUrl } = await import("../../src/lib/circle
 const CODE = "AbCdEfGhIjKlMnOpQrStUvWx";
 
 describe("circle invite links", () => {
+  test("the web page opens the app with the same links the app reads", async () => {
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync("../firebase/hosting/join.html", "utf8");
+    expect(page).toContain('"prayerapp://circle-join/" + value');
+    expect(page).toContain('"prayerapp://u/" + value');
+    const hosting = JSON.parse(readFileSync("../firebase/firebase.json", "utf8")).hosting;
+    expect(hosting.rewrites).toEqual(expect.arrayContaining([{ source: "/c/**", destination: "/join.html" }, { source: "/u/**", destination: "/join.html" }]));
+  });
+
   test("the link carries the code and reads back", () => {
-    expect(circleLinkUrl(CODE)).toContain(`circle-join/${CODE}`);
+    expect(circleLinkUrl(CODE)).toBe(`https://prayerapp-4ce99.web.app/c/${CODE}`);
     expect(circleCodeFromLink(`prayerapp://circle-join/${CODE}`)).toBe(CODE);
     expect(circleCodeFromLink(circleLinkUrl(CODE))).toBe(CODE);
   });

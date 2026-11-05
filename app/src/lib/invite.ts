@@ -2,16 +2,17 @@ import * as Linking from "expo-linking";
 import { Share } from "react-native";
 import { normalizeUsername, usernameProblem } from "./profile";
 import { t } from "../i18n";
+import { WEB_URL } from "./webLinks";
 
 /**
- * Invites: a link that opens the inviter's profile in the app (with Add
- * friend), plus their @username for anyone who needs to search instead.
- * The link uses the app's own scheme (prayerapp://), so it opens the app
- * once it's installed; a web link that also works without the app needs a
- * website and the paid Apple account (Universal Links), so it comes later.
+ * Invites: a link to a web page (firebase/hosting/join.html) whose "Open in
+ * PrayAlong" button opens the inviter's profile in the app (with Add friend,
+ * prayerapp://u/{username}), or says how to get the app; plus their
+ * @username for anyone who needs to search instead. A web link is tappable
+ * everywhere, unlike prayerapp:// in Messages.
  */
 export function inviteLink(username: string): string {
-  return Linking.createURL(`u/${username}`);
+  return `${WEB_URL}/u/${username}`;
 }
 
 export function inviteMessage(username: string): string {

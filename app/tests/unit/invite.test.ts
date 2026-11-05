@@ -12,7 +12,8 @@ vi.mock("react-native", () => ({ Share: {} }));
 const { inviteLink, inviteMessage, usernameFromLink } = await import("../../src/lib/invite");
 
 test("invite links carry the username, and are read back", () => {
-  expect(inviteLink("joel_p")).toBe("prayerapp://u/joel_p");
+  expect(inviteLink("joel_p")).toBe("https://prayerapp-4ce99.web.app/u/joel_p");
+  expect(usernameFromLink(inviteLink("joel_p"))).toBe("joel_p");
   expect(inviteMessage("joel_p")).toContain("@joel_p");
   expect(usernameFromLink("prayerapp://u/joel_p")).toBe("joel_p");
   expect(usernameFromLink("prayerapp://u/Joel_P")).toBe("joel_p");

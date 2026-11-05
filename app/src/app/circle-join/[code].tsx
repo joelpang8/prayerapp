@@ -5,6 +5,7 @@ import { CirclePhoto } from "../../components/CirclePhoto";
 import { Button, fonts, makeStyles, Muted, Text } from "../../components/ui";
 import { db } from "../../firebase";
 import { t } from "../../i18n";
+import { errorReason } from "../../lib/errors";
 import { askToJoin, cancelAskToJoin, haveAskedToJoin, readLinkCard, type LinkCard } from "../../lib/circles";
 import { useReadySession } from "../../session/SessionProvider";
 import { useMyCircles } from "../../session/useCircles";
@@ -41,7 +42,7 @@ export default function CircleJoinScreen() {
       await fn();
     } catch (err) {
       console.warn("circle join failed", err);
-      Alert.alert(t("circles.didntWork"));
+      Alert.alert(t("circles.didntWork"), errorReason(err));
     } finally {
       setBusy(false);
     }

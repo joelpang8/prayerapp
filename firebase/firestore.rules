@@ -497,6 +497,12 @@ service cloud.firestore {
       allow update: if signedIn() && (
         // The leader renames it.
         (isLeader() && changed().hasOnly(['name']) && validCircleName(request.resource.data.name))
+        // The leader hands the circle to another current member (who then
+        // leads it: invites, approvals, photo, link). Nothing else changes.
+        || (isLeader() && changed().hasOnly(['leaderId'])
+            && request.resource.data.leaderId is string
+            && request.resource.data.leaderId != request.auth.uid
+            && request.resource.data.leaderId in resource.data.memberIds)
         // The leader pins one of its requests to the top, or unpins.
         || (isLeader() && changed().hasOnly(['pinnedRequestId'])
             && (!('pinnedRequestId' in request.resource.data)

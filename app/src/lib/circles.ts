@@ -294,6 +294,11 @@ export async function setCirclePhoto(db: Firestore, storage: FirebaseStorage, ci
   if (circle.photoPath && circle.photoPath !== path) await deleteObject(ref(storage, circle.photoPath)).catch(() => {});
 }
 
+/** The leader hands the circle to another current member, who then leads it. */
+export function makeLeader(db: Firestore, circleId: string, uid: string): Promise<void> {
+  return updateDoc(circleRef(db, circleId), { leaderId: uid });
+}
+
 /** The leader removes the photo. */
 export async function removeCirclePhoto(db: Firestore, storage: FirebaseStorage, circle: Pick<Circle, "id" | "photoPath">): Promise<void> {
   await updateDoc(circleRef(db, circle.id), { photoPath: deleteField() });

@@ -166,9 +166,23 @@ describe("accepting, declining and leaving", () => {
     await assertSucceeds(updateDoc(circle(as("lead")), { memberIds: arrayRemove("ann") }));
     await assertSucceeds(updateDoc(circle(as("lead")), { name: "Tuesday group" }));
     await assertFails(updateDoc(circle(as("ben")), { name: "Mine now" }));
-    await assertFails(updateDoc(circle(as("lead")), { leaderId: "ben" }));
+    await assertFails(updateDoc(circle(as("lead")), { leaderId: "cat" }));
     await assertFails(deleteDoc(circle(as("ben"))));
     await assertSucceeds(deleteDoc(circle(as("lead"))));
+  });
+
+  test("the leader hands the circle to a current member, then can leave like anyone", async () => {
+    await seedCircle({ members: ["lead", "ann", "ben"], invited: ["cat"] });
+    // Not to someone outside it, or only invited, or by anyone but the leader, or with other changes.
+    await assertFails(updateDoc(circle(as("lead")), { leaderId: "dan" }));
+    await assertFails(updateDoc(circle(as("lead")), { leaderId: "cat" }));
+    await assertFails(updateDoc(circle(as("ann")), { leaderId: "ann" }));
+    await assertFails(updateDoc(circle(as("lead")), { leaderId: "ann", name: "Ann's group" }));
+    await assertSucceeds(updateDoc(circle(as("lead")), { leaderId: "ann" }));
+    // Ann leads now; the old leader is an ordinary member who can leave.
+    await assertSucceeds(updateDoc(circle(as("ann")), { name: "Tuesday group" }));
+    await assertFails(updateDoc(circle(as("lead")), { name: "Mine again" }));
+    await assertSucceeds(updateDoc(circle(as("lead")), { memberIds: arrayRemove("lead") }));
   });
 });
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { db } from "../firebase";
 import { t, tn } from "../i18n";
+import { errorReason } from "../lib/errors";
 import { acceptInvite, declineInvite, type Circle } from "../lib/circles";
 import { useReadySession } from "../session/SessionProvider";
 import { useCircleHasNew, useMyCircles } from "../session/useCircles";
@@ -68,7 +69,7 @@ function InviteRow({ circle, leaderName }: { circle: Circle; leaderName: string 
       await fn();
     } catch (err) {
       console.warn("circle invite failed", err);
-      Alert.alert(t("circles.didntWork"));
+      Alert.alert(t("circles.didntWork"), errorReason(err));
     } finally {
       setBusy(false);
     }

@@ -40,6 +40,16 @@
     "ignore": [
       "firebase.json",
       "**/.*"
+    ],
+    "rewrites": [
+      {
+        "source": "/c/**",
+        "destination": "/join.html"
+      },
+      {
+        "source": "/u/**",
+        "destination": "/join.html"
+      }
     ]
   }
 }

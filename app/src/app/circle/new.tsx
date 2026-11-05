@@ -8,6 +8,7 @@ import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors
 import { db, storage } from "../../firebase";
 import { photoBlob, pickAvatar, type CapturedPhoto } from "../../lib/capture";
 import { t } from "../../i18n";
+import { errorReason } from "../../lib/errors";
 import { CIRCLE_NAME_MAX, circleNameProblem, createCircle, MAX_CIRCLE_PEOPLE, setCirclePhoto } from "../../lib/circles";
 import { useBlocked } from "../../session/hooks";
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
@@ -49,7 +50,7 @@ export default function NewCircleScreen() {
       router.replace({ pathname: "/circle/[id]", params: { id } });
     } catch (err) {
       console.warn("create circle failed", err);
-      setError(t("circles.didntWork"));
+      setError(`${t("circles.didntWork")}. ${errorReason(err)}`);
       setBusy(false);
     }
   }

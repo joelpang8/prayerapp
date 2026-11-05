@@ -143,15 +143,23 @@ function dayNumber(dayId: string): number {
 /**
  * Today's few (the app's day, America/New_York). "Every day" ones always;
  * the weekly ones are spread evenly over the 7 days and the monthly ones over
- * 30, in the order they were added, so everyone comes up as often as chosen
- * and the same ones show all day. Answered ones never.
+ * 30, in the order they were added, so everyone comes up at least as often as
+ * chosen and the same ones show all day. Answered ones never.
+ *
+ * A day is never empty while the list has someone open: with fewer than 7
+ * weekly ones they take turns (each every few days instead of weekly), and if
+ * only monthly ones are left for a day, the next one in turn shows.
  */
 export function todaysPicks(items: readonly PrayerItem[], dayId: string): PrayerItem[] {
   const day = dayNumber(dayId);
   const open = items.filter((i) => !i.answered);
-  const spread = (often: Often, every: number) =>
-    open.filter((i) => i.often === often).sort(byCreated).filter((_, n) => n % every === day % every);
-  return [...open.filter((i) => i.often === "daily").sort(byOrder), ...spread("weekly", 7), ...spread("monthly", 30)];
+  const of = (often: Often) => open.filter((i) => i.often === often).sort(byCreated);
+  const turn = (list: PrayerItem[], every: number) => list.filter((_, n) => n % every === day % every);
+  const weekly = of("weekly");
+  const monthly = of("monthly");
+  const picks = [...of("daily").sort(byOrder), ...turn(weekly, Math.min(7, weekly.length)), ...turn(monthly, 30)];
+  if (picks.length === 0 && monthly.length > 0) return turn(monthly, monthly.length);
+  return picks;
 }
 
 /* ---------- "✓ Prayed" today, on this phone only ---------- */

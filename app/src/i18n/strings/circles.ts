@@ -14,7 +14,7 @@ export default defineStrings(
     "circles.join": "Join",
     "circles.decline": "Decline",
     "circles.newDot": "New",
-    "circles.didntWork": "That didn't work. Please try again.",
+    "circles.didntWork": "That didn't work",
 
     "circleNew.title": "New circle",
     "circleNew.addPhoto": "Add a photo (optional)",
@@ -57,6 +57,10 @@ export default defineStrings(
     "circle.onlyMembers": "Only people in this circle see these requests.",
 
     "circleMembers.title": "Members",
+    "circleMembers.makeLeader": "Make leader",
+    "circleMembers.makeLeaderTitle": "Make {name} the leader?",
+    "circleMembers.makeLeaderBody": "They'll lead the circle: invites, the link, the photo, the prayer time. You stay in it as a member and can leave any time.",
+    "circleMembers.leaderLeaveHint": "Want to step back? Make someone else the leader, then you can leave.",
     "circleMembers.notify": "Notify me",
     "circleMembers.notifyNote": "When someone adds a request here or marks one answered. Only on this phone's account; nobody else is told.",
     "circleMembers.leader": "Leader",
@@ -123,7 +127,7 @@ export default defineStrings(
     "circles.join": "Unirme",
     "circles.decline": "Rechazar",
     "circles.newDot": "Nuevo",
-    "circles.didntWork": "No funcionó. Inténtalo de nuevo.",
+    "circles.didntWork": "No funcionó",
 
     "circleNew.title": "Nuevo círculo",
     "circleNew.addPhoto": "Agregar una foto (opcional)",
@@ -166,6 +170,10 @@ export default defineStrings(
     "circle.onlyMembers": "Solo las personas de este círculo ven estas peticiones.",
 
     "circleMembers.title": "Miembros",
+    "circleMembers.makeLeader": "Hacer líder",
+    "circleMembers.makeLeaderTitle": "¿Hacer líder a {name}?",
+    "circleMembers.makeLeaderBody": "Dirigirá el círculo: invitaciones, el enlace, la foto y la hora de oración. Tú sigues como miembro y puedes salir cuando quieras.",
+    "circleMembers.leaderLeaveHint": "¿Quieres dar un paso atrás? Haz líder a otra persona y luego podrás salir.",
     "circleMembers.notify": "Avisarme",
     "circleMembers.notifyNote": "Cuando alguien agregue una petición aquí o marque una como respondida. Solo para tu cuenta; nadie más recibe aviso.",
     "circleMembers.leader": "Líder",

@@ -125,3 +125,19 @@ describe("adding my own prayer requests to my list", () => {
     expect(readFileSync("src/app/prayer-list/edit.tsx", "utf8")).toContain("name: givenName");
   });
 });
+
+describe("a day is never empty while someone's on the list", () => {
+  test("a few weekly ones take turns; only-monthly lists still show one a day", () => {
+    const three = Array.from({ length: 3 }, () => item());
+    const counts = new Map<string, number>();
+    for (const day of week) {
+      const picks = todaysPicks(three, day);
+      expect(picks).toHaveLength(1);
+      counts.set(picks[0].id, (counts.get(picks[0].id) ?? 0) + 1);
+    }
+    expect([...counts.values()].every((c) => c >= 2)).toBe(true);
+    const monthly = Array.from({ length: 2 }, () => item({ often: "monthly" }));
+    for (const day of week) expect(todaysPicks(monthly, day)).toHaveLength(1);
+    expect(todaysPicks([item({ answered: { at: new Date(), note: "" } })], "20261104")).toEqual([]);
+  });
+});

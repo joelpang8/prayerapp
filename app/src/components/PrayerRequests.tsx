@@ -11,6 +11,7 @@ import { useFriendGraph, useReadySession } from "../session/SessionProvider";
 import { useProfiles } from "../session/useProfiles";
 import { Button, fonts, makeStyles, Muted, Text, TextInput } from "./ui";
 import { t } from "../i18n";
+import { errorReason } from "../lib/errors";
 import { haptics } from "../lib/haptics";
 import { entryFromRequest, requestOnList } from "../lib/prayerList";
 import { usePrayerList } from "../session/usePrayerList";
@@ -69,7 +70,7 @@ function MyRequests({ about }: { about: AboutDoc }) {
       setNote("");
     } catch (err) {
       console.warn("answered request failed", err);
-      Alert.alert(t("requests.didntWork"), t("requests.tryAgain"));
+      Alert.alert(t("requests.didntWork"), errorReason(err));
     } finally {
       setBusy(false);
     }
