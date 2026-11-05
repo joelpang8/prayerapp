@@ -79,12 +79,22 @@ export default function TodayScreen() {
         <>
           {/* Candle mode: a quiet candle stays lit after I've prayed today. */}
           <View style={styles.prayedCandle} accessible accessibilityLabel={`${t("candle.title")}. ${t("candle.body")}`}>
-            <Candle left={prayedCandleLeft(myPost.createdAt, now)} />
+            <View style={styles.smallCandle}>
+              <View style={styles.smallCandleScale}>
+                <Candle left={prayedCandleLeft(myPost.createdAt, now)} />
+              </View>
+            </View>
             <View style={styles.prayedCandleText}>
               <Text style={styles.prayedCandleTitle}>{t("candle.title")}</Text>
               <Muted>{t("candle.body")}</Muted>
             </View>
           </View>
+          {/* Today's verse first, then my prayer. */}
+          {promptVerseShown && (
+            <View style={styles.wordOfTheDay}>
+              <WordOfTheDay refId={prompt!.verseRef!} />
+            </View>
+          )}
           <SectionTitle>{t("today.yourPrayer")}</SectionTitle>
           <PostCard post={myPost} author={profile} footer={<OwnPostActions post={myPost} />} showVerse={false} />
         </>
@@ -104,7 +114,7 @@ export default function TodayScreen() {
           <Muted>{t("today.noPromptBody")}</Muted>
         </View>
       )}
-      {promptVerseShown && (
+      {promptVerseShown && !myPost && (
         <View style={styles.wordOfTheDay}>
           <WordOfTheDay refId={prompt!.verseRef!} />
         </View>
@@ -167,9 +177,12 @@ const useStyles = makeStyles((colors) => ({
   collapseAll: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.accent, marginTop: 24 },
   notice: { backgroundColor: colors.accentSoft, borderRadius: 16, padding: 16, gap: 10, marginTop: 16 },
   noticeTitle: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
-  prayedCandle: { flexDirection: "row", alignItems: "flex-end", gap: 14, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, marginBottom: 4 },
-  prayedCandleText: { flex: 1, gap: 2, paddingBottom: 6 },
-  prayedCandleTitle: { fontSize: 19, fontFamily: fonts.display, color: colors.text },
+  // A compact strip: the candle at about 60% size beside one short line.
+  prayedCandle: { flexDirection: "row", alignItems: "flex-end", gap: 12, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingTop: 2, paddingBottom: 8 },
+  smallCandle: { width: 30, height: 66, alignItems: "center", justifyContent: "flex-end" },
+  smallCandleScale: { transform: [{ scale: 0.6 }], transformOrigin: "50% 100%" },
+  prayedCandleText: { flex: 1, gap: 0, paddingBottom: 4 },
+  prayedCandleTitle: { fontSize: 17, fontFamily: fonts.display, color: colors.text },
   prompt: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
   promptTitle: { fontSize: 26, fontFamily: fonts.displayBold, color: colors.text },
 }));
