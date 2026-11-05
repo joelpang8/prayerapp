@@ -43,6 +43,8 @@ describe("the Pray for widget", () => {
     expect(hook).toContain("usePrayerList()");
     expect(hook).not.toMatch(/useFeed|useProfiles|circle/i);
     expect(readFileSync("src/widgets/PrayForWidget.tsx", "utf8")).toContain('createWidget("PrayForWidget"');
+    // Home Screen in the app's purple, light and dark (ui.tsx colors).
+    expect(readFileSync("src/widgets/PrayForWidget.tsx", "utf8")).toMatch(/#5B4B8A[\s\S]*#B9AAE6|#B9AAE6[\s\S]*#5B4B8A/);
   });
 });
 
