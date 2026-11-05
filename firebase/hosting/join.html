@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta property="og:title" content="You're invited to PrayAlong">
+<meta property="og:description" content="Join a prayer circle or add a friend, and pray together.">
+<meta property="og:image" content="https://prayerapp-4ce99.web.app/invite-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <title>PrayAlong invite</title>
 <style>
   :root { --bg: #FAF8F5; --card: #FFFFFF; --text: #1F1B16; --muted: #6B645C; --border: #E6E1DA; --accent: #5B4B8A; --on-accent: #FFFFFF; }
@@ -17,10 +23,59 @@
   .card p { margin: 0; }
   .card strong { color: var(--text); }
   a.small { color: var(--accent); font-size: 15px; }
+  :root { --soft: #ECE7F3; --glow: #F6D98C; --sun: #E9B949; --ink: #5B4B8A; }
+  @media (prefers-color-scheme: dark) { :root { --soft: #2D2742; --glow: #5A4A22; --sun: #E9B949; --ink: #B9AAE6; } }
+  .hero { position: relative; margin: 0 auto 44px; width: 260px; height: 220px; }
+  .hero svg { width: 100%; height: 100%; overflow: visible; }
+  .hero .badge { position: absolute; left: 50%; bottom: -24px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); color: var(--accent);
+    font: 600 13px/1 -apple-system, "Helvetica Neue", Arial, sans-serif; letter-spacing: .8px; text-transform: uppercase; padding: 8px 14px; border-radius: 20px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+  .glow { animation: breathe 3.2s ease-in-out infinite; transform-origin: 130px 105px; }
+  @keyframes breathe { 0%, 100% { opacity: .55; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.04); } }
+  @media (prefers-reduced-motion: reduce) { .glow { animation: none; } }
+  .friend, .circle { display: none; }
+  body.is-friend .friend, body.is-circle .circle { display: inline; }
 </style>
 </head>
 <body>
 <main>
+<div class="hero" aria-hidden="true">
+  <svg viewBox="0 0 260 210">
+    <defs>
+      <radialGradient id="g" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="var(--glow)" stop-opacity="1"/>
+        <stop offset="100%" stop-color="var(--glow)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle cx="130" cy="105" r="100" fill="var(--soft)"/>
+    <circle class="glow" cx="130" cy="105" r="62" fill="url(#g)"/>
+    <!-- A prayer circle: people gathered around the light, and an empty place (dashed) for you. -->
+    <g class="circle">
+      <g fill="var(--ink)"><circle cx="130.0" cy="23.0" r="8"/><path d="M117.0 46.0 q13 -19 26 0 z"/></g>
+      <g fill="var(--ink)"><circle cx="194.1" cy="60.0" r="8"/><path d="M181.1 83.0 q13 -19 26 0 z"/></g>
+      <g fill="var(--ink)"><circle cx="194.1" cy="134.0" r="8"/><path d="M181.1 157.0 q13 -19 26 0 z"/></g>
+      <g fill="var(--ink)"><circle cx="130.0" cy="171.0" r="8"/><path d="M117.0 194.0 q13 -19 26 0 z"/></g>
+      <g fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-dasharray="3.5 3"><circle cx="65.9" cy="134.0" r="8"/><path d="M52.9 157.0 q13 -19 26 0 z"/></g>
+      <g fill="var(--ink)"><circle cx="65.9" cy="60.0" r="8"/><path d="M52.9 83.0 q13 -19 26 0 z"/></g>
+    </g>
+    <!-- A friend invite: them, and you (dashed), either side of the light. -->
+    <g class="friend" fill="var(--ink)">
+      <circle cx="78" cy="88" r="17"/><path d="M48 140 q30 -38 60 0 z"/>
+      <circle cx="182" cy="88" r="17" fill="none" stroke="var(--ink)" stroke-width="3" stroke-dasharray="5 4"/>
+      <path d="M152 140 q30 -38 60 0 z" fill="none" stroke="var(--ink)" stroke-width="3" stroke-dasharray="5 4"/>
+    </g>
+    <!-- The light in the middle (PrayAlong's sun). -->
+    <g transform="translate(130 105)">
+      <circle r="17" fill="var(--sun)"/>
+      <g stroke="var(--sun)" stroke-width="3.5" stroke-linecap="round">
+        <line x1="0" y1="-26" x2="0" y2="-33"/><line x1="0" y1="26" x2="0" y2="33"/>
+        <line x1="-26" y1="0" x2="-33" y2="0"/><line x1="26" y1="0" x2="33" y2="0"/>
+        <line x1="-18.4" y1="-18.4" x2="-23.3" y2="-23.3"/><line x1="18.4" y1="18.4" x2="23.3" y2="23.3"/>
+        <line x1="-18.4" y1="18.4" x2="-23.3" y2="23.3"/><line x1="18.4" y1="-18.4" x2="23.3" y2="-23.3"/>
+      </g>
+    </g>
+  </svg>
+  <span class="badge">✉︎ You're invited</span>
+</div>
 <h1 id="title">You're invited to PrayAlong</h1>
 <p id="lead">Pray with friends, once a day, at the same moment.</p>
 <a class="open" id="open" href="/">Open in PrayAlong</a>
@@ -38,15 +93,17 @@
     var app = null;
     if (kind === "c" && /^[A-Za-z0-9]{20,40}$/.test(value)) {
       app = "prayerapp://circle-join/" + value;
+      document.body.classList.add("is-circle");
       document.getElementById("title").textContent = "You're invited to a prayer circle";
       document.getElementById("lead").textContent = "Open it in PrayAlong to ask to join. The circle's leader approves who joins.";
     } else if (kind === "u" && /^[A-Za-z0-9_.]{1,30}$/.test(value)) {
       app = "prayerapp://u/" + value.toLowerCase();
+      document.body.classList.add("is-friend");
       document.getElementById("title").textContent = "@" + value.toLowerCase() + " invited you to PrayAlong";
       document.getElementById("lead").textContent = "Open it in PrayAlong to add them as a friend.";
     }
     var open = document.getElementById("open");
-    if (app) open.href = app; else open.style.display = "none";
+    if (app) open.href = app; else { open.style.display = "none"; document.body.classList.add("is-circle"); }
   })();
 </script>
 </body>

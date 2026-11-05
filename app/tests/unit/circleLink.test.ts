@@ -19,6 +19,9 @@ describe("circle invite links", () => {
     const page = readFileSync("../firebase/hosting/join.html", "utf8");
     expect(page).toContain('"prayerapp://circle-join/" + value');
     expect(page).toContain('"prayerapp://u/" + value');
+    // A picture for the link preview in Messages, and one that exists.
+    expect(page).toContain('property="og:image" content="https://prayerapp-4ce99.web.app/invite-card.png"');
+    expect(readFileSync("../firebase/hosting/invite-card.png").length).toBeGreaterThan(1000);
     const hosting = JSON.parse(readFileSync("../firebase/firebase.json", "utf8")).hosting;
     expect(hosting.rewrites).toEqual(expect.arrayContaining([{ source: "/c/**", destination: "/join.html" }, { source: "/u/**", destination: "/join.html" }]));
   });
