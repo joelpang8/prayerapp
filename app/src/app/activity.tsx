@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { Avatar } from "../components/Avatar";
 import { EmptyState } from "../components/EmptyState";
+import { FriendRequests, useIncomingRequests } from "../components/FriendRequests";
 import { fonts, makeStyles, Text } from "../components/ui";
 import { timeAgo, type Activity } from "../lib/activity";
 import { reactionInfo } from "../lib/reactions";
@@ -26,7 +27,8 @@ function describe(a: Activity, name: string): string {
 }
 
 /**
- * What friends have done in the last week: prayed, had a prayer answered,
+ * Friend requests waiting for an answer (Accept / Decline right here), then
+ * what friends have done in the last week: prayed, had a prayer answered,
  * or commented on or reacted to mine. Only current friends.
  */
 export default function ActivityScreen() {
@@ -35,6 +37,7 @@ export default function ActivityScreen() {
   const names = useProfiles(new Set(items.map((a) => a.actorId)));
   const now = useNow(60_000);
   useEffect(() => { markSeen(); }, [markSeen, items.length]);
+  const requests = useIncomingRequests();
 
   return (
     <FlatList
@@ -42,7 +45,8 @@ export default function ActivityScreen() {
       contentContainerStyle={styles.content}
       data={items}
       keyExtractor={(a) => a.id}
-      ListEmptyComponent={<EmptyState icon="leaf-outline" title={t("activity.emptyTitle")} message={t("activity.emptyBody")} />}
+      ListHeaderComponent={<FriendRequests />}
+      ListEmptyComponent={requests.length > 0 ? null : <EmptyState icon="leaf-outline" title={t("activity.emptyTitle")} message={t("activity.emptyBody")} />}
       renderItem={({ item }) => {
         const who = names.get(item.actorId);
         return (

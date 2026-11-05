@@ -2,14 +2,17 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useActivity } from "../session/hooks";
+import { useIncomingRequests } from "./FriendRequests";
 import { fonts, makeStyles, Text, useColors } from "./ui";
 import { t } from "../i18n";
 
-/** The bell in Today's header: opens Activity, with a count of what's new. */
+/** The bell in Today's header: opens Activity, with a count of what's new (including friend requests). */
 export function ActivityBell() {
   const styles = useStyles();
   const colors = useColors();
-  const { unseen } = useActivity();
+  const { unseen: seenLater } = useActivity();
+  // Friend requests count too, until they're answered.
+  const unseen = seenLater + useIncomingRequests().length;
   return (
     <Pressable
       onPress={() => router.push("/activity")}
