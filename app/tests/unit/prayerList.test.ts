@@ -104,3 +104,24 @@ describe("the list", () => {
     expect(readFileSync("src/app/(tabs)/prayers.tsx", "utf8")).toContain("<PrayForToday />");
   });
 });
+
+describe("adding my own prayer requests to my list", () => {
+  test("short requests become the name; long ones are cut at a word with the whole text as the note", async () => {
+    const { entryFromRequest, requestOnList } = await import("../../src/lib/prayerList");
+    expect(entryFromRequest("  Mum's   health ")).toEqual({ name: "Mum's health", note: "" });
+    const long = "Wisdom for the big decision about moving our family to a new city and finding a church there";
+    const e = entryFromRequest(long);
+    expect(e.name.length).toBeLessThanOrEqual(60);
+    expect(e.name.endsWith("…")).toBe(true);
+    expect(long.startsWith(e.name.slice(0, -1))).toBe(true);
+    expect(e.note).toBe(long);
+    expect(requestOnList([item({ name: "mum's health" })], "Mum's health")).toBe(true);
+    expect(requestOnList([item({ name: "Something else", note: long })], long)).toBe(true);
+    expect(requestOnList([item({ name: "Dad" })], "Mum's health")).toBe(false);
+  });
+
+  test("the profile offers it and the add screen takes it", () => {
+    expect(readFileSync("src/components/PrayerRequests.tsx", "utf8")).toContain('pathname: "/prayer-list/edit", params: entryFromRequest(r.text)');
+    expect(readFileSync("src/app/prayer-list/edit.tsx", "utf8")).toContain("name: givenName");
+  });
+});

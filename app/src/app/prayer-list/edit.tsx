@@ -18,12 +18,13 @@ const fromItem = (i: PrayerItem): ItemInput => ({ name: i.name, note: i.note, gr
 /** Add someone to my list, or edit, mark answered or remove one. */
 export default function EditPrayerItemScreen() {
   const styles = useStyles();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  // From a prayer request on my profile: the name and note come filled in.
+  const { id, name: givenName, note: givenNote } = useLocalSearchParams<{ id?: string; name?: string; note?: string }>();
   const { profile } = useReadySession();
   const { items, loaded } = usePrayerList();
   const item = id ? items.find((i) => i.id === id) ?? null : null;
   const [draft, setDraft] = useState<ItemInput | null>(null);
-  const form = draft ?? (item ? fromItem(item) : BLANK);
+  const form = draft ?? (item ? fromItem(item) : { ...BLANK, name: givenName ?? "", note: givenNote ?? "" });
   const set = (patch: Partial<ItemInput>) => setDraft({ ...form, ...patch });
   const [typingGroup, setTypingGroup] = useState(false);
   const [answerNote, setAnswerNote] = useState("");

@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { db } from "../firebase";
@@ -11,6 +12,8 @@ import { useProfiles } from "../session/useProfiles";
 import { Button, fonts, makeStyles, Muted, Text, TextInput } from "./ui";
 import { t } from "../i18n";
 import { haptics } from "../lib/haptics";
+import { entryFromRequest, requestOnList } from "../lib/prayerList";
+import { usePrayerList } from "../session/usePrayerList";
 
 const BULLET_WIDTH = 12;
 
@@ -53,6 +56,9 @@ function MyRequests({ about }: { about: AboutDoc }) {
   const [marking, setMarking] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  // "+ My prayer list": copy a request into my private list, so it comes up in Pray for today.
+  const list = usePrayerList();
+  const onList = (text: string) => requestOnList(list.items, text);
 
   async function setAnswered(id: string, value: string | null) {
     setBusy(true);
@@ -104,16 +110,31 @@ function MyRequests({ about }: { about: AboutDoc }) {
                 </View>
               </View>
             ) : r.id && (
+              <View style={[styles.myActions, styles.indent]}>
               <Pressable
                 onPress={() => (r.answered ? setAnswered(r.id!, null) : (setMarking(r.id!), setNote("")))}
                 disabled={busy}
                 accessibilityRole="button"
                 accessibilityLabel={r.answered ? t("requests.unmarkA11y", { text: r.text }) : t("requests.markA11y", { text: r.text })}
                 hitSlop={6}
-                style={[styles.markLink, styles.indent]}
+                style={styles.markLink}
               >
                 <Text style={styles.markLinkText}>{r.answered ? t("requests.notAnswered") : t("requests.wasAnswered")}</Text>
               </Pressable>
+              {!r.answered && list.loaded && (onList(r.text) ? (
+                <Text style={styles.onList}>✓ {t("requests.onMyList")}</Text>
+              ) : (
+                <Pressable
+                  onPress={() => router.push({ pathname: "/prayer-list/edit", params: entryFromRequest(r.text) })}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("requests.addToListA11y", { text: r.text })}
+                  hitSlop={6}
+                  style={styles.markLink}
+                >
+                  <Text style={styles.addToList}>+ {t("requests.addToList")}</Text>
+                </Pressable>
+              ))}
+              </View>
             )}
           </View>
         );
@@ -218,6 +239,9 @@ const useStyles = makeStyles((colors) => ({
   answerTitle: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.gold },
   answerNote: { fontSize: 15, lineHeight: 21, fontFamily: fonts.bodyItalic, color: colors.text },
   markLink: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center" },
+  myActions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 18 },
+  addToList: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.accent },
+  onList: { fontSize: 14, color: colors.muted },
   markLinkText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.muted },
   markBox: { gap: 8 },
   markActions: { flexDirection: "row", gap: 8 },

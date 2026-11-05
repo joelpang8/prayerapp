@@ -175,3 +175,21 @@ export async function loadPrayed(uid: string, dayId: string): Promise<string[]> 
 export async function savePrayed(uid: string, dayId: string, ids: readonly string[]): Promise<void> {
   await AsyncStorage.setItem(prayedKey(uid), JSON.stringify({ day: dayId, ids })).catch(() => {});
 }
+
+/* ---------- from my own prayer requests (profile) ---------- */
+
+/** A request as a list entry: the name is the request (cut at a word under 60 characters), the whole text as the note if it's longer. */
+export function entryFromRequest(text: string): { name: string; note: string } {
+  const full = text.trim().replace(/\s+/g, " ");
+  if (full.length <= NAME_MAX) return { name: full, note: "" };
+  const cut = full.slice(0, NAME_MAX - 1);
+  const space = cut.lastIndexOf(" ");
+  return { name: `${(space > 20 ? cut.slice(0, space) : cut).trimEnd()}…`, note: full.slice(0, NOTE_MAX) };
+}
+
+/** Whether a request is already on my list (added from it, or typed the same). */
+export function requestOnList(items: readonly PrayerItem[], text: string): boolean {
+  const { name, note } = entryFromRequest(text);
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  return items.some((i) => same(i.name, name) || (!!note && same(i.note, note)));
+}
