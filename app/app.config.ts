@@ -105,6 +105,24 @@ const config: ExpoConfig = {
     // Before expo-live-activity: signs its widget extension with the same team.
     "./plugins/withTeamForAllTargets",
     "expo-live-activity",
+    // The "Pray for" widget (Lock Screen and Home Screen), from my own prayer
+    // list (src/widgets/PrayForWidget.tsx). Needs an App Group, which only the
+    // paid team can use, so it's left out of free-team builds.
+    ...(appleTeamId
+      ? [[
+          "expo-widgets",
+          {
+            widgets: [{
+              name: "PrayForWidget",
+              displayName: "Pray for",
+              description: "Someone from your prayer list to pray for today.",
+              ios: { supportedFamilies: ["accessoryRectangular", "accessoryInline", "systemSmall"] },
+            }],
+          },
+        ] as [string, object]]
+      : []),
+    // Siri and Shortcuts: "Add to my prayer list in PrayAlong".
+    "./plugins/withPrayerListShortcut",
     // Launch screen: the candle and "PrayAlong" on the app's own background,
     // light or dark with the phone. It stays up until the first screen is
     // ready, then fades (app/src/app/_layout.tsx).

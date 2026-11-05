@@ -56,6 +56,11 @@ export default defineStrings(
     "plist.removeTitle": "Remove {name}?",
     "plist.removeBody": "This takes them off your list. It can't be undone.",
     "plist.didntWork": "That didn't work",
+    "widget.title": "Pray for",
+    "widget.more": "+{count} more today",
+    "widget.open": "Open PrayAlong",
+    "widget.startList": "Start your prayer list",
+    "widget.nobodyToday": "Nobody today",
   },
   {
     "plist.todayKicker": "Ora hoy por",
@@ -111,5 +116,10 @@ export default defineStrings(
     "plist.removeTitle": "¿Quitar a {name}?",
     "plist.removeBody": "Se quita de tu lista. No se puede deshacer.",
     "plist.didntWork": "No funcionó",
+    "widget.title": "Ora por",
+    "widget.more": "+{count} más hoy",
+    "widget.open": "Abre PrayAlong",
+    "widget.startList": "Empieza tu lista de oración",
+    "widget.nobodyToday": "Nadie hoy",
   },
 );

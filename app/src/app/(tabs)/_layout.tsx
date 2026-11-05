@@ -1,3 +1,4 @@
+import { usePrayForWidget } from "../../session/usePrayForWidget";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useCallback, useEffect, type ComponentProps } from "react";
@@ -64,6 +65,8 @@ export default function TabsLayout() {
   const circleInvites = myCircles.invites.length;
   // Weekly circle prayer-time reminders I've turned on, on this phone.
   useCircleReminders(myCircles.circles, myCircles.loaded);
+  // The "Pray for" widget, from my prayer list.
+  usePrayForWidget();
   // Tapping a "Time to pray" notification opens Today. (These tabs only
   // exist once signed in, so a tap while signed out just opens sign-in.)
   // An opt-in notification opens what it's about: the prayer, or my
