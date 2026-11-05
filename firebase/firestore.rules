@@ -639,6 +639,15 @@ service cloud.firestore {
       }
     }
 
+    // ---------- app version (the "new version is ready" banner) ----------
+    // config/app: { latestBuild, minimumBuild? }, set by the owner in the
+    // Firebase console after a TestFlight build is ready. Anyone signed in
+    // can read it; no app can change it.
+    match /config/{docId} {
+      allow get: if signedIn() && docId == 'app';
+      allow list, write: if false;
+    }
+
     // ---------- prayer circle invite links ----------
     // circleLinks/{code}: { circleId, name, createdAt }. The card behind a
     // circle's invite link: anyone signed in who has the link (the random

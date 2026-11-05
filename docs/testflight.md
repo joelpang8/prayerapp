@@ -37,6 +37,16 @@ After the upload, Apple processes the build (5–30 minutes; you get an email). 
 
 TestFlight builds expire after 90 days; upload a new one before then.
 
+## Tell testers a new build is ready
+
+The app shows a slim "New version available · Update" line at the top of Today when a newer build exists (TestFlight installs only, not ones installed from your Mac). Tapping it opens TestFlight; ✕ hides it until the next build. You set which build is newest:
+
+1. When the new build shows in TestFlight as e.g. **0.1.0 (8)**, open the [Firebase console](https://console.firebase.google.com/project/prayerapp-4ce99/firestore) → Firestore.
+2. Collection **`config`**, document **`app`** (create them the first time). Field **`latestBuild`** (number) = **8**.
+3. Optional: **`minimumBuild`** (number). Builds older than this see "This version is out of date · Update", which can't be hidden. Use it when a server change (a deploy) means older builds would break.
+
+Testers see it the next time they open the app.
+
 ## Back to the Simulator afterwards
 
 ```sh
