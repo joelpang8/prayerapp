@@ -174,8 +174,10 @@ const firstPaidBuildTip = () => {
     3. Tick "Automatically manage signing" and choose Team: ${teamId}.
        Wait until "Provisioning Profile: Xcode Managed Profile" shows, no red errors
        (click "Try Again" if offered).
-       Do this for every target listed: PrayAlong and LiveActivity (the lock
-       screen countdown).
+       Do this for every target listed: PrayAlong, LiveActivity (the lock
+       screen countdown) and ExpoWidgetsTarget (the "Pray for" widget). If an
+       App Groups box shows in red, tick its group (group.<bundle id>) or
+       click + to add it.
     4. Quit Xcode and run npm run ios:device again.
 `);
 };
