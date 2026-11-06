@@ -106,7 +106,15 @@ export default function CircleMembersScreen() {
               <Button title={t("editProfile.takePhoto")} kind="secondary" onPress={() => changePhoto("camera")} disabled={busy === "photo"} />
               <Button title={t("editProfile.choosePhoto")} kind="secondary" onPress={() => changePhoto("library")} busy={busy === "photo"} />
               {circle.photoPath && (
-                <Button title={t("editProfile.remove")} kind="danger" onPress={() => run("photo", () => removeCirclePhoto(db, storage, circle))} disabled={busy === "photo"} />
+                <Button
+                  title={t("editProfile.remove")}
+                  kind="danger"
+                  disabled={busy === "photo"}
+                  onPress={() => Alert.alert(t("confirm.removeCirclePhotoTitle"), t("confirm.removeCirclePhotoBody"), [
+                    { text: t("common.cancel"), style: "cancel" },
+                    { text: t("editProfile.remove"), style: "destructive", onPress: () => { void run("photo", () => removeCirclePhoto(db, storage, circle)); } },
+                  ])}
+                />
               )}
             </View>
           </View>
@@ -260,7 +268,15 @@ function InviteLinkEditor({ circle }: { circle: Circle }) {
       {circle.linkCode ? (
         <View style={styles.photoButtons}>
           <Button title={t("circleLink.share")} onPress={() => { void shareCircleLink(circle.name, circle.linkCode!).catch(() => {}); }} />
-          <Button title={t("circleLink.off")} kind="secondary" busy={busy === "off"} onPress={() => run("off", () => turnOffLink(db, circle))} />
+          <Button
+            title={t("circleLink.off")}
+            kind="secondary"
+            busy={busy === "off"}
+            onPress={() => Alert.alert(t("confirm.linkOffTitle"), t("confirm.linkOffBody"), [
+              { text: t("common.cancel"), style: "cancel" },
+              { text: t("circleLink.off"), style: "destructive", onPress: () => { void run("off", () => turnOffLink(db, circle)); } },
+            ])}
+          />
         </View>
       ) : (
         <Button title={t("circleLink.create")} kind="secondary" busy={busy === "on"} onPress={() => run("on", async () => {

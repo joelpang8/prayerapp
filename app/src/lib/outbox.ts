@@ -25,7 +25,13 @@ export type QueuedPost = {
   /** waiting: will retry. failed: won't send (e.g. the prompt closed); needs Retry or Discard. */
   status: "waiting" | "sending" | "failed";
   problem?: string;
+  /** The server refused it (not a bad photo or input): tried again by itself when the app next opens, a few times. */
+  refused?: boolean;
+  autoRetries?: number;
 };
+
+/** How many app launches a refused post is tried again by itself (a server fix may let it through). */
+export const AUTO_RETRY_LAUNCHES = 3;
 
 export interface OutboxStorage {
   load(uid: string): Promise<QueuedPost[]>;
@@ -76,7 +82,16 @@ export class Outbox {
     this.loaded = true;
     // A send interrupted by the app closing is simply tried again.
     const saved = await this.storage.load(this.uid).catch(() => []);
-    this.items = saved.map((i) => (i.status === "sending" ? { ...i, status: "waiting" } : i));
+    this.items = saved.map((i) => {
+      if (i.status === "sending") return { ...i, status: "waiting" };
+      // Refused by the server: once per app launch (a few times), try again
+      // quietly, in case an update now accepts it. A missing photo or bad
+      // input won't change, so those wait for Retry or Discard.
+      if (i.status === "failed" && i.refused && (i.autoRetries ?? 0) < AUTO_RETRY_LAUNCHES) {
+        return { ...i, status: "waiting", problem: undefined, autoRetries: (i.autoRetries ?? 0) + 1 };
+      }
+      return i;
+    });
     this.publish();
   }
 
@@ -134,7 +149,8 @@ export class Outbox {
         if (sent) for (const l of this.sentListeners) l(item.postId);
       } catch (err) {
         const problem = isPermanent(err);
-        this.update(item.postId, problem ? { status: "failed", problem } : { status: "waiting" });
+        const refused = ["permission-denied", "storage/unauthorized"].includes(String((err as { code?: string })?.code ?? ""));
+        this.update(item.postId, problem ? { status: "failed", problem, refused } : { status: "waiting" });
       }
       await this.persist();
     }

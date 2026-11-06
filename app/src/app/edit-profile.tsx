@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { Avatar } from "../components/Avatar";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db, storage } from "../firebase";
@@ -135,7 +135,10 @@ export default function EditProfileScreen() {
         <View style={styles.photoActions}>
           <Button title={t("editProfile.takePhoto")} kind="secondary" onPress={() => changePhoto("camera")} disabled={photoBusy} />
           <Button title={t("editProfile.choosePhoto")} kind="secondary" onPress={() => changePhoto("library")} busy={photoBusy} />
-          {profile.avatarPath && <Button title={t("editProfile.remove")} kind="danger" onPress={deletePhoto} disabled={photoBusy} />}
+          {profile.avatarPath && <Button title={t("editProfile.remove")} kind="danger" onPress={() => Alert.alert(t("confirm.removePhotoTitle"), t("confirm.removePhotoBody"), [
+            { text: t("common.cancel"), style: "cancel" },
+            { text: t("editProfile.remove"), style: "destructive", onPress: () => { void deletePhoto(); } },
+          ])} disabled={photoBusy} />}
         </View>
         <Muted>{t("editProfile.publicNote")}</Muted>
         <NameForm />

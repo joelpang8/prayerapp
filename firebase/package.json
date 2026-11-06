@@ -11,7 +11,8 @@
     "prompt:real": "node scripts/fire-prompt.mjs --project prayerapp-4ce99",
     "prompt:schedule": "node scripts/schedule-prompt.mjs --project prayerapp-4ce99",
     "backfill:verses": "node scripts/backfill-verse-books.mjs",
-    "test:sandbox": "SKIP_CROSS_SERVICE=1 firebase emulators:exec --only firestore,storage --project demo-prayerapp \"vitest run\""
+    "test:sandbox": "SKIP_CROSS_SERVICE=1 firebase emulators:exec --only firestore,storage --project demo-prayerapp \"vitest run\"",
+    "deploy": "npm install --no-audit --no-fund && npm --prefix functions install --no-audit --no-fund && firebase deploy --only firestore,storage,functions:default,hosting --project prayerapp-4ce99"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

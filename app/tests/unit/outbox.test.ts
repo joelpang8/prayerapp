@@ -90,3 +90,43 @@ test("which errors are worth retrying", () => {
   expect(isPermanent(denied)).toMatch(/7 days/);
   expect(isPermanent({ code: "photo-missing" })).toMatch(/photo/);
 });
+
+describe("a refused post tries again by itself", () => {
+  test("on the next few app launches, then waits for Retry or Discard", async () => {
+    let accept = false;
+    const store = memoryStorage();
+    const sender = { exists: async () => false, send: async () => { if (!accept) throw denied; } };
+    const first = new Outbox("alice", store, sender);
+    await first.enqueue(item());
+    await first.flush();
+    expect(first.all[0]).toMatchObject({ status: "failed", refused: true });
+    // Next launches: tried again quietly, up to the limit.
+    for (let launch = 1; launch <= 3; launch++) {
+      const box = new Outbox("alice", store, sender);
+      await box.flush();
+      expect(box.all[0]).toMatchObject({ status: "failed", autoRetries: launch });
+    }
+    const after = new Outbox("alice", store, sender);
+    await after.flush();
+    expect(after.all[0]).toMatchObject({ status: "failed", autoRetries: 3 });
+    // A server fix lets it through on the next Retry (or launch, within the limit).
+    accept = true;
+    await after.retry("20261007_alice");
+    await after.flush();
+    expect(after.all).toEqual([]);
+  });
+
+  test("a missing photo isn't retried by itself", async () => {
+    const gone = Object.assign(new Error("The photo is no longer on this phone."), { code: "photo-missing" });
+    const store = memoryStorage();
+    let sends = 0;
+    const sender = { exists: async () => false, send: async () => { sends++; throw gone; } };
+    const box = new Outbox("alice", store, sender);
+    await box.enqueue(item());
+    await box.flush();
+    const again = new Outbox("alice", store, sender);
+    await again.flush();
+    expect(sends).toBe(1);
+    expect(again.all[0]).toMatchObject({ status: "failed" });
+  });
+});

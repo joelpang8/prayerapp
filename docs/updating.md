@@ -2,6 +2,8 @@
 
 The routine for every change, from the code landing on GitHub to it showing on phones.
 
+**Shortcut** (from the `app` folder, after `git pull`): `npm run ship` installs packages, deploys the server (rules, indexes, functions, website) and builds onto your iPhone. `npm run ship:testflight` does the same but uploads to TestFlight. `npm run deploy` deploys the server only. The steps below are what these do.
+
 ## 1. Get the latest code (always)
 
 ```sh

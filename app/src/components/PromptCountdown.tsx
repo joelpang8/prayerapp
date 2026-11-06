@@ -23,7 +23,7 @@ function useWindow(firedAt: Date) {
  * pray, then the grace period that still counts as on time. Once late it
  * shows `whenLate` instead, switching the moment time runs out.
  */
-export function PromptCountdown({ firedAt, whenLate = null }: { firedAt: Date; whenLate?: ReactNode }) {
+export function PromptCountdown({ firedAt, whenLate = null, title }: { firedAt: Date; whenLate?: ReactNode; title?: string }) {
   const styles = useStyles();
   const colors = useColors();
   const w = useWindow(firedAt);
@@ -33,7 +33,7 @@ export function PromptCountdown({ firedAt, whenLate = null }: { firedAt: Date; w
     <View style={styles.root} accessible accessibilityLabel={t(w.phase === "grace" ? "countdown.leftGrace" : "countdown.leftToPray", { time: mmss(w.msLeft) })}>
       <Candle left={w.candle} />
       <Text style={[styles.time, urgent && { color: colors.danger }]}>{mmss(w.msLeft)}</Text>
-      <Text style={styles.label}>{w.phase === "respond" ? t("countdown.timeToPray") : t("countdown.grace")}</Text>
+      <Text style={styles.label}>{w.phase === "respond" ? title ?? t("countdown.timeToPray") : t("countdown.grace")}</Text>
       <View style={styles.track}>
         <View style={[styles.bar, { width: `${Math.round(w.fractionLeft * 100)}%` }, w.phase === "grace" && styles.barGrace]} />
       </View>

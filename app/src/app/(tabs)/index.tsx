@@ -1,3 +1,4 @@
+import { occasionFor } from "../../lib/occasions";
 import { router, useScrollToTop } from "expo-router";
 import { useState, useRef } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
@@ -109,7 +110,7 @@ export default function TodayScreen() {
         </>
       ) : queuedForPrompt ? null : open && onTimeUntil ? (
         <View style={styles.prompt}>
-          <PromptCountdown firedAt={prompt!.firedAt} whenLate={<Text style={styles.promptTitle}>{t("today.timeToPray")}</Text>} />
+          <PromptCountdown firedAt={prompt!.firedAt} title={occasionFor(prompt!.id) === "thanksgiving" ? t("countdown.giveThanks") : undefined} whenLate={<Text style={styles.promptTitle}>{occasionFor(prompt!.id) === "thanksgiving" ? t("today.timeToGiveThanks") : t("today.timeToPray")}</Text>} />
           <Muted>
             {now <= onTimeUntil.getTime()
               ? t("today.wentOutOnTime", { sent: time(prompt!.firedAt), until: time(onTimeUntil) })

@@ -1,3 +1,4 @@
+import { occasionFor } from "../lib/occasions";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
@@ -261,7 +262,7 @@ function Composer({
           multiline
           maxLength={MAX_NOTES}
           style={styles.input}
-          placeholder={t("compose.notesPlaceholder")}
+          placeholder={!editing && occasionFor(prompt?.id) === "thanksgiving" ? t("compose.thankfulPlaceholder") : t("compose.notesPlaceholder")}
           textAlignVertical="top"
         />
         {/* Shown only near the limit, like Edit profile. */}

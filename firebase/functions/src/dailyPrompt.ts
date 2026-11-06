@@ -74,9 +74,29 @@ export function windowEnd(dateKey: string, w: DailyWindow = PROMPT_WINDOW): Date
  * date itself, so it's the same whenever in the day it's asked.
  */
 export function verseForDate(dateKey: string, verses: readonly string[] = verseList.verses): string | null {
+  const occasion = occasionFor(dateKey);
+  if (occasion) return OCCASION_VERSES[occasion];
   if (!verses.length) return null;
   const day = Math.floor(Date.UTC(Number(dateKey.slice(0, 4)), Number(dateKey.slice(4, 6)) - 1, Number(dateKey.slice(6, 8))) / 86_400_000);
   return verses[((day % verses.length) + verses.length) % verses.length];
+}
+
+/**
+ * Special days. Thanksgiving (US, the fourth Thursday of November): the
+ * prompt asks what you're thankful for and carries a thanksgiving verse.
+ * The app works out the same days from the prompt id (app/src/lib/occasions.ts).
+ */
+export type Occasion = "thanksgiving";
+export const OCCASION_VERSES: Record<Occasion, string> = { thanksgiving: "PSA.100.4" };
+
+export function occasionFor(dateKey: string): Occasion | null {
+  const m = /^(\d{4})(\d{2})(\d{2})$/.exec(dateKey);
+  if (!m) return null;
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (month !== 11) return null;
+  const firstWeekday = new Date(Date.UTC(year, 10, 1)).getUTCDay(); // 0 = Sunday
+  const firstThursday = 1 + ((4 - firstWeekday + 7) % 7);
+  return day === firstThursday + 21 ? "thanksgiving" : null;
 }
 
 /** The push: proven on an iPhone in the prototype; only the topic and Android channel differ. */
@@ -84,10 +104,9 @@ export function buildPromptMessage(opts: { promptId: string; firedAt: Date; vers
   const expiresAt = Math.floor((opts.firedAt.getTime() + PUSH_TTL_MS) / 1000);
   return {
     topic: opts.topic ?? PROMPT_TOPIC,
-    notification: {
-      title: "Time to pray",
-      body: "Pause and pray right now. You have 2 minutes.",
-    },
+    notification: occasionFor(opts.promptId) === "thanksgiving"
+      ? { title: "Happy Thanksgiving 🙏", body: "What are you thankful for? Pause and give thanks right now. You have 2 minutes." }
+      : { title: "Time to pray", body: "Pause and pray right now. You have 2 minutes." },
     // The countdown runs from the server's firedAt, not from arrival.
     data: {
       kind: "prompt",

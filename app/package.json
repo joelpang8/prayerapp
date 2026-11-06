@@ -68,7 +68,10 @@
     "ios:device": "node scripts/ios-device.mjs",
     "ios:testflight": "node scripts/ios-device.mjs --testflight",
     "verses": "tsx scripts/verses.ts",
-    "generate:kjv": "tsx scripts/generate-kjv.ts"
+    "generate:kjv": "tsx scripts/generate-kjv.ts",
+    "deploy": "npm --prefix ../firebase run deploy",
+    "ship": "npm install --no-audit --no-fund && npm run deploy && npm run ios:device",
+    "ship:testflight": "npm install --no-audit --no-fund && npm run deploy && npm run ios:testflight"
   },
   "private": true,
   "license": "UNLICENSED"

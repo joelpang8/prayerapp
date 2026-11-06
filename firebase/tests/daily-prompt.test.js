@@ -3,7 +3,7 @@ import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, Timestamp } from "firebase/firestore";
 import {
   buildPromptMessage, dateKeyIn, GRACE_MS, pickFireTime, PROMPT_TOPIC, PROMPT_WINDOW, PUSH_TTL_MS,
-  verseForDate, WINDOW_MS, windowEnd, zonedToUtc,
+  occasionFor, verseForDate, WINDOW_MS, windowEnd, zonedToUtc,
 } from "../functions/lib/dailyPrompt.js";
 import verseList from "../functions/src/verse-list.json" with { type: "json" };
 import { seed, setupEnv, signedInAs } from "./helpers.js";
@@ -145,5 +145,23 @@ describe("the daily prompt in the emulators", () => {
     const schedule = await waitFor(`promptSchedule/${day}`, (d) => !!d?.skipped);
     expect(schedule.sentAt).toBeUndefined();
     expect(await waitFor(`prompts/${day}`, (d) => !!d)).toEqual({ firedAt: manual, verseRef: "JHN.3.16" });
+  });
+});
+
+describe("Thanksgiving", () => {
+  test("is the fourth Thursday of November", () => {
+    expect(occasionFor("20261126")).toBe("thanksgiving");
+    expect(occasionFor("20271125")).toBe("thanksgiving");
+    expect(occasionFor("20281123")).toBe("thanksgiving");
+    expect(occasionFor("20261119")).toBeNull();
+    expect(occasionFor("20261127")).toBeNull();
+    expect(occasionFor("20260326")).toBeNull();
+  });
+
+  test("asks what you're thankful for, with a thanksgiving verse", () => {
+    expect(verseForDate("20261126")).toBe("PSA.100.4");
+    const m = buildPromptMessage({ promptId: "20261126", firedAt: new Date("2026-11-26T18:00:00Z"), verseRef: "PSA.100.4" });
+    expect(m.notification).toEqual({ title: "Happy Thanksgiving 🙏", body: "What are you thankful for? Pause and give thanks right now. You have 2 minutes." });
+    expect(buildPromptMessage({ promptId: "20261127", firedAt: new Date() }).notification.title).toBe("Time to pray");
   });
 });
