@@ -116,6 +116,9 @@ export default function CircleScreen() {
           ))}
         </>
       )}
+      <Pressable onPress={() => router.push({ pathname: "/circle-year/[id]", params: { id } })} accessibilityRole="link" hitSlop={6} style={styles.yearLink}>
+        <Text style={styles.yearLinkText}>{t("circleYear.open")}</Text>
+      </Pressable>
       <Muted>{t("circle.onlyMembers")}</Muted>
     </ScrollView>
   );
@@ -241,6 +244,8 @@ function RequestCard({ circle, request: r, pinned, authorName, authorPhoto }: { 
 }
 
 const useStyles = makeStyles((colors) => ({
+  yearLink: { alignSelf: "flex-start", paddingVertical: 6 },
+  yearLinkText: { fontSize: 15, fontFamily: fonts.bodySemiBold, color: colors.gold },
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 14 },

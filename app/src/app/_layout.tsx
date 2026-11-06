@@ -96,6 +96,7 @@ function RootNavigator() {
         <Stack.Screen name="circle/new" options={{ ...pushed, title: t("circleNew.title") }} />
         <Stack.Screen name="circle/[id]" options={{ ...pushed, title: t("circles.title") }} />
         <Stack.Screen name="circle-members/[id]" options={{ ...pushed, title: t("circleMembers.title") }} />
+        <Stack.Screen name="circle-year/[id]" options={{ ...pushed, title: t("circleYear.short") }} />
         <Stack.Screen name="circle-join/[code]" options={{ ...pushed, title: t("circleJoin.title") }} />
         <Stack.Screen name="welcome" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
         <Stack.Screen name="prayer-list/index" options={{ ...pushed, title: t("plist.title") }} />

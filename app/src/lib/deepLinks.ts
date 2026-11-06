@@ -7,7 +7,7 @@
  */
 const KNOWN = new Set([
   "", "prayers", "friends", "circles", "profile", "pray", "compose", "activity", "post", "u", "read",
-  "verse-card", "circle", "circle-members", "circle-join", "prayer-list", "settings", "edit-profile",
+  "verse-card", "circle", "circle-members", "circle-join", "circle-year", "prayer-list", "settings", "edit-profile",
   "delete-account", "welcome", "onboarding", "sign-in",
 ]);
 

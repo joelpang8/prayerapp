@@ -1,6 +1,6 @@
 import {
   addDoc, arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query,
-  serverTimestamp, setDoc, updateDoc, where, writeBatch, type DocumentData, type Firestore, type Unsubscribe,
+  serverTimestamp, setDoc, Timestamp, updateDoc, where, writeBatch, type DocumentData, type Firestore, type Unsubscribe,
 } from "firebase/firestore";
 import { deleteObject, ref, uploadBytes, type FirebaseStorage } from "firebase/storage";
 import type { PhotoData } from "./posts";
@@ -141,6 +141,21 @@ export function watchCircle(db: Firestore, id: string, on: (c: Circle | null) =>
 export function watchCircleRequests(db: Firestore, circleId: string, on: (r: CircleRequest[]) => void, onError: (e: Error) => void = () => {}): Unsubscribe {
   return onSnapshot(query(requestsOf(db, circleId), orderBy("createdAt", "desc"), limit(100)),
     (snap) => on(snap.docs.map((d) => requestFromData(d.id, d.data({ serverTimestamps: "estimate" })))), onError);
+}
+
+/**
+ * A year's requests for the keepsake page (lib/circleYear.ts): those added
+ * that year and those answered that year. Read when the page opens, kept in
+ * memory only. Members only (firestore.rules).
+ */
+export async function loadCircleYear(db: Firestore, circleId: string, year: number): Promise<{ created: CircleRequest[]; answered: CircleRequest[] }> {
+  const from = Timestamp.fromDate(new Date(year, 0, 1));
+  const to = Timestamp.fromDate(new Date(year + 1, 0, 1));
+  const read = async (field: "createdAt" | "answeredAt") =>
+    (await getDocs(query(requestsOf(db, circleId), where(field, ">=", from), where(field, "<", to), orderBy(field), limit(1000))))
+      .docs.map((d) => requestFromData(d.id, d.data()));
+  const [created, answered] = await Promise.all([read("createdAt"), read("answeredAt")]);
+  return { created, answered };
 }
 
 /** When the newest request was added (for the "new" dot), live. */

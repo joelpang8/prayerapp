@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import {
-  acceptInvite, addCircleRequest, createCircle, declineInvite, deleteCircle, leaveCircle, removeMember, setCircleRequestAnswered, setPrayed,
+  acceptInvite, addCircleRequest, createCircle, loadCircleYear, declineInvite, deleteCircle, leaveCircle, removeMember, setCircleRequestAnswered, setPrayed,
   watchCircle, watchCircleRequests, watchMyCircles, type Circle, type CircleRequest,
 } from "../src/lib/circles";
 import { follow } from "../src/lib/friends";
@@ -91,5 +91,25 @@ describe("prayer circles, end to end", () => {
 
   test("only friends can be invited", async () => {
     await expect(createCircle(dbAs(env, "lead"), "lead", "Group", ["cat"])).rejects.toThrow();
+  });
+});
+
+describe("a year in this circle", () => {
+  test("members can load the year's requests and answers; others can't", async () => {
+    const id = await createCircle(dbAs(env, "lead"), "lead", "Small group", ["ann"]);
+    await acceptInvite(dbAs(env, "ann"), id, "ann");
+    await addCircleRequest(dbAs(env, "ann"), id, "ann", "New job");
+    const { state, stop } = requestsAs("ann", id);
+    await until(() => state.list.length === 1);
+    stop();
+    await setPrayed(dbAs(env, "lead"), id, state.list[0].id, "lead", true);
+    await setCircleRequestAnswered(dbAs(env, "ann"), id, state.list[0].id, "Started Monday!");
+    const year = new Date().getFullYear();
+    const got = await loadCircleYear(dbAs(env, "lead"), id, year);
+    expect(got.created.map((r) => r.text)).toEqual(["New job"]);
+    expect(got.answered.map((r) => r.answered?.note)).toEqual(["Started Monday!"]);
+    expect(got.created[0].prayedBy).toEqual(["lead"]);
+    await expect(loadCircleYear(dbAs(env, "cat"), id, year)).rejects.toBeTruthy();
+    expect((await loadCircleYear(dbAs(env, "lead"), id, year - 1)).answered).toEqual([]);
   });
 });
