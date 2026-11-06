@@ -9,19 +9,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 export const WHATS_NEW = {
   /** The day these notes were written; also the cut-off for "new account". */
-  id: "2026-11-04",
+  id: "2026-11-06",
   items: [
-    "whatsNew.item.prayerList",
     "whatsNew.item.circles",
     "whatsNew.item.circleTools",
+    "whatsNew.item.prayerList",
+    "whatsNew.item.widget",
+    "whatsNew.item.friendRequests",
+    "whatsNew.item.latePosts",
+    "whatsNew.item.settingsGear",
     "whatsNew.item.answeredRequests",
-    "whatsNew.item.reorder",
-    "whatsNew.item.hometown",
-    "whatsNew.item.username",
     "whatsNew.item.versePicture",
-    "whatsNew.item.prayNow",
     "whatsNew.item.bibles",
-    "whatsNew.item.livePosts",
   ],
 } as const;
 
