@@ -58,8 +58,8 @@ test("a queued post sends with takenAt, and a second flush doesn't post twice", 
   }
 });
 
-test("a post for a prompt that closed over 24 hours ago is refused and kept for Retry/Discard", async () => {
-  const firedAt = await seedPrompt(env, "20261005", 60 * 25);
+test("a post for a prompt that closed (over 7 days ago) is refused and kept for Retry/Discard", async () => {
+  const firedAt = await seedPrompt(env, "20261005", 60 * 24 * 7 + 60);
   const box = createOutbox(dbAs(env, "alice"), storageAs(env, "alice"), "alice");
   await box.enqueue({
     postId: "20261005_alice", uid: "alice", prompt: { id: "20261005", firedAt: firedAt.getTime(), verseRef: null },

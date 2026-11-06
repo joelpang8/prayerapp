@@ -63,10 +63,11 @@ describe("creating a post", () => {
     await assertFails(create("alice", { promptId: "20260930" }));
   });
 
-  test("a prompt closes 24 hours after it fired", async () => {
-    await seedPrompt(env, "20260901", 24 * 60 + 1);
+  test("a prompt stays open for late posts for 7 days, then closes", async () => {
+    await seedPrompt(env, "20260901", 7 * 24 * 60 + 1);
     await assertFails(create("alice", { promptId: "20260901" }));
-    await seedPrompt(env, "20260902", 23 * 60);
+    // A day and a half later (e.g. a prayer saved offline) still goes through.
+    await seedPrompt(env, "20260902", 36 * 60);
     let fired;
     await seed(env, async (db) => { fired = (await getDoc(doc(db, "prompts", "20260902"))).data().firedAt; });
     await assertSucceeds(create("alice", { promptId: "20260902", promptFiredAt: fired }));

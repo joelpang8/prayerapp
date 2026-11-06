@@ -27,6 +27,15 @@ import { locale, t } from "../../i18n";
 
 const time = (d: Date) => d.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
 
+/** "at 3:02 PM", "yesterday at 3:02 PM" or "on Wednesday at 3:02 PM": a late prompt can be a day or more old. */
+function whenSent(d: Date, now: number): string {
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((day(new Date(now)) - day(d)) / 86_400_000);
+  if (days <= 0) return t("today.sentAt", { time: time(d) });
+  if (days === 1) return t("today.sentYesterday", { time: time(d) });
+  return t("today.sentOn", { day: d.toLocaleDateString(locale(), { weekday: "long" }), time: time(d) });
+}
+
 export default function TodayScreen() {
   // Tapping this tab again scrolls back to the top.
   const scrollRef = useRef<ScrollView>(null);
@@ -104,7 +113,7 @@ export default function TodayScreen() {
           <Muted>
             {now <= onTimeUntil.getTime()
               ? t("today.wentOutOnTime", { sent: time(prompt!.firedAt), until: time(onTimeUntil) })
-              : t("today.wentOutLate", { sent: time(prompt!.firedAt) })}
+              : t("today.wentOutLate", { sent: whenSent(prompt!.firedAt, now) })}
           </Muted>
           <Button title={t("today.prayNow")} size="large" onPress={() => router.push("/compose")} />
         </View>

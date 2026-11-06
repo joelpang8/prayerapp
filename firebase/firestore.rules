@@ -764,10 +764,11 @@ service cloud.firestore {
         && (('verseRef' in request.resource.data)
             ? request.resource.data.get('verseBook', null) == request.resource.data.verseRef.split('[.]')[0]
             : !('verseBook' in request.resource.data))
-        // Can't answer a prompt before it fires, and a prompt stays open
-        // for (late) posts for 24 hours.
+        // Can't answer a prompt before it fires. It stays open for (late)
+        // posts for 7 days, so a prayer saved offline or posted the next
+        // morning still goes through (it's marked late as usual).
         && request.time >= prompt().firedAt
-        && request.time < prompt().firedAt + duration.value(24, 'h')
+        && request.time < prompt().firedAt + duration.value(7, 'd')
         && request.resource.data.createdAt == request.time
         // startedAt: when I pressed "Pray now" (users/{me}/starts/{promptId},
         // which only exists if that was on time). Must be exactly that, and

@@ -87,6 +87,6 @@ describe("Outbox", () => {
 test("which errors are worth retrying", () => {
   expect(isPermanent(offline)).toBeNull();
   expect(isPermanent({ code: "storage/retry-limit-exceeded" })).toBeNull();
-  expect(isPermanent(denied)).toMatch(/24 hours/);
+  expect(isPermanent(denied)).toMatch(/7 days/);
   expect(isPermanent({ code: "photo-missing" })).toMatch(/photo/);
 });

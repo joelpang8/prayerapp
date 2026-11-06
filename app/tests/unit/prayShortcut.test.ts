@@ -17,8 +17,8 @@ describe("Pray now from the app icon or prayerapp://pray", () => {
     expect(prayNowTarget({ prompt: { firedAt }, posted: false, now: at(OPEN_FOR_MS) })).toBe("/");
   });
 
-  test("the window matches the rules' 24 hours", () => {
-    expect(OPEN_FOR_MS).toBe(24 * 60 * 60 * 1000);
-    expect(readFileSync("../firebase/firestore.rules", "utf8")).toMatch(/duration\.value\(24, 'h'\)|86400/);
+  test("the window matches the rules' 7 days", () => {
+    expect(OPEN_FOR_MS).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(readFileSync("../firebase/firestore.rules", "utf8")).toContain("request.time < prompt().firedAt + duration.value(7, 'd')");
   });
 });

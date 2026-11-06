@@ -6,8 +6,12 @@
  * Nothing is scheduled or stored: it only decides where to go.
  */
 
-/** How long a prompt can still be answered (late after the on-time window). Must match firestore.rules. */
-export const OPEN_FOR_MS = 24 * 60 * 60 * 1000;
+/**
+ * How long a prompt can still be answered (late after the on-time window):
+ * 7 days, so the latest prompt stays open until the next one replaces it,
+ * and a prayer saved offline still goes through. Must match firestore.rules.
+ */
+export const OPEN_FOR_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const PRAY_LINK = "prayerapp://pray";
 

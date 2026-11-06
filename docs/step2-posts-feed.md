@@ -67,7 +67,7 @@ This is `isLate()` in `app/src/lib/posts.ts`.
 
 - Editing can't change it, because the timing fields can't be changed.
 - As you decided, late is a **label only**. There are no streaks and nothing is counted or compared.
-- A prompt stays open for 24 hours. Posting is refused before the prompt fires and after that 24 hours.
+- A prompt stays open for 7 days (late posts; changed from 24 hours in November 2026 so prayers saved offline still go through). Posting is refused before the prompt fires and after those 7 days.
 - **The clock starts when the post is saved, which is after the photo upload.** A very slow upload near the 7-minute mark could make a post late. Photos are resized to about 1600px (typically 200–400 KB) to keep uploads short.
 
 ## Editing and deleting
