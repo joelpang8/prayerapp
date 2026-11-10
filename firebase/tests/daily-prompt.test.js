@@ -165,3 +165,9 @@ describe("Thanksgiving", () => {
     expect(buildPromptMessage({ promptId: "20261127", firedAt: new Date() }).notification.title).toBe("Time to pray");
   });
 });
+
+test("Pray now asks iOS to keep it on top (highest relevance, time sensitive)", () => {
+  const m = buildPromptMessage({ promptId: "20261110", firedAt: new Date("2026-11-10T18:00:00Z") });
+  expect(m.apns.payload.aps["relevance-score"]).toBe(1);
+  expect(m.apns.payload.aps["interruption-level"]).toBe("time-sensitive");
+});

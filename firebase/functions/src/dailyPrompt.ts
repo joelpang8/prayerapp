@@ -123,7 +123,9 @@ export function buildPromptMessage(opts: { promptId: string; firedAt: Date; vers
         "apns-expiration": String(expiresAt),
         "apns-collapse-id": `prompt-${opts.promptId}`,
       },
-      payload: { aps: { sound: "default", "interruption-level": "time-sensitive" } },
+      // relevance-score 1 (the highest): iOS keeps Pray now at the top of
+      // the Lock Screen stack and features it in the Notification Summary.
+      payload: { aps: { sound: "default", "interruption-level": "time-sensitive", "relevance-score": 1 } },
     },
     android: {
       priority: "high",
