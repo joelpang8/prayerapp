@@ -23,7 +23,8 @@ import { useFeed, useHidden, useLatestPrompt, useMyPosts, useNow, useOutbox } fr
 import { useFriendGraph, useReadySession } from "../../session/SessionProvider";
 import { usePullToRefresh } from "../../session/usePullToRefresh";
 import { useProfiles } from "../../session/useProfiles";
-import { locale, t } from "../../i18n";
+import { locale, t, tn } from "../../i18n";
+import { splitFeed } from "../../lib/todayFeed";
 
 
 const time = (d: Date) => d.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
@@ -62,7 +63,11 @@ export default function TodayScreen() {
       if (!next.delete(id)) next.add(id);
       return next;
     });
-  const allCollapsed = feed.length > 0 && feed.every((p) => collapsed.has(p.id));
+  // Today's prayers (the latest prompt's) first; earlier ones only after "See earlier prayers".
+  const [showEarlier, setShowEarlier] = useState(false);
+  const { today: todaysPosts, earlier } = splitFeed(feed, prompt?.id ?? null);
+  const shownFeed = showEarlier ? [...todaysPosts, ...earlier] : todaysPosts;
+  const allCollapsed = shownFeed.length > 0 && shownFeed.every((p) => collapsed.has(p.id));
   const names = useProfiles(new Set(feed.map((p) => p.authorId)));
 
   const myPost = prompt ? mine.find((p) => p.promptId === prompt.id) : undefined;
@@ -142,9 +147,9 @@ export default function TodayScreen() {
 
       <View style={styles.friendsHeader}>
         <SectionTitle>{t("today.friends")}</SectionTitle>
-        {feed.length > 0 && (
+        {shownFeed.length > 0 && (
           <Pressable
-            onPress={() => setCollapsed(allCollapsed ? new Set() : new Set(feed.map((p) => p.id)))}
+            onPress={() => setCollapsed(allCollapsed ? new Set() : new Set(shownFeed.map((p) => p.id)))}
             accessibilityRole="button"
             hitSlop={8}
           >
@@ -162,7 +167,10 @@ export default function TodayScreen() {
       ) : (
         <EmptyState icon="people-outline" title={t("today.emptyTitle")} message={t("today.emptyBody")} />
       ))}
-      {feed.map((post) => (
+      {feed.length > 0 && todaysPosts.length === 0 && !showEarlier && (
+        <EmptyState icon="sunny-outline" title={t("today.noneYetTitle")} message={t("today.noneYetBody")} />
+      )}
+      {shownFeed.map((post) => (
         <PostCard
           key={post.id}
           post={post}
@@ -173,6 +181,13 @@ export default function TodayScreen() {
           onToggleCollapsed={() => toggle(post.id)}
         />
       ))}
+      {earlier.length > 0 && (
+        <Button
+          title={showEarlier ? t("today.onlyToday") : tn("today.seeEarlier", earlier.length)}
+          kind="secondary"
+          onPress={() => setShowEarlier(!showEarlier)}
+        />
+      )}
     </ScrollView>
   );
 }
