@@ -26,22 +26,37 @@ export function useAppDay(): string {
   return appDayId(new Date(useNow(60_000)));
 }
 
+// Today's ✓ Prayed marks, shared by every screen showing them (Prayers tab,
+// Pray now), so ticking one in one place shows everywhere at once.
+const prayedStore: { key: string; ids: string[]; listeners: Set<() => void> } = { key: "", ids: [], listeners: new Set() };
+function setPrayedStore(key: string, ids: string[]) {
+  prayedStore.key = key;
+  prayedStore.ids = ids;
+  for (const l of prayedStore.listeners) l();
+}
+
 /** Which of today's ones I've marked prayed, on this phone; starts fresh each day. */
 export function usePrayedToday(day: string): { prayed: ReadonlySet<string>; toggle: (id: string) => void } {
   const { profile } = useReadySession();
-  const [state, setState] = useState<{ key: string; ids: string[] }>({ key: "", ids: [] });
   const key = `${profile.uid}:${day}`;
+  const [, render] = useState(0);
   useEffect(() => {
+    const l = () => render((n) => n + 1);
+    prayedStore.listeners.add(l);
+    return () => { prayedStore.listeners.delete(l); };
+  }, []);
+  useEffect(() => {
+    if (prayedStore.key === key) return;
     let live = true;
-    void loadPrayed(profile.uid, day).then((ids) => { if (live) setState({ key, ids }); });
+    void loadPrayed(profile.uid, day).then((ids) => { if (live && prayedStore.key !== key) setPrayedStore(key, ids); });
     return () => { live = false; };
   }, [profile.uid, day, key]);
-  const ids = state.key === key ? state.ids : [];
+  const ids = prayedStore.key === key ? prayedStore.ids : [];
   return {
     prayed: new Set(ids),
     toggle: (id) => {
       const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
-      setState({ key, ids: next });
+      setPrayedStore(key, next);
       void savePrayed(profile.uid, day, next);
     },
   };

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { CountdownPill } from "../components/PromptCountdown";
 import { PrayerHelper } from "../components/PrayerHelper";
+import { ComposePrayerList } from "../components/ComposePrayerList";
 import { VerseBlock } from "../components/VerseBlock";
 import { Button, ErrorText, fonts, makeStyles, Muted, Text, TextInput, useColors } from "../components/ui";
 import { db } from "../firebase";
@@ -265,6 +266,8 @@ function Composer({
           placeholder={!editing && occasionFor(prompt?.id) === "thanksgiving" ? t("compose.thankfulPlaceholder") : t("compose.notesPlaceholder")}
           textAlignVertical="top"
         />
+        {/* Pray for people on my list, or add someone to it (not when editing). */}
+        {!editing && <ComposePrayerList notes={notes} onNotes={setNotes} />}
         {/* Shown only near the limit, like Edit profile. */}
         {MAX_NOTES - notes.length <= NOTES_COUNTER_FROM && (
           <Text style={styles.counter} accessibilityLiveRegion="polite">
