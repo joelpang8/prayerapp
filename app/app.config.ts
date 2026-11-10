@@ -104,6 +104,9 @@ const config: ExpoConfig = {
     // assets/liveActivity/candle.png (iOS allows at most 4 KB).
     // Before expo-live-activity: signs its widget extension with the same team.
     "./plugins/withTeamForAllTargets",
+    // Before both widget extensions: gives each its own Info.plist reference
+    // (they'd otherwise share one, and Xcode won't open the project).
+    "./plugins/withUniqueFileRefs",
     "expo-live-activity",
     // The "Pray for" widget (Lock Screen and Home Screen), from my own prayer
     // list (src/widgets/PrayForWidget.tsx). Needs an App Group, which only the
