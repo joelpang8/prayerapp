@@ -107,6 +107,10 @@ const config: ExpoConfig = {
     // Before both widget extensions: gives each its own Info.plist reference
     // (they'd otherwise share one, and Xcode won't open the project).
     "./plugins/withUniqueFileRefs",
+    // Crash-report symbols upload, as the app's last build step. Listed
+    // before the extensions so it runs after them and lands after "Embed
+    // Foundation Extensions" (before them, archiving fails with a cycle).
+    ...(remotePush ? ["./plugins/withCrashlyticsSymbols"] : []),
     "expo-live-activity",
     // The "Pray for" widget (Lock Screen and Home Screen), from my own prayer
     // list (src/widgets/PrayForWidget.tsx). Needs an App Group, which only the
@@ -183,7 +187,6 @@ const config: ExpoConfig = {
           "@react-native-firebase/messaging",
           // Crash reports (on unless turned off in Settings; src/lib/crashReports.ts).
           "@react-native-firebase/crashlytics",
-          "./plugins/withCrashlyticsSymbols",
           "./plugins/withRNFirebaseNoSPM",
         ]
       : []),

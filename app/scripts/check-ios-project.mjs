@@ -50,6 +50,13 @@ try {
     if (!new RegExp(`isa = PBXNativeTarget;[\\s\\S]*?name = "?${target}"?;`).test(pbx)) problems.push(`target ${target} is missing`);
   }
   if (!pbx.includes("FirebaseCrashlytics/run")) problems.push("Crashlytics' symbol upload step is missing");
+  // Build phases that read the built app must come after the extensions are
+  // embedded, or archiving fails with "Cycle inside PrayAlong".
+  const app = /\/\* PrayAlong \*\/ = \{\n\t\t\tisa = PBXNativeTarget;[\s\S]*?buildPhases = \(([\s\S]*?)\);/.exec(pbx)?.[1] ?? "";
+  const lines = app.split("\n").map((l) => l.trim()).filter(Boolean);
+  const crash = lines.findIndex((l) => l.includes("Upload symbols to Crashlytics"));
+  const lastEmbed = lines.findLastIndex((l) => l.includes("Embed Foundation Extensions"));
+  if (crash < lastEmbed) problems.push("the Crashlytics step runs before the extensions are embedded (build cycle)");
 } catch (err) {
   problems.push(`prebuild failed: ${err.message}`);
 } finally {
