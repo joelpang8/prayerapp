@@ -1,3 +1,4 @@
+import { loadCrashReportsPref } from "../lib/crashReports";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, type Href, type Theme } from "expo-router";
@@ -134,7 +135,7 @@ export default function RootLayout() {
   // The icon font loads with the text fonts, so tab icons don't pop in late.
   const [fontsLoaded, fontError] = useFonts({ ...fontAssets, ...Ionicons.font });
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
-  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs(), loadVoicePrefs(), loadLiveActivityPref(), loadLangPref(), loadReminderPref()]).finally(() => setAppearanceLoaded(true)); }, []);
+  useEffect(() => { Promise.all([loadAppearance(), loadTextSize(), loadPrayingPrefs(), loadVoicePrefs(), loadLiveActivityPref(), loadLangPref(), loadReminderPref(), loadCrashReportsPref()]).finally(() => setAppearanceLoaded(true)); }, []);
   useEffect(() => {
     const t = setTimeout(hideSplash, SPLASH_MAX_MS);
     return () => clearTimeout(t);

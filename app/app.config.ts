@@ -181,6 +181,9 @@ const config: ExpoConfig = {
       ? [
           "@react-native-firebase/app",
           "@react-native-firebase/messaging",
+          // Crash reports (on unless turned off in Settings; src/lib/crashReports.ts).
+          "@react-native-firebase/crashlytics",
+          "./plugins/withCrashlyticsSymbols",
           "./plugins/withRNFirebaseNoSPM",
         ]
       : []),

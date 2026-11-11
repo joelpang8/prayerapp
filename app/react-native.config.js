@@ -12,5 +12,6 @@ module.exports = {
     : {
         "@react-native-firebase/app": off,
         "@react-native-firebase/messaging": off,
+        "@react-native-firebase/crashlytics": off,
       },
 };

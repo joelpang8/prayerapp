@@ -12,6 +12,7 @@ import { makeExport } from "../lib/exportPrayers";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "../lib/appearance";
 import { setLiveActivityEnabled, useLiveActivityEnabled } from "../lib/liveActivity";
 import { openPrivacyPolicy, sendFeedback } from "../lib/links";
+import { crashReportsAvailable, setCrashReportsEnabled, useCrashReportsEnabled } from "../lib/crashReports";
 import { setReminderEnabled, useReminderEnabled } from "../lib/reminder";
 import { setShowPrayingNames, useShowPrayingNames } from "../lib/prayingPrefs";
 import { setTextSize, TEXT_SIZES, useTextSize } from "../lib/textSize";
@@ -223,6 +224,7 @@ function ActivitySwitches() {
 function DownloadMyPrayers() {
   const styles = useStyles();
   const colors = useColors();
+  const crashOn = useCrashReportsEnabled();
   const { profile } = useReadySession();
   const settings = useSettings();
   const [photos, setPhotos] = useState(true);
@@ -277,6 +279,20 @@ function DownloadMyPrayers() {
           }
         />
         <Button title={t("settings.download")} kind="secondary" onPress={download} busy={busy} />
+        {crashReportsAvailable() && (
+          <InfoLabel
+            label={t("settings.crashReports")}
+            info={t("settings.crashReportsNote")}
+            right={
+              <Switch
+                value={crashOn}
+                onValueChange={(v) => { void setCrashReportsEnabled(v); }}
+                trackColor={{ true: colors.accent, false: colors.border }}
+                accessibilityLabel={t("settings.crashReports")}
+              />
+            }
+          />
+        )}
         {progress && progress.total > 0 && <Text style={styles.optionText}>{t("settings.downloadPreparing", progress)}</Text>}
         {message && (message.error ? <ErrorText>{message.text}</ErrorText> : <Text style={styles.optionText}>{message.text}</Text>)}
       </View>

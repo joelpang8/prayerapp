@@ -10,6 +10,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-firebase/app": "^26.4.0",
+    "@react-native-firebase/crashlytics": "^26.4.0",
     "@react-native-firebase/messaging": "^26.4.0",
     "@react-native-google-signin/google-signin": "^16.1.5",
     "expo": "~57.0.26",
@@ -72,7 +73,8 @@
     "generate:kjv": "tsx scripts/generate-kjv.ts",
     "deploy": "npm --prefix ../firebase run deploy",
     "ship": "npm install --no-audit --no-fund && npm run deploy && npm run ios:device",
-    "ship:testflight": "npm install --no-audit --no-fund && npm run deploy && npm run ios:testflight"
+    "ship:testflight": "npm install --no-audit --no-fund && npm run deploy && npm run ios:testflight",
+    "check:ios": "node scripts/check-ios-project.mjs"
   },
   "private": true,
   "license": "UNLICENSED"

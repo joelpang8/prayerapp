@@ -65,6 +65,10 @@ jobs:
         working-directory: app
       - run: npx expo lint
         working-directory: app
+      # The iPhone project generates and is one Xcode will open (no file in
+      # two groups, all targets present, Crashlytics symbols), without a Mac.
+      - run: npm run check:ios
+        working-directory: app
       # Curated verse list: every entry valid, verse-list.json up to date.
       - run: npm run verses -- --check
         working-directory: app
